@@ -177,8 +177,7 @@ export default {
     },
     handleImageError(e) {
       console.error('Image failed to load:', e.target.src);
-      // Fallback to a static image we know exists
-      e.target.src = '/img/venues-img/grandballroom.png';
+      e.target.src = `${axios.defaults.baseURL}/saved/venue_img/grandballroom.png`;
     },
     viewPackageDetails(pkg) {
       // TODO: Implement package details view
@@ -203,61 +202,18 @@ export default {
       }
     },
     getVenueImageUrl(image) {
-      // Default image if none provided
       if (!image) {
-        return '/img/venues-img/grandballroom.png';
+        return `${axios.defaults.baseURL}/saved/venue_img/grandballroom.png`;
       }
-      
-      // If it's already a path to a static image in venues-img, return as is
-      if (image.startsWith('/img/venues-img/')) {
-        return image;
-      }
-      
-      // If it's already a path to an API endpoint image, prepend the API base URL
-      if (image.startsWith('/api/venue-image/')) {
-        const apiBaseUrl = 'http://localhost:5000';
-        return `${apiBaseUrl}${image}`;
-      }
-      
-      // If it's a full URL, use it directly
-      if (image.startsWith('http')) {
-        return image;
-      }
-      
-      // For venue images with venue_TIMESTAMP_NAME format
-      if (image.startsWith('venue_') && image.includes('_')) {
-        // Extract the actual venue name after the timestamp
-        const parts = image.split('_');
-        if (parts.length >= 3) {
-          // Get the venue name part (last part)
-          const venueNameWithExt = parts.slice(2).join('_');
-          
-          // Check if we have a matching static image with this venue name
-          const staticFiles = ['grandballroom.png', 'hogwarts.png', 'oceanview.png', 'paseo.png', 'sealavie.png'];
-          
-          for (const staticFile of staticFiles) {
-            // Check if the venue name (without extension) is contained in the static filename
-            const venueName = venueNameWithExt.split('.')[0].toLowerCase();
-            if (staticFile.toLowerCase().includes(venueName)) {
-              return `/img/venues-img/${staticFile}`;
-            }
-          }
-          
-          // If no match found but we have a copy of the original file in public folder
-          try {
-            // First try with the original filename
-            return `/img/venues-img/${image}`;
-          } catch (error) {
-            // If that fails, use the API endpoint
-            const apiBaseUrl = 'http://localhost:5000';
-            return `${apiBaseUrl}/api/venue-image/${image}`;
-          }
-        }
-      }
-      
-      // For all other cases, use the API endpoint
-      const apiBaseUrl = 'http://localhost:5000';
-      return `${apiBaseUrl}/api/venue-image/${image}`;
+
+      // Clean up the image path
+      // Remove drive letter if present (e.g., E:)
+      image = image.replace(/^[A-Za-z]:\\/, '');
+      // Remove any directory paths and get just the filename
+      image = image.split(/[\/\\]/).pop();
+
+      // All images will be served from the backend
+      return `${axios.defaults.baseURL}/saved/venue_img/${image}`;
     },
     addToWishlist(packageId) {
       // TODO: Implement add to wishlist functionality

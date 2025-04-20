@@ -610,118 +610,42 @@ def update_gown_package_price(gown_package_id, cursor):
 def update_package(package_id, package_data):
     conn = db.get_db_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("BEGIN")
 
-        # Update basic package information
+    try:
+        # First check if package exists
+        cursor.execute("SELECT * FROM event_packages WHERE package_id = %s", (package_id,))
+        if not cursor.fetchone():
+            return False, "Package not found"
+
+        # Update the package details
         cursor.execute("""
             UPDATE event_packages 
             SET package_name = %s,
+                event_type_id = %s,
                 capacity = %s,
+                charge_unit = %s,
+                additional_capacity_charges = %s,
                 description = %s
             WHERE package_id = %s
-            RETURNING package_id
-        """, (
-            package_data['package_name'],
-            package_data['capacity'],
-            package_data['description'],
-            package_id
-        ))
+            """, (
+                package_data['package_name'],
+                package_data['event_type_id'],
+                package_data['capacity'],
+                package_data['charge_unit'],
+                package_data['additional_capacity_charges'],
+                package_data['description'],
+                package_id
+            ))
 
-        if cursor.rowcount == 0:
-            cursor.execute("ROLLBACK")
-            return False
-
-        # Clear existing inclusions
-        cursor.execute("DELETE FROM event_package_services WHERE package_id = %s", (package_id,))
-        cursor.execute("DELETE FROM event_package_additional_services WHERE package_id = %s", (package_id,))
-
-        total_price = 0
-
-        # Process new inclusions
-        for inclusion in package_data['inclusions']:
-            if inclusion['type'] == 'supplier':
-                # Add supplier
-                if 'supplier_id' in inclusion['data']:
-                    # Internal supplier
-                    cursor.execute("""
-                        INSERT INTO package_service (supplier_id, remarks)
-                        VALUES (%s, %s)
-                        RETURNING package_service_id
-                    """, (inclusion['data']['supplier_id'], inclusion.get('remarks', '')))
-                else:
-                    # External supplier
-                    cursor.execute("""
-                        INSERT INTO package_service (
-                            external_supplier_name,
-                            external_supplier_contact,
-                            external_supplier_price,
-                            remarks
-                        )
-                        VALUES (%s, %s, %s, %s)
-                        RETURNING package_service_id
-                    """, (
-                        inclusion['data']['external_supplier_name'],
-                        inclusion['data']['external_supplier_contact'],
-                        inclusion['data']['external_supplier_price'],
-                        inclusion.get('remarks', '')
-                    ))
-                
-                package_service_id = cursor.fetchone()[0]
-                cursor.execute("""
-                    INSERT INTO event_package_services (package_id, package_service_id)
-                    VALUES (%s, %s)
-                """, (package_id, package_service_id))
-                
-                total_price += float(inclusion['data'].get('price', 0))
-
-            elif inclusion['type'] == 'venue':
-                # Update venue
-                cursor.execute("""
-                    UPDATE event_packages
-                    SET venue_id = %s
-                    WHERE package_id = %s
-                """, (inclusion['data']['selectVenueId'], package_id))
-                
-                total_price += float(inclusion['data'].get('price', 0))
-
-            elif inclusion['type'] == 'outfit':
-                # Update outfit package
-                cursor.execute("""
-                    UPDATE event_packages
-                    SET gown_package_id = %s
-                    WHERE package_id = %s
-                """, (inclusion['data']['gown_package_id'], package_id))
-                
-                total_price += float(inclusion['data'].get('price', 0))
-
-            elif inclusion['type'] == 'service':
-                # Add additional service
-                cursor.execute("""
-                    INSERT INTO event_package_additional_services (package_id, add_service_id)
-                    VALUES (%s, %s)
-                """, (package_id, inclusion['data']['add_service_id']))
-                
-                total_price += float(inclusion['data'].get('price', 0))
-
-        # Update total price
-        cursor.execute("""
-            UPDATE event_packages
-            SET total_price = %s
-            WHERE package_id = %s
-        """, (total_price, package_id))
-
-        cursor.execute("COMMIT")
-        return True
+        conn.commit()
+        return True, "Package updated successfully"
 
     except Exception as e:
-        cursor.execute("ROLLBACK")
-        print(f"Error updating package: {e}")
-        return False
+        conn.rollback()
+        return False, str(e)
     finally:
         cursor.close()
         conn.close()
-
 
 def delete_package(package_id):
     conn = db.get_db_connection()
@@ -3154,7 +3078,7 @@ def update_wishlist_package(wishlist_id, package_data):
                     VALUES (%s, %s, %s, %s, %s)
                 """, (
                     wishlist_id, 
-                    service['add_service_id'], 
+                    service['add_service_id'],
                     service.get('price', 0) or service.get('add_service_price', 0), 
                     service.get('remarks', ''),
                     status
@@ -4072,6 +3996,156 @@ def get_venues():
                 'image': venue[6]
             })
         return venues_list
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_inactive_event_packages():
+    """Get all inactive event packages with their details"""
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT 
+                p.package_id,
+                p.package_name,
+                p.capacity,
+                p.description,
+                p.venue_id,
+                p.gown_package_id,
+                p.additional_capacity_charges,
+                p.charge_unit,
+                p.total_price,
+                p.status,
+                p.event_type_id,
+                v.venue_name,
+                v.location,
+                v.venue_price,
+                et.event_type_name,
+                gp.gown_package_name,
+                gp.gown_package_price
+            FROM event_packages p
+            LEFT JOIN venues v ON p.venue_id = v.venue_id
+            LEFT JOIN event_type et ON p.event_type_id = et.event_type_id
+            LEFT JOIN gown_package gp ON p.gown_package_id = gp.gown_package_id
+            WHERE p.status = 'Inactive'
+            ORDER BY p.package_id DESC
+        """)
+        
+        packages = cursor.fetchall()
+        
+        # Transform into list of dictionaries
+        result = []
+        for pkg in packages:
+            package_dict = {
+                'package_id': pkg[0],
+                'package_name': pkg[1],
+                'capacity': pkg[2],
+                'description': pkg[3],
+                'venue_id': pkg[4],
+                'gown_package_id': pkg[5],
+                'additional_capacity_charges': float(pkg[6]) if pkg[6] else 0,
+                'charge_unit': pkg[7],
+                'total_price': float(pkg[8]) if pkg[8] else 0,
+                'status': pkg[9],
+                'event_type_id': pkg[10],
+                'venue_name': pkg[11],
+                'location': pkg[12],
+                'venue_price': float(pkg[13]) if pkg[13] else 0,
+                'event_type_name': pkg[14],
+                'gown_package_name': pkg[15],
+                'gown_package_price': float(pkg[16]) if pkg[16] else 0
+            }
+            
+            # Get suppliers for this package through configurations
+            cursor.execute("""
+                SELECT DISTINCT s.supplier_id, u.firstname, u.lastname, s.service, 
+                       COALESCE(eps.modified_price, eps.original_price, s.price) as effective_price
+                FROM event_package_configurations epc
+                JOIN event_package_suppliers eps ON eps.config_id = epc.config_id
+                JOIN suppliers s ON s.supplier_id = eps.supplier_id
+                JOIN users u ON s.userid = u.userid
+                WHERE epc.package_id = %s
+                  AND eps.is_removed = false
+            """, (pkg[0],))
+            
+            suppliers = cursor.fetchall()
+            package_dict['suppliers'] = [
+                {
+                    'supplier_id': s[0],
+                    'name': f"{s[1]} {s[2]}",
+                    'service': s[3],
+                    'price': float(s[4]) if s[4] else 0
+                } for s in suppliers
+            ]
+            
+            # Get additional services for this package
+            cursor.execute("""
+                SELECT a.add_service_id, a.add_service_name, a.add_service_price
+                FROM event_package_additional_services epas
+                JOIN additional_services a ON a.add_service_id = epas.add_service_id
+                WHERE epas.package_id = %s
+            """, (pkg[0],))
+            
+            services = cursor.fetchall()
+            package_dict['additional_services'] = [
+                {
+                    'service_id': s[0],
+                    'name': s[1],
+                    'price': float(s[2]) if s[2] else 0
+                } for s in services
+            ]
+            
+            result.append(package_dict)
+            
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching inactive packages: {str(e)}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+def toggle_event_package_status(package_id):
+    """Toggle the status of an event package between Active and Inactive"""
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # First check if the package exists
+        cursor.execute("SELECT status FROM event_packages WHERE package_id = %s", (package_id,))
+        result = cursor.fetchone()
+        if not result:
+            logger.error(f"No package found with id {package_id}")
+            raise Exception(f"No package found with id {package_id}")
+            
+        current_status = result[0] or 'Active'  # Default to Active if None
+        logger.info(f"Current status for package {package_id}: {current_status}")
+        
+        # Toggle the status
+        new_status = 'Inactive' if current_status == 'Active' else 'Active'
+        logger.info(f"New status will be: {new_status}")
+        
+        cursor.execute("""
+            UPDATE event_packages 
+            SET status = %s 
+            WHERE package_id = %s
+            RETURNING package_id
+        """, (new_status, package_id))
+        
+        updated = cursor.fetchone()
+        conn.commit()
+        
+        if updated:
+            logger.info(f"Successfully updated package {package_id} status to {new_status}")
+            return True, new_status
+        else:
+            logger.error(f"Failed to update package {package_id}")
+            return False, current_status
+            
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error toggling event package status: {str(e)}")
+        raise
     finally:
         cursor.close()
         conn.close()

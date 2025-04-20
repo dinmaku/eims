@@ -1,7 +1,10 @@
 #routes.py
 from flask import Flask, request, jsonify, send_file, make_response, send_from_directory
 from flask_cors import CORS, cross_origin
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
+from flask_jwt_extended import (
+    JWTManager, jwt_required, create_access_token,
+    create_refresh_token, get_jwt_identity, get_jwt
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
@@ -1366,26 +1369,51 @@ def init_routes(app):
 
     @app.route('/inactive-packages', methods=['GET'])
     @jwt_required()
-    def get_inactive_packages_route():
+    def get_inactive_event_packages_route():
         try:
-            from . import models  # Import models at function level to avoid circular imports
-            packages = models.get_inactive_packages()
+            logger.info("Fetching inactive event packages")
+            packages = models.get_inactive_event_packages()
+            logger.info(f"Found {len(packages)} inactive packages")
             return jsonify(packages)
         except Exception as e:
+            logger.error(f"Error fetching inactive packages: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
     @app.route('/toggle-package-status/<int:package_id>', methods=['PUT'])
     @jwt_required()
-    def toggle_package_status_route(package_id):
+    def toggle_event_package_status_route(package_id):
         try:
-            from . import models  # Import models at function level to avoid circular imports
-            success = models.toggle_package_status(package_id)
+            logger.info(f"Toggling status for event package {package_id}")
+            
+            # First check if the package exists
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT package_id, status FROM event_packages WHERE package_id = %s", (package_id,))
+            package = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not package:
+                logger.error(f"Package {package_id} not found")
+                return jsonify({'error': f'Package with ID {package_id} not found'}), 404
+            
+            # Import the function directly to avoid circular imports
+            from . import models
+            success, new_status = models.toggle_event_package_status(package_id)
+            
             if success:
-                return jsonify({'message': 'Package status updated successfully'}), 200
+                logger.info(f"Successfully toggled event package {package_id} status to {new_status}")
+                return jsonify({
+                    'message': 'Package status updated successfully',
+                    'new_status': new_status
+                }), 200
             else:
+                logger.error(f"Failed to toggle status for event package {package_id}")
                 return jsonify({'error': 'Failed to update package status'}), 400
+                
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            logger.error(f"Error toggling event package status: {str(e)}")
+            return jsonify({'error': str(e)}), 400
 
     @app.route('/inactive-gown-packages', methods=['GET'])
     @jwt_required()
@@ -3056,5 +3084,147 @@ def init_routes(app):
                 'status': 'error',
                 'message': 'Image not found'
             }), 404
+
+    @app.route('/package/<int:package_id>', methods=['PUT', 'OPTIONS'])
+    @cross_origin(supports_credentials=True, origins=['http://localhost:5173'])
+    @jwt_required()
+    def update_package_route(package_id):
+        if request.method == 'OPTIONS':
+            response = make_response()
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'PUT')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            return response
+
+        try:
+            data = request.get_json()
+            success, message = update_package(package_id, data)
+            
+            if success:
+                return jsonify({'message': message}), 200
+            else:
+                return jsonify({'error': message}), 404
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/packages/inactive', methods=['GET', 'OPTIONS'])
+    @jwt_required()
+    @cross_origin(supports_credentials=True)
+    def get_inactive_packages_route():
+        try:
+            logger.info("Fetching inactive packages")
+            # Import models at function level to avoid circular imports
+            from . import models
+            packages = models.get_inactive_event_packages()
+            logger.info(f"Found {len(packages) if packages else 0} inactive packages")
+            return jsonify(packages)
+        except Exception as e:
+            logger.error(f"Error fetching inactive packages: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/toggle-package-status/<int:package_id>', methods=['PUT', 'OPTIONS'])
+    @jwt_required()
+    @cross_origin(supports_credentials=True)
+    def toggle_package_status_route(package_id):
+        try:
+            result = models.toggle_event_package_status(package_id)
+            if result:
+                return jsonify({"message": "Package status updated successfully"}), 200
+            return jsonify({"error": "Failed to update package status"}), 400
+        except Exception as e:
+            logger.error(f"Error toggling package status: {str(e)}")
+            return jsonify({"error": str(e)}), 400
+
+    @app.route('/gown-package-outfits/<int:package_id>', methods=['GET', 'OPTIONS'])
+    @jwt_required()
+    @cross_origin(supports_credentials=True)
+    def get_gown_package_outfits(package_id):
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            # Query to get all outfits associated with the gown package
+            query = """
+            SELECT o.* FROM outfits o
+            JOIN gown_package_outfits gpo ON o.outfit_id = gpo.outfit_id
+            WHERE gpo.gown_package_id = %s
+            """
+            
+            cur.execute(query, (package_id,))
+            outfits = cur.fetchall()
+            
+            outfit_list = []
+            for outfit in outfits:
+                outfit_dict = {
+                    'outfit_id': outfit[0],
+                    'outfit_name': outfit[1],
+                    'outfit_type': outfit[2],
+                    'outfit_color': outfit[3],
+                    'outfit_desc': outfit[4],
+                    'rent_price': float(outfit[5]) if outfit[5] else 0,
+                    'status': outfit[6],
+                    'outfit_img': outfit[7],
+                    'size': outfit[8],
+                    'weight': float(outfit[9]) if outfit[9] else 0
+                }
+                outfit_list.append(outfit_dict)
+            
+            cur.close()
+            conn.close()
+            
+            return jsonify(outfit_list), 200
+            
+        except Exception as e:
+            logger.error(f"Error fetching gown package outfits: {e}")
+            return jsonify({'message': f'Error fetching gown package outfits: {str(e)}'}), 500
+
+    @app.route('/update-gown-package/<int:package_id>', methods=['PUT', 'OPTIONS'])
+    @jwt_required()
+    @cross_origin(supports_credentials=True)
+    def update_gown_package_route(package_id):
+        try:
+            data = request.get_json()
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            # Update the gown package basic information
+            cur.execute(
+                """
+                UPDATE gown_package 
+                SET gown_package_name = %s, description = %s, gown_package_price = %s
+                WHERE gown_package_id = %s
+                """,
+                (data.get('gown_package_name'), data.get('description'), data.get('gown_package_price'), package_id)
+            )
+            
+            # Delete existing outfit associations
+            cur.execute(
+                "DELETE FROM gown_package_outfits WHERE gown_package_id = %s",
+                (package_id,)
+            )
+            
+            # Insert new outfit associations
+            outfit_ids = data.get('outfit_ids', [])
+            for outfit_id in outfit_ids:
+                cur.execute(
+                    """
+                    INSERT INTO gown_package_outfits (gown_package_id, outfit_id)
+                    VALUES (%s, %s)
+                    """,
+                    (package_id, outfit_id)
+                )
+            
+            # Commit the transaction
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return jsonify({"message": "Gown package updated successfully"}), 200
+            
+        except Exception as e:
+            logger.error(f"Error updating gown package: {e}")
+            return jsonify({"message": f"Error updating gown package: {str(e)}"}), 500
 
     return app

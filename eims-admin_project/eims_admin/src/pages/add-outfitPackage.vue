@@ -205,7 +205,7 @@
                     <div class="flex justify-center space-x-4 my-6">
                         <button  @click="openOutfitSelection"
                             type="button"
-                            class="px-4 py-2 bg-[#9B111E] text-white rounded-lg shadow-sm hover:bg-blue-700 transition duration-300"
+                            class="px-4 py-2 bg-[#9B111E] text-white rounded-lg shadow-sm hover:bg-[#B73A45] transition duration-300"
                         >
                             Add Outfits
                         </button>
@@ -227,31 +227,33 @@
                         </thead>
                         <tbody>
                             <tr
-                                v-for="item in packageInclusions"
-                                :key="item.outfit_id"
+                                v-for="outfit in selectedPackageOutfits"
+                                :key="outfit.outfit_id"
                                 class="hover:bg-gray-100 border-t"
                             >
-                                <td class="p-2 text-sm capitalize">{{ item.outfit_type }}</td>
-                                <td class="p-2 text-sm">{{ item.outfit_name }}</td>
-                                <td class="p-2 text-sm">{{ formatPrice(item.rent_price) }} php</td>
+                                <td class="p-2 text-sm capitalize">{{ outfit.outfit_type }}</td>
+                                <td class="p-2 text-sm">{{ outfit.outfit_name }}</td>
+                                <td class="p-2 text-sm">{{ formatPrice(outfit.rent_price) }} php</td>
                                 <td class="p-2 text-sm">
                                     <button
-                                    @click="removeInclusion(item.outfit_id)"
-                                    class="rounded p-1 hover:bg-red-100"
-                                >
-                                    <img 
-                                        src="/img/delete.png"
-                                        alt="Remove"
-                                        class="w-4 h-4"
-                                    />
-                                </button>
+                                        @click="removeOutfitFromPackage(outfit.outfit_id)"
+                                        class="rounded p-1 hover:bg-red-100"
+                                    >
+                                        <img 
+                                            src="/img/delete.png"
+                                            alt="Remove"
+                                            class="w-4 h-4"
+                                        />
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
-                </table>
+                    </table>
+                </div>
             </div>
-        </div>
 
+
+         
 
             <!-- Price Summary Section -->
                 <div class="mt-6 border-t pt-4">
@@ -302,8 +304,8 @@
             </form>
 
             <!-- Outfit Selection Modal -->
-            <div v-if="showOutfitModal" @click.self="closeOutfitModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                <div class="bg-white w-full max-w-lg p-6 rounded-lg shadow-xl">
+            <div v-if="showOutfitModal" @click.self="closeOutfitModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[100]">
+                <div class="bg-white w-full max-w-2xl p-6 rounded-lg shadow-xl">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">Select Outfits</h3>
                     
                     <!-- Search Input -->
@@ -316,23 +318,42 @@
                         >
                     </div>
 
+                    <!-- Search and Filter -->
+                    <div class="flex gap-4 mb-4">
+                        <input
+                            type="text"
+                            v-model="outfitSearchQuery"
+                            placeholder="Search outfits..."
+                            class="px-4 py-2 border rounded-lg flex-1"
+                        >
+                        <select 
+                            v-model="outfitTypeFilter"
+                            class="px-4 py-2 border rounded-lg"
+                        >
+                            <option value="">All Types</option>
+                            <option v-for="type in distinctOutfitTypes" :key="type" :value="type">
+                                {{ type }}s
+                            </option>
+                        </select>
+                    </div>
+
                     <!-- Combined Outfits Table -->
                     <div style="max-height: 300px; overflow-y: auto;">
-                    <table class="w-full text-sm table-fixed">
+                    <table class="w-full text-sm">
                         <thead class="bg-gray-50 sticky top-0 z-10">
                             <tr>
-                                <th scope="col" class="w-16 px-4 py-2">Name</th>
-                                <th scope="col" class="w-52 px-4 py-2">Type</th>
-                                <th scope="col" class="w-96 px-4 py-2">Price</th>
-                                <th scope="col" class="w-28 px-4 py-2">Action</th>
+                                <th scope="col" class="px-2 py-2 w-[30%]">Name</th>
+                                <th scope="col" class="px-2 py-2 w-[30%]">Type</th>
+                                <th scope="col" class="px-2 py-2 w-[25%]">Price</th>
+                                <th scope="col" class="px-2 py-2 w-[15%]">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="outfit in filteredOutfits" :key="outfit.outfit_id">
-                            <td class="w-16 px-4 py-2">{{ outfit.outfit_name }}</td>
-                            <td class="w-52 px-4 py-2 capitalize">{{ outfit.outfit_type }}</td>
-                            <td class="w-96 px-4 py-2">₱{{ formatPrice(outfit.rent_price) }}</td>
-                            <td class="w-28 px-4 py-2">
+                            <tr v-for="outfit in filteredOutfits" :key="outfit.outfit_id" class="hover:bg-gray-50">
+                            <td class="px-2 py-2 truncate">{{ outfit.outfit_name }}</td>
+                            <td class="px-2 py-2 capitalize truncate">{{ outfit.outfit_type }}</td>
+                            <td class="px-2 py-2">₱{{ formatPrice(outfit.rent_price) }}</td>
+                            <td class="px-2 py-2 text-center">
                                 <button
                                     @click="toggleOutfitSelection(outfit)"
                                     class="rounded p-1"
@@ -361,131 +382,140 @@
 
             
            <!-- Edit Outfit Package Form -->
-                <form v-if="editGownPackageForm" @click.self="closeEditGownPackageForm" @submit.prevent="updateGownPackage" class="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center overflow-y-auto z-50">
-                <div class="bg-white w-full max-w-md p-6 rounded-lg shadow-xl transform transition duration-300">
+                <form v-if="editGownPackageForm" @click.self="closeEditGownPackageForm" @submit.prevent="updateGownPackage" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center overflow-y-auto z-50">
+                <div class="bg-white w-full max-w-lg p-6 rounded-lg shadow-xl transform transition duration-300 relative">
                     <!-- Header -->
-                    <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Edit Gown Package</h2>
-                    <button @click="closeEditGownPackageForm" class="text-red-500 hover:text-red-700 transition duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 text-center">Update Outfit Package</h2>
                     </div>
 
                     <!-- Error Message -->
-                    <div v-if="errorMessage" class="text-sm text-red-500 mb-4">
-                    {{ errorMessage }}
+                    <div v-if="errorMessage" class="text-sm text-red-500 mb-4 text-center">
+                        {{ errorMessage }}
                     </div>
 
-                    <!-- Gown Package Name -->
+                    <!-- Package Name -->
                     <div class="mb-4">
-                    <input
-                        id="gown-package-name"
-                        type="text"
-                        v-model="selectedGownPackage.gown_package_name"
-                        class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                        placeholder="Enter package name"
-                        required
-                    />
+                        <input
+                            id="package-name"
+                            type="text"
+                            v-model="selectedGownPackage.gown_package_name"
+                            class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            placeholder="Enter package name"
+                            required
+                        />
                     </div>
 
                     <!-- Description -->
                     <div class="mb-4">
-                    <input
-                        id="description"
-                        type="text"
-                        v-model="selectedGownPackage.description"
-                        class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                        placeholder="Enter description"
-                    />
+                        <textarea
+                            id="description"
+                            v-model="selectedGownPackage.description"
+                            class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            placeholder="Enter description"
+                            rows="3"
+                            style="resize: none;"
+                        ></textarea>
                     </div>
 
-                   <!-- Gowns Section -->
+                    <!-- Outfit Selection Button -->
+                    <div class="flex justify-center space-x-4 my-6">
+                        <button @click="openEditOutfitSelection"
+                            type="button"
+                            class="px-4 py-2 bg-[#9B111E] text-white rounded-lg shadow-sm hover:bg-[#B73A45] transition duration-300"
+                        >
+                            Add Outfits
+                        </button>
+                    </div>
+
+                    <!-- Inclusions Section -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Select Gowns</h3>
-                        <div class="max-h-48 overflow-y-auto border border-gray-300 rounded-lg">
-                        <table class="w-full">
-                            <thead class="bg-gray-200">
-                            <tr>
-                                <th class="p-2 text-left">Select</th>
-                                <th class="p-2 text-left">Gown Name</th>
-                                <th class="p-2 text-left">Price</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr 
-                                v-for="outfit in gowns" 
-                                :key="outfit.outfit_id" 
-                                class="hover:bg-gray-100"
-                            >
-                                <td class="p-2 text-center">
-                                    <input 
-                                        type="checkbox" 
-                                        :value="outfit.outfit_id"
-                                        :checked="selectedGownPackage.selectedGowns.includes(outfit.outfit_id)"
-                                        @change="toggleSelection(outfit.outfit_id, 'gown')"
-                                        class="form-checkbox h-5 w-5 text-blue-600"
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Inclusions</h3>
+                        <div class="border rounded-lg" style="height: 150px; overflow-y: auto;">
+                            <table class="w-full">
+                                <thead class="bg-gray-200 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="p-2 text-left">Type</th>
+                                        <th class="p-2 text-left">Name</th>
+                                        <th class="p-2 text-left">Price</th>
+                                        <th class="p-2 text-left">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Combine both gowns and tuxedos -->
+                                    <tr
+                                        v-for="outfit in selectedPackageOutfits"
+                                        :key="outfit.outfit_id"
+                                        class="hover:bg-gray-100 border-t"
                                     >
-                                </td>
-                                <td class="p-2 text-sm">{{ outfit.outfit_name }}</td>
-                                <td class="p-2 text-sm">{{ formatPrice(outfit.rent_price) }} php</td>
-                            </tr>
-                            </tbody>
-                        </table>
+                                        <td class="p-2 text-sm capitalize">{{ outfit.outfit_type }}</td>
+                                        <td class="p-2 text-sm">{{ outfit.outfit_name }}</td>
+                                        <td class="p-2 text-sm">{{ formatPrice(outfit.rent_price) }} php</td>
+                                        <td class="p-2 text-sm">
+                                            <button
+                                                @click="removeOutfitFromPackage(outfit.outfit_id)"
+                                                class="rounded p-1 hover:bg-red-100"
+                                                type="button"
+                                            >
+                                                <img 
+                                                    src="/img/delete.png"
+                                                    alt="Remove"
+                                                    class="w-4 h-4"
+                                                />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
-                    <!-- Tuxedos Section -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Select Tuxedos</h3>
-                        <div class="max-h-48 overflow-y-auto border border-gray-300 rounded-lg">
-                        <table class="w-full">
-                            <thead class="bg-gray-200">
-                            <tr>
-                                <th class="p-2 text-left">Select</th>
-                                <th class="p-2 text-left">Tuxedo Name</th>
-                                <th class="p-2 text-left">Price</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr 
-                                v-for="outfit in tuxedos" 
-                                :key="outfit.outfit_id" 
-                                class="hover:bg-gray-100"
-                            >
-                                <td class="p-2 text-center">
-                                    <input 
-                                        type="checkbox" 
-                                        :value="outfit.outfit_id"
-                                        :checked="selectedGownPackage.selectedTuxedos.includes(outfit.outfit_id)"
-                                        @change="toggleSelection(outfit.outfit_id, 'tuxedo')"
-                                        class="form-checkbox h-5 w-5 text-blue-600"
-                                    >
-                                </td>
-                                <td class="p-1 text-sm">{{ outfit.outfit_name }}</td>
-                                <td class="p-1 text-sm">{{ formatPrice(outfit.rent_price) }} php</td>
-                            </tr>
-                            </tbody>
-                        </table>
+                
+
+                    <!-- Price Summary Section -->
+                    <div class="mt-6 border-t pt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-600">Subtotal:</span>
+                            <span class="font-semibold">₱ {{ formatPrice(calculateEditSubtotal()) }}</span>
+                        </div>
+                        
+                        <!-- Discount Input -->
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center">
+                                <span class="text-gray-600 mr-2">Discount (%):</span>
+                                <input 
+                                    type="number" 
+                                    v-model.number="editDiscount"
+                                    min="0"
+                                    max="100"
+                                    class="w-20 px-2 py-1 border rounded"
+                                >
+                            </div>
+                            <span class="font-semibold ">- ₱ {{ formatPrice(calculateEditDiscount()) }}</span>
+                        </div>
+
+                        <!-- Total -->
+                        <div class="flex justify-between items-center mt-4 pt-2 border-t">
+                            <span class="text-lg font-bold">Total:</span>
+                            <span class="text-lg font-bold ">₱ {{ formatPrice(calculateEditTotal()) }}</span>
                         </div>
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex justify-end space-x-4">
-                    <button
-                        @click="closeEditGownPackageForm"
-                        type="button"
-                        class="px-4 py-2 bg-red-300 text-gray-700 rounded-lg shadow-sm hover:bg-red-500 transition duration-300"
-                    >
-                        Delete
-                    </button>
-                    <button
-                        type="submit"
-                        class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-600 transition duration-300"
-                    >
-                        Save Changes
-                    </button>
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button
+                            @click="closeEditGownPackageForm"
+                            type="button"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-400 transition duration-300"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 transition duration-300"
+                        >
+                            Update
+                        </button>
                     </div>
                 </div>
             </form>
@@ -517,6 +547,7 @@
                                     <option value="Saree">Saree</option>
                                     <option value="Lehenga">Lehenga</option>
                                     <option value="Suit">Suit</option>
+                                    <option value="Gown">Gown</option>
                                     <option value="Jumpsuit">Jumpsuit</option>
                                     <option value="Reception Dress">Reception Dress</option>
                                     <option value="Bridal Robe">Bridal Robe</option>
@@ -647,35 +678,37 @@
                     class="px-4 py-2 border rounded-lg"
                 >
                     <option value="">All Types</option>
-                    <option value="Gown">Gowns</option>
-                    <option value="Tuxedo">Tuxedos</option>
-        </select>
-     </div>       
+                    <option v-for="type in distinctOutfitTypes" :key="type" :value="type">
+                        {{ type }}s
+                    </option>
+                </select>
+            </div>
+    
     <!-- Outfits Table -->
         <div class="h-[400px] flex flex-col">
             <div class="overflow-x-auto flex-grow">
-                <table class="w-full text-sm text-left table-fixed">
+                <table class="w-full text-sm text-left">
                     <thead class="text-xs uppercase bg-gray-50 sticky top-0">
                         <tr>
-                            <th scope="col" class="w-16 px-6 py-3">#</th>
-                            <th scope="col" class="w-52 px-6 py-3">Name</th>
-                            <th scope="col" class="w-96 px-6 py-3">Type</th>
-                            <th scope="col" class="w-36 px-6 py-3">Color</th>
-                            <th scope="col" class="w-36 px-6 py-3">Size</th>
-                            <th scope="col" class="w-36 px-6 py-3">Price</th>
-                            <th scope="col" class="w-28 px-6 py-3">Status</th>
-                            <th scope="col" class="w-28 px-6 py-3">Image</th>
+                            <th scope="col" class="px-2 py-3 w-[5%]">#</th>
+                            <th scope="col" class="px-2 py-3 w-[20%]">Name</th>
+                            <th scope="col" class="px-2 py-3 w-[15%]">Type</th>
+                            <th scope="col" class="px-2 py-3 w-[10%]">Color</th>
+                            <th scope="col" class="px-2 py-3 w-[8%]">Size</th>
+                            <th scope="col" class="px-2 py-3 w-[12%]">Price</th>
+                            <th scope="col" class="px-2 py-3 w-[10%]">Status</th>
+                            <th scope="col" class="px-2 py-3 w-[10%]">Image</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="outfit in paginatedOutfits" :key="outfit.outfit_id" class="bg-white border-b hover:bg-gray-50">
-                            <td class="w-16 px-6 py-4">{{ outfit.dummyIndex }}</td>
-                            <td class="w-52 px-6 py-4 truncate">{{ outfit.outfit_name }}</td>
-                            <td class="w-96 px-6 py-4 capitalize">{{ outfit.outfit_type }}</td>
-                            <td class="w-36 px-6 py-4">{{ outfit.outfit_color }}</td>
-                            <td class="w-36 px-6 py-4">{{ outfit.size }}</td>
-                            <td class="w-36 px-6 py-4">{{ formatPrice(outfit.rent_price) }} php</td>
-                            <td class="w-28 px-6 py-4">
+                            <td class="px-2 py-3">{{ outfit.dummyIndex }}</td>
+                            <td class="px-2 py-3 truncate">{{ outfit.outfit_name }}</td>
+                            <td class="px-2 py-3 capitalize truncate">{{ outfit.outfit_type }}</td>
+                            <td class="px-2 py-3 truncate">{{ outfit.outfit_color }}</td>
+                            <td class="px-2 py-3">{{ outfit.size }}</td>
+                            <td class="px-2 py-3">{{ formatPrice(outfit.rent_price) }} php</td>
+                            <td class="px-2 py-3">
                                 <span 
                                     :class="outfit.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
                                     class="px-2 py-1 rounded-full text-xs font-medium"
@@ -683,11 +716,11 @@
                                     {{ outfit.status }}
                                 </span>
                             </td>
-                            <td class="w-28 px-6 py-4">
+                            <td class="px-2 py-3">
                                 <img 
                                     :src="outfit.outfit_img" 
                                     :alt="outfit.outfit_name"
-                                    class="w-12 h-12 object-cover rounded"
+                                    class="w-10 h-10 object-cover rounded"
                                 >
                             </td>
                         </tr>
@@ -793,11 +826,12 @@
             selectedGownPackage: {
                 gown_package_id: null,
                 gown_package_name: '',
+                gown_package_price: '',
                 description: '',
                 selectedGowns: [],
                 selectedTuxedos: []
             },
-
+            editDiscount: 0,
             newOutfit: {
                 outfit_name: '',
                 outfit_type: '',
@@ -859,7 +893,10 @@
             outfitSearchQuery: '',
             outfitTypeFilter: '',
             currentPage: 1,
-            rowsPerPage: 5
+            rowsPerPage: 5,
+            
+            // Selection mode for the outfit modal ('add' or 'edit')
+            outfitSelectionMode: 'add'
             
                 
 
@@ -880,19 +917,25 @@
         },
         filteredOutfits() {
             if (!this.searchQuery) return this.outfits;
+            
             const query = this.searchQuery.toLowerCase();
             return this.outfits.filter(outfit => 
                 outfit.outfit_name.toLowerCase().includes(query) || 
-                outfit.outfit_type.toLowerCase().includes(query)
+                outfit.outfit_type.toLowerCase().includes(query) ||
+                outfit.outfit_color.toLowerCase().includes(query)
             );
         },
         filteredOutfitsForModal() {
             return this.outfits.filter(outfit => {
-                const matchesSearch = outfit.outfit_name.toLowerCase().includes(this.outfitSearchQuery.toLowerCase()) ||
-                                    outfit.outfit_type.toLowerCase().includes(this.outfitSearchQuery.toLowerCase()) ||
-                                    outfit.outfit_color.toLowerCase().includes(this.outfitSearchQuery.toLowerCase());
+                // Filter by search query
+                const matchesSearch = !this.outfitSearchQuery || 
+                    outfit.outfit_name.toLowerCase().includes(this.outfitSearchQuery.toLowerCase()) ||
+                    outfit.outfit_type.toLowerCase().includes(this.outfitSearchQuery.toLowerCase()) ||
+                    outfit.outfit_color.toLowerCase().includes(this.outfitSearchQuery.toLowerCase());
                 
-                const matchesType = !this.outfitTypeFilter || outfit.outfit_type === this.outfitTypeFilter;
+                // Filter by outfit type
+                const matchesType = !this.outfitTypeFilter || 
+                    outfit.outfit_type === this.outfitTypeFilter;
                 
                 return matchesSearch && matchesType;
             });
@@ -913,6 +956,32 @@
         paginatedOutfits() {
             return this.filteredOutfitsForModal.slice(this.startIndex, this.endIndex);
         },
+        
+        // New computed property for the Update Package form
+        selectedPackageOutfits() {
+            if (!this.selectedGownPackage) return [];
+            
+            // Combine selected gowns and tuxedos into a single array
+            const selectedGownIds = this.selectedGownPackage.selectedGowns || [];
+            const selectedTuxedoIds = this.selectedGownPackage.selectedTuxedos || [];
+            
+            // Get the actual outfit objects that match the selected IDs
+            const selectedGowns = selectedGownIds.map(id => 
+                this.gowns.find(outfit => outfit.outfit_id === id)
+            ).filter(outfit => outfit); // Remove undefined values
+            
+            const selectedTuxedos = selectedTuxedoIds.map(id => 
+                this.tuxedos.find(outfit => outfit.outfit_id === id)
+            ).filter(outfit => outfit); // Remove undefined values
+            
+            // Combine both arrays
+            return [...selectedGowns, ...selectedTuxedos];
+        },
+        distinctOutfitTypes() {
+            // Extract unique outfit types from the outfits array
+            const types = new Set(this.outfits.map(outfit => outfit.outfit_type));
+            return Array.from(types).sort();
+        }
     },
     methods: {
         async fetchGownPackages() {
@@ -946,7 +1015,37 @@
             }
         },
 
-    async fetchOutfits() {
+        // Add calculation methods
+        calculateSubtotal() {
+            return this.packageInclusions.reduce((total, item) => {
+                return total + parseFloat(item.rent_price || 0);
+            }, 0);
+        },
+
+        calculateDiscount() {
+            const subtotal = this.calculateSubtotal();
+            const discountPercentage = parseFloat(this.packageDetails.discount || 0);
+            return (subtotal * discountPercentage) / 100;
+        },
+
+        calculateTotal() {
+            return this.calculateSubtotal() - this.calculateDiscount();
+        },
+        
+        // Add close package form method
+        closePackageForm() {
+            this.showOutfitPackageForm = false;
+            this.packageDetails = {
+                name: '',
+                description: '',
+                discount: 0
+            };
+            this.packageInclusions = [];
+            this.selectedOutfits = [];
+            this.errorMessage = '';
+        },
+
+        async fetchOutfits() {
             try {
             const token = localStorage.getItem('access_token');
             if (!token) {
@@ -1107,15 +1206,52 @@
             },
             
             editGownPackageBtn(index) {
-                const gownPackage = this.gownPackages[index];
+                const gownPackage = this.paginatedGownPackages[index];
+                
+                // Initialize the form with the package data
                 this.selectedGownPackage = {
                     gown_package_id: gownPackage.gown_package_id,
                     gown_package_name: gownPackage.gown_package_name,
+                    gown_package_price: gownPackage.gown_package_price,
                     description: gownPackage.description,
-                    selectedGowns: [], // You'll need to fetch the actual selected gowns from backend
-                    selectedTuxedos: [] // You'll need to fetch the actual selected tuxedos from backend
+                    selectedGowns: [],
+                    selectedTuxedos: []
                 };
+                
+                // Reset the edit discount
+                this.editDiscount = 0;
+                
+                // Fetch the package outfits from backend
+                this.fetchPackageOutfits(gownPackage.gown_package_id);
+                
+                // Show the edit form
                 this.editGownPackageForm = true;
+            },
+            
+            async fetchPackageOutfits(packageId) {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await axios.get(`http://127.0.0.1:5000/gown-package-outfits/${packageId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.data && Array.isArray(response.data)) {
+                        // Sort outfits into gowns and tuxedos
+                        response.data.forEach(outfit => {
+                            const outfitType = outfit.outfit_type.toLowerCase();
+                            if (outfitType.includes('gown') || outfitType.includes('dress')) {
+                                this.selectedGownPackage.selectedGowns.push(outfit.outfit_id);
+                            } else {
+                                this.selectedGownPackage.selectedTuxedos.push(outfit.outfit_id);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching package outfits:', error);
+                    this.errorMessage = 'Failed to load package outfits';
+                }
             },
 
             closeEditGownPackageForm() {
@@ -1127,7 +1263,33 @@
                     tuxedo_ids: []
                 }; // Reset form fields to default
                 this.errorMessage = ''; // Clear error messages
-                },
+            },
+
+            // New methods for Update Outfit Package form
+            removeOutfitFromPackage(outfitId) {
+                // Check if the outfit is in selectedGowns
+                const gownIndex = this.selectedGownPackage.selectedGowns.indexOf(outfitId);
+                if (gownIndex !== -1) {
+                    // Remove from gowns if found
+                    this.selectedGownPackage.selectedGowns.splice(gownIndex, 1);
+                    return;
+                }
+                
+                // Check if the outfit is in selectedTuxedos
+                const tuxedoIndex = this.selectedGownPackage.selectedTuxedos.indexOf(outfitId);
+                if (tuxedoIndex !== -1) {
+                    // Remove from tuxedos if found
+                    this.selectedGownPackage.selectedTuxedos.splice(tuxedoIndex, 1);
+                }
+            },
+            
+            openEditOutfitSelection() {
+                // Set up a flag to indicate we're in edit mode for outfit selection
+                this.outfitSelectionMode = 'edit';
+                
+                // Open the outfit selection modal
+                this.showOutfitModal = true;
+            },
 
 			addOutfitsBtn() {
 				this.addOutfitForm = true;
@@ -1191,13 +1353,50 @@
             closeOutfitModal() {
                 this.showOutfitModal = false;
                 this.searchQuery = '';
+                // Reset the selection mode when closing the modal
+                this.outfitSelectionMode = 'add';
             },
    
  
             isOutfitSelected(outfitId) {
+                // Check if we're in edit mode for the Update Package form
+                if (this.outfitSelectionMode === 'edit' && this.selectedGownPackage) {
+                    // Check both arrays for the outfit ID
+                    return this.selectedGownPackage.selectedGowns.includes(outfitId) || 
+                           this.selectedGownPackage.selectedTuxedos.includes(outfitId);
+                }
+                
+                // Regular mode (Add Package form)
                 return this.selectedOutfits.some(outfit => outfit.outfit_id === outfitId);
             },
             toggleOutfitSelection(outfit) {
+                // Check if we're in edit mode for the Update Package form
+                if (this.outfitSelectionMode === 'edit') {
+                    // Determine outfit type
+                    const isGown = outfit.outfit_type.toLowerCase().includes('gown') || 
+                        outfit.outfit_type.toLowerCase().includes('dress');
+                    
+                    // Check if this outfit is already selected
+                    const targetArray = isGown ? 'selectedGowns' : 'selectedTuxedos';
+                    const isSelected = this.selectedGownPackage[targetArray].includes(outfit.outfit_id);
+                    
+                    if (isSelected) {
+                        // Remove the outfit if already selected
+                        const index = this.selectedGownPackage[targetArray].indexOf(outfit.outfit_id);
+                        if (index !== -1) {
+                            this.selectedGownPackage[targetArray].splice(index, 1);
+                        }
+                    } else {
+                        // Add the outfit if not selected
+                        this.selectedGownPackage[targetArray].push(outfit.outfit_id);
+                    }
+                    
+                    // Close the modal
+                    this.closeOutfitModal();
+                    return;
+                }
+                
+                // Regular mode (Add Package form)
                 const index = this.selectedOutfits.findIndex(item => item.outfit_id === outfit.outfit_id);
                 if (index === -1) {
                     // Add to selectedOutfits array
@@ -1334,8 +1533,69 @@
                 this.currentPage = 1; // Reset pagination
             },
 
-    
-    
+            async updateGownPackage() {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    
+                    if (!this.selectedGownPackage.gown_package_name) {
+                        this.errorMessage = "Please enter a package name";
+                        return;
+                    }
+                    
+                    // Calculate the total price
+                    const totalPrice = this.calculateEditTotal();
+                    
+                    // Create the package data to send
+                    const packageData = {
+                        gown_package_name: this.selectedGownPackage.gown_package_name,
+                        description: this.selectedGownPackage.description || '',
+                        gown_package_price: totalPrice,
+                        outfit_ids: [
+                            ...this.selectedGownPackage.selectedGowns,
+                            ...this.selectedGownPackage.selectedTuxedos
+                        ]
+                    };
+                    
+                    console.log('Updating package with data:', packageData);
+                    
+                    const response = await axios.put(
+                        `http://127.0.0.1:5000/update-gown-package/${this.selectedGownPackage.gown_package_id}`,
+                        packageData,
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            }
+                        }
+                    );
+                    
+                    if (response.status === 200) {
+                        alert('Package updated successfully');
+                        this.closeEditGownPackageForm();
+                        this.fetchGownPackages(); // Refresh the packages list
+                    }
+                } catch (error) {
+                    console.error('Error updating package:', error);
+                    this.errorMessage = error.response?.data?.message || 'Failed to update package';
+                }
+            },
+
+        calculateEditSubtotal() {
+            return this.selectedPackageOutfits.reduce((total, item) => {
+                return total + parseFloat(item.rent_price || 0);
+            }, 0);
+        },
+
+        calculateEditDiscount() {
+            const subtotal = this.calculateEditSubtotal();
+            const discountPercentage = parseFloat(this.editDiscount || 0);
+            return (subtotal * discountPercentage) / 100;
+        },
+
+        calculateEditTotal() {
+            return this.calculateEditSubtotal() - this.calculateEditDiscount();
+        },
+
     },
     
         mounted() {

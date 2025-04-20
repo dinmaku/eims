@@ -979,6 +979,16 @@ def init_routes(app):
                 'message': str(e)
             }), 500
 
+    @app.route('/saved/venue_img/<path:filename>')
+    def serve_venue_image(filename):
+        try:
+            # The base directory where venue images are stored
+            venue_img_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'saved', 'venue_img')
+            return send_from_directory(venue_img_dir, filename)
+        except Exception as e:
+            app.logger.error(f"Error serving venue image {filename}: {e}")
+            return jsonify({'message': 'Image not found'}), 404
+
     @app.after_request
     def after_request(response):
         """Add CORS headers to all responses"""

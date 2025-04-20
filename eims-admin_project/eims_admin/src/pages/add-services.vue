@@ -5,13 +5,15 @@
                 Events Packages
             </h1>
             <button class="bg-[#9B111E] font-semibold text-white px-3 py-1 rounded shadow-lg 
-              transition-transform duration-300 transform hover:scale-105" @click="displayEventTypeBtn">Event Type</button>
+              transition-transform duration-300 transform hover:scale-105" @click="showInactivePackages">Inactive Packages</button>
         </div>
         
         <div class="flex flex-row items-center m-5 space-x-5">
             <div class="flex justify-start w-52 h-20 bg-white rounded-lg shadow-lg px-2 items-center border-l-2 border-green-400 space-x-5">
                 <h2 class="font-amaticRegular text-4xl font-bold mb-0"> {{ totalPackages }} <span class = "text-sm antialiased text-gray-600">packages</span></h2>
             </div>
+            <button class="bg-[#9B111E] font-semibold text-white px-3 py-1 rounded shadow-lg 
+              transition-transform duration-300 transform hover:scale-105 mt-10" @click="displayEventTypeBtn">Event Type</button>
         </div>
         
         <div class="flex flex-row justify-end items-center m-5 my-7">
@@ -49,11 +51,21 @@
                         <td class="w-36 px-2 py-3 truncate">{{ formatPrice(packageItem.total_price) }} php</td>
                         <td class="w-28 px-2 py-3 truncate">{{ packageItem.capacity }}</td>
                         <td class="w-28 px-2 py-3">
+                            <div class="flex items-center space-x-2">
                             <button
                                 class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
                                 @click="editPackageBtn(index)"> 
                                 <img src="/img/update3.png" alt="Update" class="w-5 h-5">
                             </button>
+                                <button
+                                    class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+                                    @click="togglePackageStatus(packageItem)"
+                                    :title="packageItem.status === 'Active' ? 'Deactivate' : 'Activate'"> 
+                                    <img :src="packageItem.status === 'Active' ? '/img/deactivate.png' : '/img/active2.png'" 
+                                         :alt="packageItem.status === 'Active' ? 'Set Inactive' : 'Set Active'" 
+                                         class="w-5 h-5">
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -307,34 +319,24 @@
             <tr>
               <th class="border border-gray-300 px-4 py-2 text-left">Type</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Details</th>
-              <th class="border border-gray-300 px-4 py-2 text-left">Rate</th>
-              <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
+              <th class="border border-gray-300 px-4 py-2 text-left">Price</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(inclusion, index) in inclusions" :key="index" class="border border-gray-300">
+            <tr v-for="(inclusion, index) in selectedPackage?.inclusions || []" :key="index" class="border border-gray-300">
               <td class="border border-gray-300 px-4 py-2 capitalize">
-                {{ inclusion.type === 'supplier' ? `Supplier(${inclusion.serviceType})` : inclusion.type }}
+                {{ inclusion.type === 'supplier' ? `Supplier(${inclusion.serviceType || inclusion.data?.service || 'General'})` : inclusion.type }}
               </td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionName(inclusion) }}</td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionPrice(inclusion) }}</td>
-              <td class="border border-gray-300 py-2">
-                <div @click="removeInclusion(index)" class="inline-block cursor-pointer">
-                  <img 
-                    alt="Delete Icon" 
-                    class="w-[20px] h-[20px] transition-transform transform hover:scale-110 hover:brightness-90" 
-                    src="/img/delete.png" 
-                  >
-                </div>
-              </td>
             </tr>
           </tbody>
         </table>
         <div class="mt-4 p-4 bg-gray-50 rounded-lg shadow-sm">
           <div class="flex justify-between items-center">
-            <div class="text-lg font-semibold text-gray-700">Total Package Rate:</div>
+            <div class="text-lg font-semibold text-gray-700">Total Package Price:</div>
             <div class="text-xl font-bold text-blue-600">{{ formatPrice(
-              inclusions.reduce((total, inc) => {
+              (selectedPackage?.inclusions || []).reduce((total, inc) => {
                 if (inc.type === 'supplier' && inc.data) total += Number(inc.data.price || 0);
                 if (inc.type === 'venue' && inc.data) total += Number(inc.data.venue_price || 0);
                 if (inc.type === 'outfit' && inc.data) total += Number(inc.data.gown_package_price || 0);
@@ -344,7 +346,7 @@
             ) }}</div>
           </div>
           <div class="mt-2 text-sm text-gray-500">
-            * Rate includes all selected inclusions (suppliers, services, venue, and outfit package)
+            * Price includes all selected inclusions (suppliers, services, venue, and outfit package)
           </div>
         </div>
       </div>
@@ -414,14 +416,20 @@
               </option>
             </select>
           </div>
+
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1 text-left">Capacity</label>
-            <input type="number" v-model="selectedPackage.capacity" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Set Capacity" required />
+            <label for="charge_unit" class="block text-xs font-medium text-gray-700 mb-1 text-left">Unit for Additional Charges</label>
+            <input type="number" id="charge_unit" v-model="selectedPackage.charge_unit" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Set person unit" required />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1 text-left">Total Rate</label>
-            <input type="number" v-model="selectedPackage.total_price" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Total Price" required />
+            <label class="block text-xs font-medium text-gray-700 mb-1 text-left">Additional Capacity Charges</label>
+            <input type="number" v-model="selectedPackage.additional_capacity_charges" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Additional Capacity Charges" required />
           </div>
+        </div>
+
+        <div class="mt-5">
+          <label class="block text-xs font-medium text-gray-700 mb-1 text-left">Capacity</label>
+          <input type="number" v-model="selectedPackage.capacity" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Set Capacity" required />
         </div>
 
         <div class="mt-5">
@@ -432,29 +440,29 @@
       <!-- Inclusion Buttons -->
       <div class="grid grid-cols-4 gap-4 mb-4">
         <button 
-          @click.prevent="openInclusionModal('supplier')" 
-          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+          disabled
+          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md opacity-60 cursor-not-allowed"
         >
           <img alt="Supplier Icon" class="mr-2 w-[20px] h-[20px]" src="/img/supplier.png">
           Suppliers
         </button>
         <button 
-          @click.prevent="openInclusionModal('venue')" 
-          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+          disabled
+          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md opacity-60 cursor-not-allowed"
         >
           <img alt="Venue Icon" class="mr-2 w-[20px] h-[20px]" src="/img/venues1.png">
          Venue
         </button>
         <button 
-          @click.prevent="openInclusionModal('outfit')" 
-          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+          disabled
+          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md opacity-60 cursor-not-allowed"
         >
           <img alt="Outfit Icon" class="mr-2 w-[20px] h-[20px]" src="/img/costume.png">
          Outfit Package
         </button>
         <button 
-          @click.prevent="openInclusionModal('service')" 
-          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+          disabled
+          class="flex items-center justify-center bg-[#9B111E] text-white px-3 py-2 h-[50px] rounded-md opacity-60 cursor-not-allowed"
         >
           <img alt="Service Icon" class="mr-2 w-[20px] h-[20px]" src="/img/additionals.png">
           Inclusions
@@ -469,25 +477,15 @@
               <th class="border border-gray-300 px-4 py-2 text-left">Type</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Details</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Price</th>
-              <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(inclusion, index) in selectedPackage.inclusions" :key="index" class="border border-gray-300">
+            <tr v-for="(inclusion, index) in selectedPackage?.inclusions || []" :key="index" class="border border-gray-300">
               <td class="border border-gray-300 px-4 py-2 capitalize">
                 {{ inclusion.type === 'supplier' ? `Supplier(${inclusion.serviceType || inclusion.data?.service || 'General'})` : inclusion.type }}
               </td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionName(inclusion) }}</td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionPrice(inclusion) }}</td>
-              <td class="border border-gray-300 py-2">
-                <div @click="removeInclusionFromEdit(index)" class="inline-block cursor-pointer">
-                  <img 
-                    alt="Delete Icon" 
-                    class="w-[20px] h-[20px] transition-transform transform hover:scale-110 hover:brightness-90" 
-                    src="/img/delete.png" 
-                  >
-                </div>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -495,7 +493,7 @@
           <div class="flex justify-between items-center">
             <div class="text-lg font-semibold text-gray-700">Total Package Price:</div>
             <div class="text-xl font-bold text-blue-600">{{ formatPrice(
-              selectedPackage.inclusions.reduce((total, inc) => {
+              (selectedPackage?.inclusions || []).reduce((total, inc) => {
                 if (inc.type === 'supplier' && inc.data) total += Number(inc.data.price || 0);
                 if (inc.type === 'venue' && inc.data) total += Number(inc.data.venue_price || 0);
                 if (inc.type === 'outfit' && inc.data) total += Number(inc.data.gown_package_price || 0);
@@ -518,6 +516,73 @@
     </div>
   </form>
 
+  <!-- Add Inactive Packages Modal -->
+  <div v-if="showInactivePackagesModal" @click.self="closeInactivePackagesModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+    <div class="bg-white w-[1000px] p-6 rounded-lg shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Inactive Packages</h2>
+            <button @click="closeInactivePackagesModal" class="text-gray-500 hover:text-gray-700">
+                <span class="text-2xl">&times;</span>
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="w-16 px-2 py-3">#</th>
+                        <th scope="col" class="w-52 px-2 py-3">Package Name</th>
+                        <th scope="col" class="w-40 px-2 py-3">Package Type</th>
+                        <th scope="col" class="w-52 px-2 py-3">Venue</th>
+                        <th scope="col" class="w-36 px-2 py-3">Rate</th>
+                        <th scope="col" class="w-28 px-2 py-3">Capacity</th>
+                        <th scope="col" class="w-28 px-2 py-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(packageItem, index) in inactivePackages" :key="packageItem.packageId"
+                        class="border-b dark:border-gray-700 odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800">
+                        <th scope="row" class="w-16 px-2 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ index + 1 }}</th>
+                        <td class="w-52 px-2 py-3 truncate">{{ packageItem.package_name }}</td>
+                        <td class="w-40 px-2 py-3 truncate">{{ getEventTypeName(packageItem.event_type_id) }}</td>
+                        <td class="w-52 px-2 py-3 truncate">{{ packageItem.venue_name }}</td>
+                        <td class="w-36 px-2 py-3 truncate">{{ formatPrice(packageItem.total_price) }} php</td>
+                        <td class="w-28 px-2 py-3 truncate">{{ packageItem.capacity }}</td>
+                        <td class="w-28 px-2 py-3">
+                            <button
+                                class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+                                @click="togglePackageStatus(packageItem)"
+                                title="Activate"> 
+                                <img src="/img/active2.png" alt="Set Active" class="w-5 h-5">
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+  </div>
+
+  <!-- Status Confirmation Modal -->
+  <div v-if="showStatusConfirmModal" @click.self="closeStatusConfirmModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+    <div class="bg-white p-5 rounded-lg shadow-lg w-[400px]">
+        <div class="flex flex-col items-center">
+            <h2 class="text-xl font-semibold mb-4">Confirm Status Change</h2>
+            <p class="mb-6 text-center">Are you sure you want to set this package to {{ pendingStatus }}?</p>
+            <div class="flex space-x-4">             
+                <button 
+                    @click="closeStatusConfirmModal" 
+                    class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-opacity-90">
+                    Cancel
+                </button>
+                <button 
+                    @click="confirmStatusChange" 
+                    class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform-transition duration-300 transform hover:scale-105">
+                    Yes
+                </button>
+            </div>
+        </div>
+    </div>
+  </div>
 
     
     
@@ -557,19 +622,11 @@ export default {
       showServiceModal: false,
       inclusions: [],
       selectedInclusionType: '',
-      supplierTypes: [
-        'Catering',
-        'Photographer',
-        'Videographer',
-        'Entertainment',
-        'Sound and Lighting',
-        'Transportation',
-        'Host',
-        'Invitations',
-        'Keepsakes',
-        'Hair Stylist',
-        'Makeup Artist',
-      ],
+      showInactivePackagesModal: false,
+      showStatusConfirmModal: false,
+      pendingStatus: '',
+      pendingPackage: null,
+      inactivePackages: [],
       eventTypes: [],
       availableSuppliers: [],
       venues: [], 
@@ -600,7 +657,6 @@ export default {
         selectedOutfitPackage: null,
         selectedAdditionalServices: []
       },
-      
     };
   },
  
@@ -1010,7 +1066,6 @@ export default {
           return;
         }
 
-        // First fetch event types to ensure we have the mapping
         await this.fetchEventTypes();
 
         const response = await axios.get('http://127.0.0.1:5000/created-packages', {
@@ -1085,18 +1140,6 @@ export default {
           const eventType = this.eventTypes.find(t => t.event_type_id === pkg.event_type_id);
           const eventTypeName = eventType ? eventType.event_type_name : pkg.event_type_name || 'Unknown Type';
 
-          console.log(`Processed package ${pkg.package_id}:`, { 
-            suppliers, 
-            additionalServices, 
-            venue: pkg.venue_id ? { 
-              venue_id: pkg.venue_id, 
-              venue_name: pkg.venue_name,
-              venue_price: venue_price 
-            } : null,
-            inclusions,
-            eventTypeName
-          });
-
           return {
             packageId: pkg.package_id,
             package_name: pkg.package_name,
@@ -1104,6 +1147,8 @@ export default {
             event_type_name: eventTypeName,
             package_type: eventTypeName,
             capacity: pkg.capacity || 0,
+            charge_unit: pkg.charge_unit,
+            additional_capacity_charges: pkg.additional_capacity_charges,
             total_price: parseFloat(pkg.total_price) || 0,
             description: pkg.description || '',
             venue_id: pkg.venue_id,
@@ -1115,13 +1160,15 @@ export default {
             suppliers,
             additional_services: additionalServices,
             inclusions,
-            dummyIndex: index + 1
+            dummyIndex: index + 1,
+            status: pkg.status || 'Active'  // Ensure status is set with a default value
           };
         });
         
         console.log("Processed packages data:", this.packages);
       } catch (error) {
         console.error('Error fetching packages:', error.response?.data || error.message);
+        alert('Error fetching packages. Please try again.');
       }
     },
     async fetchVenues() {
@@ -1320,29 +1367,27 @@ export default {
                 return;
             }
 
-            // Calculate total price from inclusions
-            const totalPrice = this.dynamicTotalPrice;
-
-            // Prepare update data
+            // Prepare update data with only editable fields
             const updateData = {
                 package_name: this.selectedPackage.package_name,
                 event_type_id: this.selectedPackage.event_type_id,
-                package_type: this.getEventTypeName(this.selectedPackage.event_type_id),
-                capacity: this.selectedPackage.capacity,
-                price: totalPrice,
-                description: this.selectedPackage.description,
-                inclusions: this.prepareInclusionsForAPI(this.selectedPackage.inclusions)
+                capacity: parseInt(this.selectedPackage.capacity),
+                charge_unit: parseInt(this.selectedPackage.charge_unit),
+                additional_capacity_charges: parseFloat(this.selectedPackage.additional_capacity_charges),
+                description: this.selectedPackage.description
             };
 
             console.log("Sending update data:", updateData);
 
             const response = await axios.put(
-                `http://127.0.0.1:5000/created-package/${this.selectedPackage.packageId}`,
+                `http://127.0.0.1:5000/package/${this.selectedPackage.packageId}`,
                 updateData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     },
+                    withCredentials: true
                 }
             );
 
@@ -1354,6 +1399,7 @@ export default {
           } catch (error) {
             console.error('Error updating package:', error);
             if (error.response) {
+                console.error('Error response:', error.response);
                 alert(`Error updating package: ${error.response.data.message || error.response.data.error || 'Unknown error'}`);
             } else {
                 alert('Error updating package. Please try again.');
@@ -1493,7 +1539,8 @@ export default {
             package_type: eventTypeName,
             event_type_id: packageToEdit.event_type_id,
             capacity: packageToEdit.capacity || 0,
-            total_price: packageToEdit.total_price || 0,
+            charge_unit: packageToEdit.charge_unit !== undefined ? packageToEdit.charge_unit : 1,
+            additional_capacity_charges: packageToEdit.additional_capacity_charges !== undefined ? packageToEdit.additional_capacity_charges : 0,
             description: packageToEdit.description || '',
             inclusions: [],
             venue_id: packageToEdit.venue_id,
@@ -1587,24 +1634,275 @@ export default {
       this.newEventTypeName = '';  // Reset the input field
     },
     
+    showInactivePackages() {
+      this.showInactivePackagesModal = true;
+    },
+    closeInactivePackagesModal() {
+      this.showInactivePackagesModal = false;
+      this.inactivePackages = [];
+    },
+    togglePackageStatus(packageItem) {
+      if (!packageItem || !packageItem.packageId) {
+        console.error('Invalid package:', packageItem);
+        alert('Invalid package selected');
+        return;
+      }
+
+      console.log('Toggling status for package:', packageItem);
+      this.pendingPackage = { ...packageItem }; // Create a copy of the package
+      this.pendingStatus = packageItem.status === 'Active' ? 'Inactive' : 'Active';
+      this.showStatusConfirmModal = true;
+    },
+    closeStatusConfirmModal() {
+      this.showStatusConfirmModal = false;
+      this.pendingPackage = null;
+      this.pendingStatus = '';
+    },
+    async confirmStatusChange() {
+      try {
+        if (!this.pendingPackage || !this.pendingPackage.packageId) {
+          throw new Error('Invalid package selected');
+        }
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          throw new Error('Authentication token not found');
+        }
         
-    
-    
+        // Add debug logging
+        console.log('Package details:', {
+          id: this.pendingPackage.packageId,
+          name: this.pendingPackage.package_name,
+          currentStatus: this.pendingPackage.status,
+          pendingStatus: this.pendingStatus
+        });
+        
+        const response = await axios.put(
+          `http://127.0.0.1:5000/toggle-package-status/${this.pendingPackage.packageId}`,
+          {},  // Empty body since the status is determined server-side
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            withCredentials: true
+          }
+        );
+
+        if (response.status === 200) {
+          if (this.pendingStatus === 'Inactive') {
+            // Remove from active packages
+            const index = this.packages.findIndex(p => p.packageId === this.pendingPackage.packageId);
+            if (index !== -1) {
+              this.packages.splice(index, 1);
+            }
+            alert('Package has been set to Inactive');
+          } else {
+            // Remove from inactive packages
+            const index = this.inactivePackages.findIndex(p => p.packageId === this.pendingPackage.packageId);
+            if (index !== -1) {
+              this.inactivePackages.splice(index, 1);
+            }
+            await this.fetchPackages();
+            alert('Package has been set to Active');
+          }
+          
+          // Refresh the appropriate list
+          if (this.showInactivePackagesModal) {
+            await this.showInactivePackages();
+          } else {
+            await this.fetchPackages();
+          }
+        }
+      } catch (error) {
+        console.error("Error toggling package status:", error);
+        let errorMessage = "Error updating package status. ";
+        
+        if (error.response) {
+          console.error('Server response:', error.response);
+          errorMessage += error.response.data.message || error.response.data.error || "Please try again.";
+        } else if (error.request) {
+          errorMessage += "No response from server. Please check your connection.";
+        } else {
+          errorMessage += error.message || "Please try again.";
+        }
+        
+        alert(errorMessage);
+      } finally {
+        this.closeStatusConfirmModal();
+      }
+    },
+
+    async fetchPackages() {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          alert('You are not logged in. Please log in to view packages.');
+          return;
+        }
+
+        await this.fetchEventTypes();
+
+        const response = await axios.get('http://127.0.0.1:5000/created-packages', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          withCredentials: true,
+        });
+
+        console.log("Raw package data from API:", response.data);
+
+        this.packages = response.data.map((pkg, index) => {
+          // Ensure all data fields have default values to prevent undefined or NaN issues
+          const venue_price = parseFloat(pkg.venue_price) || 0;
+          
+          // Process suppliers - ensure service_type is available
+          const suppliers = (pkg.suppliers || []).map(supplier => {
+            return {
+              ...supplier,
+              supplier_id: supplier.supplier_id,
+              firstname: supplier.name ? supplier.name.split(' ')[0] : '',
+              lastname: supplier.name ? supplier.name.split(' ')[1] || '' : '',
+              service_type: supplier.service || 'General',
+              price: parseFloat(supplier.price) || 0,
+              status: supplier.status || 'Active'
+            };
+          });
+          
+          // Process additional services
+          const additionalServices = (pkg.additional_services || []).map(service => {
+            return {
+              add_service_id: service.service_id,
+              add_service_name: service.name || '',
+              add_service_description: service.description || '',
+              add_service_price: parseFloat(service.price) || 0,
+              status: service.status || 'Active'
+            };
+          });
+
+          // Create properly formatted inclusions from various data sources
+          const inclusions = [
+            ...suppliers.map(supplier => ({
+              type: 'supplier',
+              serviceType: supplier.service_type,
+              data: supplier
+            })),
+            ...(pkg.venue_id ? [{
+              type: 'venue',
+              data: { 
+                venue_id: pkg.venue_id, 
+                venue_name: pkg.venue_name || 'Unknown Venue',
+                venue_price: venue_price,
+                location: pkg.location || 'No location specified'
+              }
+            }] : []),
+            ...(pkg.gown_package_id ? [{
+              type: 'outfit',
+              data: { 
+                gown_package_id: pkg.gown_package_id,
+                gown_package_name: pkg.gown_package_name || 'Unknown Outfit',
+                gown_package_price: parseFloat(pkg.gown_package_price) || 0
+              }
+            }] : []),
+            ...additionalServices.map(service => ({
+              type: 'service',
+              data: service
+            }))
+          ];
+
+          // Get the proper event type name from our eventTypes list
+          const eventType = this.eventTypes.find(t => t.event_type_id === pkg.event_type_id);
+          const eventTypeName = eventType ? eventType.event_type_name : pkg.event_type_name || 'Unknown Type';
+
+          return {
+            packageId: pkg.package_id,
+            package_name: pkg.package_name,
+            event_type_id: pkg.event_type_id,
+            event_type_name: eventTypeName,
+            package_type: eventTypeName,
+            capacity: pkg.capacity || 0,
+            charge_unit: pkg.charge_unit,
+            additional_capacity_charges: pkg.additional_capacity_charges,
+            total_price: parseFloat(pkg.total_price) || 0,
+            description: pkg.description || '',
+            venue_id: pkg.venue_id,
+            venue_name: pkg.venue_name || '',
+            venue_price: venue_price,
+            location: pkg.location || '',
+            gown_package_id: pkg.gown_package_id,
+            gown_package_name: pkg.gown_package_name || '',
+            suppliers,
+            additional_services: additionalServices,
+            inclusions,
+            dummyIndex: index + 1,
+            status: pkg.status || 'Active'  // Ensure status is set with a default value
+          };
+        });
+        
+        console.log("Processed packages data:", this.packages);
+      } catch (error) {
+        console.error('Error fetching packages:', error.response?.data || error.message);
+        alert('Error fetching packages. Please try again.');
+      }
+    },
+
+    async showInactivePackages() {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          throw new Error('Authentication token not found');
+        }
+
+        const response = await axios.get('http://127.0.0.1:5000/packages/inactive', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
+        });
+
+        if (response.data) {
+          this.inactivePackages = response.data.map((pkg, index) => ({
+            ...pkg,
+            status: 'Inactive',
+            dummyIndex: index + 1,
+            packageId: pkg.package_id || pkg.packageId // Handle both naming conventions
+          }));
+          this.showInactivePackagesModal = true;
+        }
+      } catch (error) {
+        console.error("Error fetching inactive packages:", error);
+        let errorMessage = "Failed to fetch inactive packages. ";
+        if (error.response) {
+          errorMessage += error.response.data.message || error.response.data.error || "Please try again.";
+        } else if (error.request) {
+          errorMessage += "No response from server. Please check your connection.";
+        } else {
+          errorMessage += error.message || "Please try again.";
+        }
+        alert(errorMessage);
+      }
+    },
   },
   computed: {
     totalPackagesPages() {
-        return Math.ceil(this.packages.length / this.rowsPerPackagesPage);
+        return Math.ceil(this.activePackages.length / this.rowsPerPackagesPage);
+    },
+    activePackages() {
+        // Filter only active packages
+        return this.packages.filter(pkg => pkg.status === 'Active');
     },
     paginatedPackages() {
-        if (!this.packages || this.packages.length === 0) {
+        if (!this.activePackages || this.activePackages.length === 0) {
             return []; // Ensure it's an empty array if packages is not available
         }
         const start = (this.currentPackagesPage - 1) * this.rowsPerPackagesPage;
         const end = start + this.rowsPerPackagesPage;
-        return this.packages.slice(start, end);
+        return this.activePackages.slice(start, end);
     },
     totalPackages() {
-        return this.packages.length;
+        return this.activePackages.length;
     },
     startIndex() {
         return (this.currentPackagesPage - 1) * this.rowsPerPackagesPage + 1;
