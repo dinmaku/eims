@@ -3,10 +3,11 @@ from flask import Flask, request, jsonify, send_file, make_response, send_from_d
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
-    create_refresh_token, get_jwt_identity, get_jwt
+    create_refresh_token, get_jwt_identity, get_jwt,
+    verify_jwt_in_request
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import os
 import logging
 from .db import get_db_connection
@@ -30,11 +31,11 @@ from .models import (
     get_event_modifications, get_all_events, get_events_by_date,
     get_event_types_count, get_events_by_month_and_type, get_inactive_suppliers,
     add_supplier_social_media, get_supplier_social_media, initialize_supplier_social_media,
-    get_active_outfits, add_event_outfit, get_event_outfits,
+    get_active_outfits, add_event_outfit, get_event_outfits, get_event_outfits_enhanced,
     toggle_supplier_status, get_available_suppliers, get_available_venues,
     get_available_gown_packages, get_package_details_by_id,
     track_outfit_modification, track_individual_outfit_modification,
-    track_additional_service_modification, get_all_outfits, create_outfit,
+    track_additional_service_modification, get_all_outfits, create_outfit, update_outfit,
     create_wishlist_package, get_wishlist_package, get_event_wishlists,
     update_wishlist_package, delete_wishlist_package, Supplier,
     update_wishlist_supplier_status, update_wishlist_outfit_status,
@@ -43,9 +44,11 @@ from .models import (
     fetch_upcoming_events, create_invoice, get_invoice_by_id, get_invoice_by_event,
     update_invoice, record_payment, get_payments_by_invoice,
     get_all_discounts, get_active_discounts, get_inactive_discounts,
-    update_wishlist_venue_status, get_wishlist_venues, get_venues
+    update_wishlist_venue_status, get_wishlist_venues, get_venues,
+    get_inactive_event_packages, toggle_event_package_status
 )
 from werkzeug.utils import secure_filename
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -851,8 +854,45 @@ def init_routes(app):
     @jwt_required()
     def create_new_outfit():
         try:
-            # Get data from request
-            data = request.get_json()
+            # Check if the request has form data
+            image_filename = None
+            
+            if request.form:
+                # Get data from form
+                data = {
+                    'outfit_name': request.form.get('outfit_name'),
+                    'outfit_type': request.form.get('outfit_type'),
+                    'outfit_color': request.form.get('outfit_color'),
+                    'outfit_desc': request.form.get('outfit_desc'),
+                    'rent_price': request.form.get('rent_price'),
+                    'size': request.form.get('size'),
+                    'weight': request.form.get('weight'),
+                    'status': 'Available',
+                    'creation_address': request.form.get('creation_address'),
+                    'owner': request.form.get('owner')
+                }
+                
+                # Handle image upload
+                if 'outfit_image' in request.files:
+                    file = request.files['outfit_image']
+                    if file and file.filename:
+                        # Create a secure filename with timestamp
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        filename = secure_filename(file.filename)
+                        image_filename = f"outfit_{timestamp}_{filename}"
+                        
+                        # Ensure the directory exists
+                        os.makedirs('E:/eims/saved/outfits_img', exist_ok=True)
+                        
+                        # Save the file
+                        file_path = os.path.join('E:/eims/saved/outfits_img', image_filename)
+                        file.save(file_path)
+                        
+                        logger.info(f"Saved outfit image to {file_path}")
+                        data['outfit_img'] = image_filename
+            else:
+                # Get data from JSON
+                data = request.get_json()
             
             # Validate required fields
             required_fields = ['outfit_name', 'outfit_type', 'outfit_color', 'rent_price', 'size', 'weight']
@@ -874,6 +914,27 @@ def init_routes(app):
         except Exception as e:
             logger.error(f"Error in create_new_outfit: {str(e)}")
             return jsonify({'message': 'An error occurred while creating the outfit'}), 500
+            
+    @app.route('/api/outfit-image/<path:filename>')
+    def serve_outfit_image(filename):
+        """Serve outfit images from the outfits_img directory"""
+        try:
+            # First check if the requested file exists in the main location
+            image_path = os.path.join('E:/eims/saved/outfits_img', filename)
+            if os.path.exists(image_path):
+                logger.info(f"Serving outfit image from saved/outfits_img: {filename}")
+                return send_from_directory('E:/eims/saved/outfits_img', filename)
+                
+            # If not found, serve a default placeholder image
+            logger.warning(f"Outfit image not found: {filename}, serving fallback image")
+            return send_from_directory('E:/eims/eims-client_project/eims_client/public/img', 'dummy_profile.png')
+            
+        except Exception as e:
+            logger.error(f"Error serving outfit image: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': 'Image not found'
+            }), 404
 
     @app.route('/add-gown-package', methods=['POST'])
     @jwt_required()
@@ -1452,6 +1513,16 @@ def init_routes(app):
             outfits = get_event_outfits(events_id)
             return jsonify(outfits)
         except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    @app.route('/api/event/<int:events_id>/outfits/enhanced', methods=['GET'])
+    @jwt_required()
+    def get_event_outfits_enhanced_route(events_id):
+        try:
+            outfits = get_event_outfits_enhanced(events_id)
+            return jsonify(outfits)
+        except Exception as e:
+            logger.error(f"Error in enhanced outfits route: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
     @app.route('/event/<int:events_id>/outfit', methods=['POST'])
@@ -3226,5 +3297,129 @@ def init_routes(app):
         except Exception as e:
             logger.error(f"Error updating gown package: {e}")
             return jsonify({"message": f"Error updating gown package: {str(e)}"}), 500
+
+    @app.route('/outfits/<int:outfit_id>', methods=['PUT'])
+    @jwt_required()
+    def update_outfit_route(outfit_id):
+        try:
+            # Check if the request has form data
+            image_filename = None
+            
+            if request.form:
+                logger.info(f"Received form data for outfit update: {request.form}")
+                logger.info(f"Files received: {request.files}")
+                
+                # Get data from form
+                data = {
+                    'outfit_id': outfit_id,
+                    'outfit_name': request.form.get('outfit_name'),
+                    'outfit_type': request.form.get('outfit_type'),
+                    'outfit_color': request.form.get('outfit_color'),
+                    'outfit_desc': request.form.get('outfit_desc'),
+                    'rent_price': request.form.get('rent_price'),
+                    'size': request.form.get('size'),
+                    'weight': request.form.get('weight'),
+                    'status': request.form.get('status', 'Available'),
+                }
+                
+                # Get archive data if provided
+                archive_json = request.form.get('archive')
+                if archive_json:
+                    try:
+                        archive_data = json.loads(archive_json)
+                        data['archive'] = archive_data
+                    except json.JSONDecodeError:
+                        logger.error(f"Error parsing archive JSON: {archive_json}")
+                
+                # Check both potential field names for image
+                if 'outfit_image' in request.files:
+                    file = request.files['outfit_image']
+                    logger.info(f"Found file with key 'outfit_image': {file.filename}")
+                elif 'outfit_img' in request.files:
+                    file = request.files['outfit_img']
+                    logger.info(f"Found file with key 'outfit_img': {file.filename}")
+                else:
+                    logger.info("No image file found in request")
+                    file = None
+                
+                # Handle image upload
+                if file and file.filename:
+                    # Create a secure filename with timestamp
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = secure_filename(file.filename)
+                    image_filename = f"outfit_{timestamp}_{filename}"
+                    
+                    # Ensure the directory exists
+                    os.makedirs('E:/eims/saved/outfits_img', exist_ok=True)
+                    
+                    # Save the file
+                    file_path = os.path.join('E:/eims/saved/outfits_img', image_filename)
+                    file.save(file_path)
+                    
+                    logger.info(f"Saved outfit image to {file_path}")
+                    data['outfit_img'] = image_filename
+            else:
+                # Get data from JSON
+                data = request.get_json()
+                data['outfit_id'] = outfit_id
+                logger.info(f"Received JSON data for outfit update: {data}")
+            
+            # Validate required fields
+            required_fields = ['outfit_name', 'outfit_type', 'outfit_color', 'rent_price', 'size', 'weight']
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({'message': f'Missing required field: {field}'}), 400
+            
+            # Update the outfit
+            success, message = update_outfit(data)
+            
+            if success:
+                return jsonify({
+                    'message': message,
+                    'outfit_id': outfit_id,
+                    'outfit_img': data.get('outfit_img')  # Return the image filename if it was updated
+                }), 200
+            else:
+                return jsonify({'message': message}), 400
+                
+        except Exception as e:
+            logger.error(f"Error in update_outfit_route: {str(e)}")
+            return jsonify({'message': 'An error occurred while updating the outfit'}), 500
+
+    @app.route('/outfits/<int:outfit_id>/archive', methods=['GET'])
+    @jwt_required()
+    def get_outfit_archive(outfit_id):
+        try:
+            conn = db.get_db_connection()
+            cursor = conn.cursor()
+            
+            # Query to get archive data for the outfit
+            cursor.execute("""
+                SELECT archive_id, outfit_id, creation_address, creation_date, owner, retail_price, usage
+                FROM outfit_archive
+                WHERE outfit_id = %s
+            """, (outfit_id,))
+            
+            archive_data = cursor.fetchone()
+            
+            cursor.close()
+            conn.close()
+            
+            if not archive_data:
+                return jsonify({"message": "No archive data found for this outfit"}), 404
+                
+            # Convert archive data to dict
+            columns = ["archive_id", "outfit_id", "creation_address", "creation_date", "owner", "retail_price", "usage"]
+            archive_dict = {columns[i]: archive_data[i] for i in range(len(columns))}
+            
+            # Handle date serialization
+            if archive_dict.get("creation_date") and isinstance(archive_dict["creation_date"], (date, datetime)):
+                archive_dict["creation_date"] = archive_dict["creation_date"].isoformat()
+                
+            return jsonify(archive_dict), 200
+                
+        except Exception as e:
+            logger.error(f"Error in get_outfit_archive: {str(e)}")
+            return jsonify({'message': 'An error occurred while fetching outfit archive data'}), 500
 
     return app

@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS wishlist_outfits (
     gown_package_id INTEGER REFERENCES gown_package(gown_package_id),
     price DECIMAL(10,2),
     remarks TEXT,
+    status VARCHAR(50) DEFAULT 'Pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

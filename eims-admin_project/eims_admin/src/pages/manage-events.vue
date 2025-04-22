@@ -11,6 +11,7 @@
     @click="directToOnsiteBooking">Onsite Booking</button>
   </div>
 </div>
+
  
 
 <!--Information Cards-->
@@ -2029,7 +2030,7 @@
         'Transportation',
         'Host',
         'Invitations',
-        'Favors and Gifts',
+        'Keepsakes',
         'Hair Stylist',
         'Makeup Artist',
       ],
@@ -2049,7 +2050,7 @@
         'Transportation',
         'Host',
         'Invitations',
-        'Favors and Gifts',
+        'Keepsakes',
         'Hair Stylist',
         'Makeup Artist',],
       externalSupplierData: {
@@ -2208,6 +2209,23 @@
           });
         }
 
+        // Add outfits
+        if (this.selectedEvent && Array.isArray(this.selectedEvent.outfits)) {
+          this.selectedEvent.outfits.forEach(outfit => {
+            const outfitName = outfit.outfit_name || outfit.gown_package_name || 'Outfit';
+            const outfitType = outfit.outfit_type || outfit.type || 'Outfit';
+            const key = `outfit_${outfit.outfit_id || outfit.package_id}_${outfitName}`;
+            
+            if (!uniqueItems.has(key)) {
+              uniqueItems.set(key, {
+                name: `${outfitName} (${outfitType})`,
+                type: 'Outfit',
+                price: parseFloat(outfit.price || outfit.gown_package_price || outfit.rent_price || 0)
+              });
+            }
+          });
+        }
+
         // Add additional services
         if (this.selectedEvent && Array.isArray(this.selectedEvent.services)) {
           this.selectedEvent.services.forEach(service => {
@@ -2268,9 +2286,8 @@
         total += this.selectedEvent.outfits
           .filter(outfit => outfit.status === 'Approved')
           .reduce((sum, outfit) => {
-            const price = outfit.type === 'package' 
-              ? parseFloat(outfit.gown_package_price) || 0
-              : parseFloat(outfit.rent_price) || 0;
+            // Check all possible price fields
+            const price = parseFloat(outfit.price || outfit.gown_package_price || outfit.rent_price || 0);
             return sum + price;
           }, 0);
       }
@@ -2901,89 +2918,149 @@
     directToOnsiteBooking(){
         this.$router.push('/add-wishlist');
       },
-    addSelectedIndividualOutfit() {
-        if (this.selectedOutfit) {
-          // Check if outfit already exists
-          const hasExistingOutfit = this.selectedEvent.outfits.some(outfit => 
-            outfit.outfit_id === this.selectedOutfit.outfit_id
-          );
-
-          if (hasExistingOutfit) {
-            alert('This outfit is already added.');
-          } else {
-            this.selectedEvent.outfits.push({
-              type: 'individual',
-              outfit_id: this.selectedOutfit.outfit_id,
-              outfit_name: this.selectedOutfit.outfit_name,
-              outfit_type: this.selectedOutfit.outfit_type,
-              size: this.selectedOutfit.size,
-              rent_price: this.selectedOutfit.rent_price,
-              status: 'Pending',
-              is_initialized: false
-            });
-            this.closeOutfitModal();
-          }
-        } else {
-          alert('Please select an outfit.');
-        }
-      },
-
-      addSelectedOutfitPackage() {
-        if (!this.selectedOutfit) {
-          alert('Please select an outfit package.');
-          return;
-        }
-
-        // Initialize outfits array if it doesn't exist
-        if (!this.selectedEvent.outfits) {
-          this.selectedEvent.outfits = [];
-        }
-
-        // Check if package already exists
-          const hasExistingPackage = this.selectedEvent.outfits.some(outfit => 
-          outfit.type === 'package' && outfit.gown_package_id === this.selectedOutfit.gown_package_id
-          );
-
-          if (hasExistingPackage) {
-            alert('This outfit package is already added.');
+    async addSelectedIndividualOutfit() {
+      if (!this.selectedOutfit) {
+        alert('No Outfit Selected: Please select an outfit to add to your wishlist.');
         return;
       }
 
-      // Add the package outfit
-          this.selectedEvent.outfits.push({
-            type: 'package',
-            gown_package_id: this.selectedOutfit.gown_package_id,
-            gown_package_name: this.selectedOutfit.gown_package_name,
-        gown_package_price: parseFloat(this.selectedOutfit.gown_package_price || 0),
-            status: 'Pending',
-            is_initialized: false
-          });
+      // Check if outfit already exists in the list
+      const outfitExists = this.selectedEvent.outfits.some(
+        outfit => outfit.type === 'individual' && outfit.outfit_id === this.selectedOutfit.outfit_id
+      );
 
-          this.closeOutfitModal();
-      },
+      if (outfitExists) {
+        alert('Outfit Already Added: This outfit is already in your wishlist.');
+        return;
+      }
 
-      addExternalSupplier() {
-        if (!this.selectedExternalSupplierType) {
-          alert('Please select a service type.');
-          return;
-        }
-        
-        if (!this.externalSupplierData.name) {
-          alert('Please enter supplier name.');
-          return;
-        }
-        
-        this.selectedEvent.suppliers.push({
-          type: 'external',
-          service: this.selectedExternalSupplierType,
-          external_supplier_name: this.externalSupplierData.name,
-          external_supplier_contact: this.externalSupplierData.contact,
-          price: parseFloat(this.externalSupplierData.price) || 0,
-          remarks: this.externalSupplierData.remarks
+      // Price value to use - prioritize rent_price but fall back to outfit_price
+      const outfitPrice = parseFloat(this.selectedOutfit.rent_price || this.selectedOutfit.outfit_price || 0);
+
+      // Add the selected outfit
+      this.selectedEvent.outfits.push({
+        type: 'individual',
+        outfit_id: this.selectedOutfit.outfit_id,
+        outfit_name: this.selectedOutfit.outfit_name,
+        outfit_price: outfitPrice, // Keep for UI display
+        price: outfitPrice, // Add price field for backend
+        status: 'Pending',
+        is_selected: true // Flag to indicate user explicitly selected this outfit
+      });
+
+      // Log the outfit being added
+      console.log('Adding individual outfit:', this.selectedEvent.outfits[this.selectedEvent.outfits.length - 1]);
+
+      // Save the updated wishlist to the database
+      const saved = await this.saveUpdatedWishlist(false);
+      
+      this.selectedOutfit = null;
+      this.showInclusionModal = false;
+
+      // Show appropriate message based on save result
+      if (saved) {
+        alert('Success: The outfit has been added to your wishlist.');
+      } else {
+        alert('Save Failed: The outfit was added to your list but could not be saved to the database.');
+      }
+    },
+
+    async addSelectedOutfitPackage() {
+      if (!this.selectedOutfit) {
+        alert('No Package Selected: Please select a gown package to add to your wishlist.');
+        return;
+      }
+
+      // Check if package already exists in the list
+      const packageExists = this.selectedEvent.outfits.some(
+        outfit => outfit.type === 'package' && outfit.gown_package_id === this.selectedOutfit.gown_package_id
+      );
+
+      if (packageExists) {
+        alert('Package Already Added: This gown package is already in your wishlist.');
+        return;
+      }
+
+      // Add the selected gown package
+      this.selectedEvent.outfits.push({
+        type: 'package',
+        gown_package_id: this.selectedOutfit.gown_package_id,
+        gown_package_name: this.selectedOutfit.gown_package_name, // Set the gown_package_name
+        outfit_name: this.selectedOutfit.gown_package_name, // Also set outfit_name for consistency
+        package_price: parseFloat(this.selectedOutfit.gown_package_price || 0),
+        price: parseFloat(this.selectedOutfit.gown_package_price || 0),
+        status: 'Pending',
+        is_selected: true
+      });
+
+      // Log the package being added
+      console.log('Adding gown package:', this.selectedEvent.outfits[this.selectedEvent.outfits.length - 1]);
+
+      // Save the updated wishlist to the database
+      const saved = await this.saveUpdatedWishlist(false);
+      
+      this.selectedOutfit = null;
+      this.showInclusionModal = false;
+
+      // Show appropriate message based on save result
+      if (saved) {
+        alert('Success: The gown package has been added to your wishlist.');
+      } else {
+        alert('Save Failed: The gown package was added to your list but could not be saved to the database.');
+      }
+    },
+
+    async addExternalSupplier() {
+      if (!this.selectedExternalSupplierType) {
+        this.$swal({
+          icon: 'warning',
+          title: 'No Service Type Selected',
+          text: 'Please select a service type for the supplier.'
         });
-        
-        this.closeExternalSupplierModal();
-      },
+        return;
+      }
+      
+      if (!this.externalSupplierData.name) {
+        this.$swal({
+          icon: 'warning',
+          title: 'No Supplier Name',
+          text: 'Please enter a name for the supplier.'
+        });
+        return;
+      }
+      
+      // Add the supplier to the selected event
+      this.selectedEvent.suppliers.push({
+        type: 'external',
+        service: this.selectedExternalSupplierType,
+        supplier_id: 0, // Use 0 for external suppliers
+        external_supplier_name: this.externalSupplierData.name,
+        external_supplier_contact: this.externalSupplierData.contact,
+        price: parseFloat(this.externalSupplierData.price) || 0,
+        remarks: this.externalSupplierData.remarks,
+        status: 'Pending'
+      });
+      
+      // Save the updated wishlist to the database
+      const saved = await this.saveUpdatedWishlist(false);
+      
+      this.closeExternalSupplierModal();
+      
+      // Show appropriate message based on save result
+      if (saved) {
+        this.$swal({
+          icon: 'success',
+          title: 'Supplier Added',
+          text: 'The external supplier has been added to your wishlist.'
+        });
+      } else {
+        this.$swal({
+          icon: 'error',
+          title: 'Save Failed',
+          text: 'The supplier was added to your list but could not be saved to the database.'
+        });
+      }
+    },
 
       closeExternalSupplierModal() {
         this.showExternalSupplierModal = false;
@@ -3025,7 +3102,7 @@
           ...event,
           suppliers: event.suppliers || [],
           services: event.services || [],
-          outfits: event.outfits || [],
+          outfits: event.outfits || [], // Initialize as empty array
           venues: event.venues || [],
           venue_status: event.venue_status || 'Pending',
           gown_package_name: event.gown_package_name || '',
@@ -3046,52 +3123,39 @@
             venue_capacity: this.selectedEvent.venue_capacity
           };
         }
-        
-        // Initialize outfits array if it doesn't exist
-        if (!this.selectedEvent.outfits) {
-          this.selectedEvent.outfits = [];
-        }
-
-        // If there's a gown package but no outfits, initialize the outfits array with the package
-        if (event.gown_package_id && this.selectedEvent.outfits.length === 0) {
-          this.selectedEvent.outfits.push({
-            type: 'outfit_package',
-            gown_package_id: event.gown_package_id,
-            gown_package_name: event.gown_package_name,
-            gown_package_price: event.gown_package_price,
-            status: 'Pending',
-            is_initialized: true
-          });
-        }
 
         // Make sure services array is properly initialized
         if (!this.selectedEvent.services || !Array.isArray(this.selectedEvent.services)) {
           this.selectedEvent.services = [];
         }
+        
+        // Make sure each service has a status field
+        this.selectedEvent.services.forEach(service => {
+          service.status = service.status || 'Pending';
+        });
 
-        // Ensure all services have a status field
-        this.selectedEvent.services = this.selectedEvent.services.map(service => ({
-            ...service,
-          status: service.status || 'Pending'
-        }));
-
-        // Ensure all outfits have a status field
-        this.selectedEvent.outfits = this.selectedEvent.outfits.map(outfit => ({
-          ...outfit,
-          status: outfit.status || 'Pending'
-        }));
-
-        // Ensure all suppliers have a status field
-        if (Array.isArray(this.selectedEvent.suppliers)) {
-          this.selectedEvent.suppliers = this.selectedEvent.suppliers.map(supplier => ({
-            ...supplier,
-            status: supplier.status || 'Pending'
-          }));
+        // Make sure suppliers array is properly initialized
+        if (!this.selectedEvent.suppliers || !Array.isArray(this.selectedEvent.suppliers)) {
+          this.selectedEvent.suppliers = [];
         }
+        
+        // Make sure each supplier has a status field
+        this.selectedEvent.suppliers.forEach(supplier => {
+          supplier.status = supplier.status || 'Pending';
+        });
 
-        console.log('Selected event for editing:', this.selectedEvent);
-        console.log('Outfits array:', this.selectedEvent.outfits);
-        console.log('Services array:', this.selectedEvent.services);
+        // Make sure outfits array is properly initialized
+        if (!this.selectedEvent.outfits || !Array.isArray(this.selectedEvent.outfits)) {
+          this.selectedEvent.outfits = [];
+        }
+        
+        // Make sure each outfit has a status field
+        this.selectedEvent.outfits.forEach(outfit => {
+          outfit.status = outfit.status || 'Pending';
+        });
+
+        // Removed automatic outfits initialization for 'Keepsakes'
+
         this.showWishlistModal = true;
       },
 
@@ -5008,6 +5072,128 @@
         } catch (error) {
           console.error('Error calculating remaining balance:', error);
           return 0;
+        }
+      },
+      async addSelectedService() {
+        if (!this.selectedService) {
+          this.$swal({
+            icon: 'warning',
+            title: 'No Service Selected',
+            text: 'Please select a service to add to your wishlist.'
+          });
+          return;
+        }
+
+        // Check if service already exists in the list
+        const serviceExists = this.selectedEvent.services.some(
+          service => service.add_service_id === this.selectedService.add_service_id
+        );
+
+        if (serviceExists) {
+          this.$swal({
+            icon: 'warning',
+            title: 'Service Already Added',
+            text: 'This service is already in your wishlist.'
+          });
+          return;
+        }
+
+        // Add the selected service
+        this.selectedEvent.services.push({
+          add_service_id: this.selectedService.add_service_id,
+          add_service_name: this.selectedService.add_service_name,
+          add_service_description: this.selectedService.add_service_description,
+          add_service_price: parseFloat(this.selectedService.add_service_price) || 0,
+          status: 'Pending',
+          is_selected: true // Flag to indicate user explicitly selected this service
+        });
+
+        // Save the updated wishlist to the database
+        const saved = await this.saveUpdatedWishlist(false);
+        
+        this.selectedService = null;
+        this.showInclusionModal = false;
+
+        // Show appropriate message based on save result
+        if (saved) {
+          this.$swal({
+            icon: 'success',
+            title: 'Service Added',
+            text: 'The service has been added to your wishlist.'
+          });
+        } else {
+          this.$swal({
+            icon: 'error',
+            title: 'Save Failed',
+            text: 'The service was added to your list but could not be saved to the database.'
+          });
+        }
+      },
+      async addSelectedSupplier() {
+        if (!this.selectedSupplier) {
+          this.$swal({
+            icon: 'warning',
+            title: 'No Supplier Selected',
+            text: 'Please select a supplier to add to your wishlist.'
+          });
+          return;
+        }
+
+        if (!this.selectedSupplierType) {
+          this.$swal({
+            icon: 'warning',
+            title: 'No Service Type Selected',
+            text: 'Please select a service type for the supplier.'
+          });
+          return;
+        }
+
+        // Check if supplier already exists in the list
+        const supplierExists = this.selectedEvent.suppliers.some(
+          supplier => 
+            supplier.supplier_id === this.selectedSupplier.supplier_id && 
+            supplier.service === this.selectedSupplierType
+        );
+
+        if (supplierExists) {
+          this.$swal({
+            icon: 'warning',
+            title: 'Supplier Already Added',
+            text: 'This supplier is already in your wishlist for this service type.'
+          });
+          return;
+        }
+
+        // Add the selected supplier
+        this.selectedEvent.suppliers.push({
+          supplier_id: this.selectedSupplier.supplier_id,
+          service: this.selectedSupplierType,
+          service_type: this.selectedSupplierType,
+          supplier_name: this.selectedSupplier.supplier_name || this.selectedSupplier.name,
+          price: parseFloat(this.selectedSupplier.price) || 0,
+          status: 'Pending',
+          is_selected: true // Flag to indicate user explicitly selected this supplier
+        });
+
+        // Save the updated wishlist to the database
+        const saved = await this.saveUpdatedWishlist(false);
+        
+        this.selectedSupplier = null;
+        this.closeSupplierModal();
+
+        // Show appropriate message based on save result
+        if (saved) {
+          this.$swal({
+            icon: 'success',
+            title: 'Supplier Added',
+            text: 'The supplier has been added to your wishlist.'
+          });
+        } else {
+          this.$swal({
+            icon: 'error',
+            title: 'Save Failed',
+            text: 'The supplier was added to your list but could not be saved to the database.'
+          });
         }
       },
     },

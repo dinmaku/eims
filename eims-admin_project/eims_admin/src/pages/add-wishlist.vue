@@ -893,7 +893,7 @@ export default {
         'Transportation',
         'Host',
         'Invitations',
-        'Favors and Gifts',
+        'Keepsakes',
         'Hair Stylist',
         'Makeup Artist',
       ],

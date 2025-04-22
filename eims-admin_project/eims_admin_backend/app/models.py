@@ -839,6 +839,62 @@ def get_all_booked_wishlist():
                 'total': float(s[3]) if s[3] is not None else float(s[8]) if s[8] is not None else 0
             } for s in services]
             
+            # Get outfits for this event
+            if event['wishlist_id']:
+                # Query to get individual outfits
+                cursor.execute("""
+                    SELECT 
+                        wo.wishlist_outfit_id, wo.outfit_id, wo.gown_package_id, wo.price, wo.remarks, wo.status,
+                        o.outfit_name, o.outfit_type, o.rent_price, o.size
+                    FROM wishlist_outfits wo
+                    LEFT JOIN outfits o ON wo.outfit_id = o.outfit_id
+                    WHERE wo.wishlist_id = %s AND wo.outfit_id IS NOT NULL
+                """, (event['wishlist_id'],))
+                
+                individual_outfits = cursor.fetchall()
+                
+                # Query to get gown packages
+                cursor.execute("""
+                    SELECT 
+                        wo.wishlist_outfit_id, wo.outfit_id, wo.gown_package_id, wo.price, wo.remarks, wo.status,
+                        gp.gown_package_name, gp.gown_package_price
+                    FROM wishlist_outfits wo
+                    LEFT JOIN gown_package gp ON wo.gown_package_id = gp.gown_package_id
+                    WHERE wo.wishlist_id = %s AND wo.gown_package_id IS NOT NULL
+                """, (event['wishlist_id'],))
+                
+                package_outfits = cursor.fetchall()
+                
+                # Process individual outfits
+                for outfit in individual_outfits:
+                    outfit_data = {
+                        'wishlist_outfit_id': outfit[0],
+                        'outfit_id': outfit[1],
+                        'price': float(outfit[3]) if outfit[3] is not None else 0,
+                        'remarks': outfit[4] if outfit[4] else '',
+                        'status': outfit[5] if outfit[5] else 'Pending',
+                        'outfit_name': outfit[6],
+                        'outfit_type': outfit[7],
+                        'rent_price': float(outfit[8]) if outfit[8] is not None else 0,
+                        'size': outfit[9],
+                        'type': 'individual'
+                    }
+                    event['outfits'].append(outfit_data)
+                
+                # Process package outfits
+                for outfit in package_outfits:
+                    outfit_data = {
+                        'wishlist_outfit_id': outfit[0],
+                        'gown_package_id': outfit[2],
+                        'price': float(outfit[3]) if outfit[3] is not None else 0,
+                        'remarks': outfit[4] if outfit[4] else '',
+                        'status': outfit[5] if outfit[5] else 'Pending',
+                        'gown_package_name': outfit[6],
+                        'gown_package_price': float(outfit[7]) if outfit[7] is not None else 0,
+                        'type': 'outfit_package'
+                    }
+                    event['outfits'].append(outfit_data)
+            
             events.append(event)
             
         return events
@@ -1956,17 +2012,47 @@ def get_event_details(event_id):
             # Get outfits
             outfits_query = """
             SELECT wo.wishlist_outfit_id, wo.outfit_id, wo.status,
-                   o.outfit_type, o.outfit_name, wo.price
+                   o.outfit_type, o.outfit_name, wo.price,
+                   o.outfit_color, o.outfit_desc, o.outfit_img
             FROM wishlist_outfits wo
-            JOIN outfits o ON wo.outfit_id = o.outfit_id
-            WHERE wo.wishlist_id = %s
+            LEFT JOIN outfits o ON wo.outfit_id = o.outfit_id
+            WHERE wo.wishlist_id = %s AND wo.gown_package_id IS NULL
             """
             cursor.execute(outfits_query, (wishlist_dict['wishlist_id'],))
             outfits = cursor.fetchall()
             
-            if outfits:
-                outfit_cols = [desc[0] for desc in cursor.description]
-                event_dict['outfits'] = [dict(zip(outfit_cols, outfit)) for outfit in outfits]
+            outfit_cols = [desc[0] for desc in cursor.description]
+            outfits_list = [dict(zip(outfit_cols, outfit)) for outfit in outfits]
+            
+            # Get gown packages
+            gown_packages_query = """
+            SELECT wo.wishlist_outfit_id, wo.gown_package_id, wo.status,
+                   gp.gown_package_name, wo.price
+            FROM wishlist_outfits wo
+            JOIN gown_package gp ON wo.gown_package_id = gp.gown_package_id
+            WHERE wo.wishlist_id = %s AND wo.gown_package_id IS NOT NULL
+            """
+            cursor.execute(gown_packages_query, (wishlist_dict['wishlist_id'],))
+            packages = cursor.fetchall()
+            
+            if packages:
+                package_cols = ['wishlist_outfit_id', 'gown_package_id', 'status', 'gown_package_name', 'price']
+                for package in packages:
+                    package_dict = dict(zip(package_cols, package))
+                    
+                    # Map to the same format as individual outfits for frontend compatibility
+                    outfits_list.append({
+                        'wishlist_outfit_id': package_dict['wishlist_outfit_id'],
+                        'gown_package_id': package_dict['gown_package_id'],
+                        'outfit_id': None,
+                        'outfit_name': package_dict['gown_package_name'] + ' (Package)',
+                        'outfit_type': 'Package',
+                        'status': package_dict['status'],
+                        'price': package_dict['price'],
+                        'is_package': True
+                    })
+            
+            event_dict['outfits'] = outfits_list
             
             # Get additional services
             services_query = """
@@ -1988,8 +2074,8 @@ def get_event_details(event_id):
                     service_dict['additional_service_id'] = service_dict['add_service_id']
                     services_list.append(service_dict)
                 event_dict['additional_services'] = services_list
-        
-        # Log the final event dictionary for debugging
+          
+          # Log the final event dictionary for debugging
         logger.info(f"Final event_dict keys: {event_dict.keys()}")
         logger.info(f"onsite_firstname: {event_dict.get('onsite_firstname')}")
         logger.info(f"onsite_lastname: {event_dict.get('onsite_lastname')}")
@@ -2445,7 +2531,7 @@ def add_event_outfit(events_id, outfit_type, outfit_id=None, gown_package_id=Non
 def get_event_outfits(events_id):
     try:
         with db.get_db_cursor() as cursor:
-            # Get individual outfits
+            # Get both individual outfits and gown packages
             cursor.execute("""
                 SELECT eo.event_outfit_id, eo.outfit_type, 
                        o.outfit_id, o.outfit_name, o.outfit_type as outfit_category, o.size, o.rent_price,
@@ -2457,20 +2543,67 @@ def get_event_outfits(events_id):
             """, (events_id,))
             outfits = cursor.fetchall()
             
-            return [{
-                'event_outfit_id': outfit[0],
-                'outfit_type': outfit[1],
-                'outfit_id': outfit[2],
-                'outfit_name': outfit[3],
-                'outfit_category': outfit[4],
-                'size': outfit[5],
-                'rent_price': float(outfit[6]) if outfit[6] else None,
-                'gown_package_id': outfit[7],
-                'gown_package_name': outfit[8],
-                'gown_package_price': float(outfit[9]) if outfit[9] else None
-            } for outfit in outfits]
+            result = []
+            for outfit in outfits:
+                outfit_id = outfit[2]
+                gown_package_id = outfit[7]
+                
+                # Handle individual outfit
+                if outfit_id:
+                    result.append({
+                        'event_outfit_id': outfit[0],
+                        'outfit_type': outfit[1],
+                        'outfit_id': outfit_id,
+                        'outfit_name': outfit[3] or f"Outfit #{outfit_id}",  # Fallback name
+                        'outfit_category': outfit[4],
+                        'size': outfit[5],
+                        'rent_price': float(outfit[6]) if outfit[6] else 0,
+                        'gown_package_id': None,
+                        'gown_package_name': None,
+                        'gown_package_price': None,
+                        'type': 'individual'
+                    })
+                
+                # Handle gown package
+                if gown_package_id:
+                    # Get outfit contents of package if it's a gown package
+                    package_outfits = []
+                    if gown_package_id:
+                        cursor.execute("""
+                            SELECT o.outfit_id, o.outfit_name, o.outfit_type, o.size, o.rent_price
+                            FROM gown_package_outfits gpo
+                            JOIN outfits o ON gpo.outfit_id = o.outfit_id
+                            WHERE gpo.gown_package_id = %s
+                        """, (gown_package_id,))
+                        package_outfits = cursor.fetchall()
+                    
+                    result.append({
+                        'event_outfit_id': outfit[0],
+                        'outfit_type': outfit[1],
+                        'outfit_id': None,
+                        'outfit_name': None,
+                        'outfit_category': None,
+                        'size': None,
+                        'rent_price': None,
+                        'gown_package_id': gown_package_id,
+                        'gown_package_name': outfit[8] or f"Package #{gown_package_id}",  # Fallback name
+                        'gown_package_price': float(outfit[9]) if outfit[9] else 0,
+                        'type': 'package',
+                        'package_outfits': [
+                            {
+                                'outfit_id': po[0],
+                                'outfit_name': po[1] or f"Package Outfit #{po[0]}",
+                                'outfit_type': po[2],
+                                'size': po[3],
+                                'rent_price': float(po[4]) if po[4] else 0
+                            } for po in package_outfits
+                        ],
+                        'outfits_count': len(package_outfits)
+                    })
+            
+            return result
     except Exception as e:
-        print(f"Error getting event outfits: {str(e)}")
+        logger.error(f"Error getting event outfits: {str(e)}")
         return []
 
 def toggle_supplier_status(supplier_id):
@@ -4146,6 +4279,208 @@ def toggle_event_package_status(package_id):
         conn.rollback()
         logger.error(f"Error toggling event package status: {str(e)}")
         raise
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_outfit(outfit_data):
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Update outfit data
+        cursor.execute("""
+            UPDATE outfits
+            SET outfit_name = %(outfit_name)s,
+                outfit_type = %(outfit_type)s,
+                outfit_color = %(outfit_color)s,
+                outfit_desc = %(outfit_desc)s,
+                rent_price = %(rent_price)s,
+                status = %(status)s,
+                size = %(size)s,
+                weight = %(weight)s
+            WHERE outfit_id = %(outfit_id)s
+        """, {
+            'outfit_id': outfit_data.get('outfit_id'),
+            'outfit_name': outfit_data.get('outfit_name'),
+            'outfit_type': outfit_data.get('outfit_type'),
+            'outfit_color': outfit_data.get('outfit_color'),
+            'outfit_desc': outfit_data.get('outfit_desc'),
+            'rent_price': float(outfit_data.get('rent_price', 0)),
+            'status': outfit_data.get('status', 'Available'),
+            'size': outfit_data.get('size'),
+            'weight': float(outfit_data.get('weight', 0))
+        })
+        
+        # Update outfit image if provided
+        if 'outfit_img' in outfit_data and outfit_data['outfit_img']:
+            cursor.execute("""
+                UPDATE outfits
+                SET outfit_img = %(outfit_img)s
+                WHERE outfit_id = %(outfit_id)s
+            """, {
+                'outfit_id': outfit_data.get('outfit_id'),
+                'outfit_img': outfit_data.get('outfit_img')
+            })
+        
+        # Update archive entry if provided
+        if 'archive' in outfit_data and outfit_data['archive']:
+            archive_data = outfit_data['archive']
+            cursor.execute("""
+                UPDATE outfit_archive
+                SET creation_address = %(creation_address)s,
+                    owner = %(owner)s
+                WHERE outfit_id = %(outfit_id)s
+            """, {
+                'outfit_id': outfit_data.get('outfit_id'),
+                'creation_address': archive_data.get('creation_address'),
+                'owner': archive_data.get('owner')
+            })
+        
+        conn.commit()
+        return True, "Outfit updated successfully"
+        
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error updating outfit: {str(e)}")
+        return False, str(e)
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_event_outfits_enhanced(events_id):
+    """
+    Enhanced function to fetch both individual outfits and gown packages for an event.
+    Returns both types of outfits separately for easier handling.
+    """
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Get individual outfits
+        cursor.execute("""
+            SELECT eo.event_outfit_id, eo.outfit_type, 
+                   o.outfit_id, o.outfit_name, o.outfit_type as outfit_category, 
+                   o.size, o.rent_price, o.outfit_img, o.outfit_color
+            FROM event_outfits eo
+            JOIN outfits o ON eo.outfit_id = o.outfit_id
+            WHERE eo.events_id = %s AND eo.outfit_id IS NOT NULL
+        """, (events_id,))
+        
+        individual_outfits = [{
+            'event_outfit_id': outfit[0],
+            'outfit_type': outfit[1],
+            'outfit_id': outfit[2],
+            'outfit_name': outfit[3] or f"Outfit #{outfit[2]}", # Fallback name if empty
+            'outfit_category': outfit[4],
+            'size': outfit[5],
+            'rent_price': float(outfit[6]) if outfit[6] else 0,
+            'outfit_img': outfit[7],
+            'outfit_color': outfit[8],
+            'type': 'individual',
+            'display_name': outfit[3] or f"Outfit #{outfit[2]}" # Extra field for display
+        } for outfit in cursor.fetchall()]
+        
+        # Get gown packages
+        cursor.execute("""
+            SELECT eo.event_outfit_id, eo.outfit_type, 
+                   gp.gown_package_id, gp.gown_package_name, gp.gown_package_price, gp.description
+            FROM event_outfits eo
+            JOIN gown_package gp ON eo.gown_package_id = gp.gown_package_id
+            WHERE eo.events_id = %s AND eo.gown_package_id IS NOT NULL
+        """, (events_id,))
+        
+        gown_packages = []
+        for package in cursor.fetchall():
+            package_outfits = get_gown_package_outfits(package[2])
+            
+            gown_packages.append({
+                'event_outfit_id': package[0],
+                'outfit_type': package[1],
+                'gown_package_id': package[2],
+                'outfit_name': package[3] or f"Package #{package[2]}", # Fallback name if empty
+                'gown_package_name': package[3] or f"Package #{package[2]}", # Fallback name if empty
+                'rent_price': float(package[4]) if package[4] else 0, # Added for consistency
+                'gown_package_price': float(package[4]) if package[4] else 0,
+                'description': package[5],
+                'type': 'package',
+                'display_name': package[3] or f"Package #{package[2]}", # Extra field for display
+                'package_outfits': package_outfits,
+                'outfit_count': len(package_outfits)
+            })
+        
+        # Combined list with proper formatting for display
+        all_outfits = []
+        for outfit in individual_outfits:
+            all_outfits.append({
+                'id': outfit['event_outfit_id'],
+                'outfit_id': outfit['outfit_id'],
+                'type': 'individual',
+                'name': outfit['outfit_name'],
+                'display_name': outfit['outfit_name'],
+                'rent_price': outfit['rent_price'],
+                'size': outfit['size'],
+                'category': outfit['outfit_category'],
+                'details': outfit
+            })
+            
+        for package in gown_packages:
+            all_outfits.append({
+                'id': package['event_outfit_id'],
+                'gown_package_id': package['gown_package_id'],
+                'type': 'package',
+                'name': package['gown_package_name'],
+                'display_name': package['gown_package_name'] + f" (Package of {len(package['package_outfits'])} outfits)",
+                'rent_price': package['gown_package_price'],
+                'outfits_count': len(package['package_outfits']),
+                'details': package
+            })
+        
+        return {
+            'individual_outfits': individual_outfits,
+            'gown_packages': gown_packages,
+            'all_outfits': all_outfits
+        }
+    except Exception as e:
+        logger.error(f"Error getting event outfits: {str(e)}")
+        return {
+            'individual_outfits': [],
+            'gown_packages': [],
+            'all_outfits': []
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_gown_package_outfits(gown_package_id):
+    """
+    Get all outfits that belong to a specific gown package.
+    """
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT o.outfit_id, o.outfit_name, o.outfit_type, o.size, 
+                   o.rent_price, o.outfit_img, o.outfit_color, o.outfit_desc
+            FROM gown_package_outfits gpo
+            JOIN outfits o ON gpo.outfit_id = o.outfit_id
+            WHERE gpo.gown_package_id = %s
+        """, (gown_package_id,))
+        
+        return [{
+            'outfit_id': outfit[0],
+            'outfit_name': outfit[1],
+            'outfit_type': outfit[2],
+            'size': outfit[3],
+            'rent_price': float(outfit[4]) if outfit[4] else 0,
+            'outfit_img': outfit[5],
+            'outfit_color': outfit[6],
+            'outfit_desc': outfit[7]
+        } for outfit in cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Error getting gown package outfits: {str(e)}")
+        return []
     finally:
         cursor.close()
         conn.close()

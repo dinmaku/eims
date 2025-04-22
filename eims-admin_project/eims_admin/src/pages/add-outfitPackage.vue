@@ -237,23 +237,23 @@
                                 <td class="p-2 text-sm">
                                     <button
                                         @click="removeOutfitFromPackage(outfit.outfit_id)"
-                                        class="rounded p-1 hover:bg-red-100"
-                                    >
-                                        <img 
-                                            src="/img/delete.png"
-                                            alt="Remove"
-                                            class="w-4 h-4"
-                                        />
-                                    </button>
+                                    class="rounded p-1 hover:bg-red-100"
+                                >
+                                    <img 
+                                        src="/img/delete.png"
+                                        alt="Remove"
+                                        class="w-4 h-4"
+                                    />
+                                </button>
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
-                </div>
+                </table>
             </div>
+        </div>
 
 
-         
+
 
             <!-- Price Summary Section -->
                 <div class="mt-6 border-t pt-4">
@@ -391,28 +391,28 @@
 
                     <!-- Error Message -->
                     <div v-if="errorMessage" class="text-sm text-red-500 mb-4 text-center">
-                        {{ errorMessage }}
+                    {{ errorMessage }}
                     </div>
 
                     <!-- Package Name -->
                     <div class="mb-4">
-                        <input
+                    <input
                             id="package-name"
-                            type="text"
-                            v-model="selectedGownPackage.gown_package_name"
+                        type="text"
+                        v-model="selectedGownPackage.gown_package_name"
                             class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                            placeholder="Enter package name"
-                            required
-                        />
+                        placeholder="Enter package name"
+                        required
+                    />
                     </div>
 
                     <!-- Description -->
                     <div class="mb-4">
                         <textarea
-                            id="description"
-                            v-model="selectedGownPackage.description"
+                        id="description"
+                        v-model="selectedGownPackage.description"
                             class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                            placeholder="Enter description"
+                        placeholder="Enter description"
                             rows="3"
                             style="resize: none;"
                         ></textarea>
@@ -432,25 +432,25 @@
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Inclusions</h3>
                         <div class="border rounded-lg" style="height: 150px; overflow-y: auto;">
-                            <table class="w-full">
+                        <table class="w-full">
                                 <thead class="bg-gray-200 sticky top-0 z-10">
-                                    <tr>
+                            <tr>
                                         <th class="p-2 text-left">Type</th>
                                         <th class="p-2 text-left">Name</th>
-                                        <th class="p-2 text-left">Price</th>
+                                <th class="p-2 text-left">Price</th>
                                         <th class="p-2 text-left">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                            </tr>
+                            </thead>
+                            <tbody>
                                     <!-- Combine both gowns and tuxedos -->
-                                    <tr
+                            <tr 
                                         v-for="outfit in selectedPackageOutfits"
-                                        :key="outfit.outfit_id"
+                                :key="outfit.outfit_id" 
                                         class="hover:bg-gray-100 border-t"
                                     >
                                         <td class="p-2 text-sm capitalize">{{ outfit.outfit_type }}</td>
-                                        <td class="p-2 text-sm">{{ outfit.outfit_name }}</td>
-                                        <td class="p-2 text-sm">{{ formatPrice(outfit.rent_price) }} php</td>
+                                <td class="p-2 text-sm">{{ outfit.outfit_name }}</td>
+                                <td class="p-2 text-sm">{{ formatPrice(outfit.rent_price) }} php</td>
                                         <td class="p-2 text-sm">
                                             <button
                                                 @click="removeOutfitFromPackage(outfit.outfit_id)"
@@ -464,9 +464,9 @@
                                                 />
                                             </button>
                                         </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            </tr>
+                            </tbody>
+                        </table>
                         </div>
                     </div>
 
@@ -483,7 +483,7 @@
                         <div class="flex justify-between items-center mb-2">
                             <div class="flex items-center">
                                 <span class="text-gray-600 mr-2">Discount (%):</span>
-                                <input 
+                                    <input 
                                     type="number" 
                                     v-model.number="editDiscount"
                                     min="0"
@@ -503,19 +503,19 @@
 
                     <!-- Actions -->
                     <div class="flex justify-end space-x-4 mt-6">
-                        <button
-                            @click="closeEditGownPackageForm"
-                            type="button"
+                    <button
+                        @click="closeEditGownPackageForm"
+                        type="button"
                             class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-400 transition duration-300"
-                        >
+                    >
                             Cancel
-                        </button>
-                        <button
-                            type="submit"
+                    </button>
+                    <button
+                        type="submit"
                             class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 transition duration-300"
-                        >
+                    >
                             Update
-                        </button>
+                    </button>
                     </div>
                 </div>
             </form>
@@ -599,46 +599,22 @@
                             <!-- Weight -->
                             <input type="number" step="0.01" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.weight" placeholder="Weight" required>
                         </div>
-                        
-                        <!-- Outfit From -->
-                        <div class="mt-5">
-                            <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="outfitArchive.creation_address" placeholder="Outfit Origin" required>
-                        </div>
-
-                        <!-- Outfit Owner -->
-                        <div class="mt-5">
-                            <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="outfitArchive.owner" placeholder="Outfit Owner" required>
-                        </div>
 
                         <!-- Outfit Description -->
-                        <div class="mt-5">
-                            <textarea class="mt-2 ml-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.outfit_desc" placeholder="Outfit Description" required></textarea>
+                        <div class="flex flex-col mt-5">
+                            <label class="text-xs text-gray-600 ml-2 text-start">Outfit Description</label>
+                            <textarea class="mt-2 ml-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.outfit_desc" placeholder="Description" required></textarea>
                         </div>
 
-                        <!-- Outfit Image Upload -->
-                        <div class="mt-3 flex flex-col items-center">
-                            <div class="h-[150px] w-[500px] rounded-lg shadow-md flex flex-col items-center justify-between p-2 gap-1 bg-blue-50">
-                                <div class="flex-1 w-full border-2 border-dashed border-royalblue rounded-lg flex items-center justify-center flex-col">
-                                    <svg class="h-[50px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M7 10V9C7 6.23858 9.23858 4 12 4C14.7614 4 17 6.23858 17 9V10C19.2091 10 21 11.7909 21 14C21 15.4806 20.1956 16.8084 19 17.5M7 10C4.79086 10 3 11.7909 3 14C3 15.4806 3.8044 16.8084 5 17.5M7 10C7.43285 10 7.84965 10.0688 8.24006 10.1959M12 12V21M12 12L15 15M12 12L9 15" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    </svg>
-                                    <p class="text-center text-black text-sm">Browse File to upload!</p>
-                                </div>
-                                <label for="file" class="bg-blue-50 w-full h-[45px] p-2 rounded-lg cursor-pointer flex items-center justify-end text-black border-none">
-                                    <svg class="h-[100%] bg-gray-100 rounded-full p-1 shadow-md" fill="#000000" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M15.331 6H8.5v20h15V14.154h-8.169z"></path>
-                                        <path d="M18.153 6h-.009v5.342H23.5v-.002z"></path>
-                                    </svg>
-                                    <p id="displayFileName" class="flex-1 text-center text-sm">No file selected</p>
-                                    <svg class="h-[100%] bg-gray-100 rounded-full p-1 shadow-md" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M5.16565 10.1534C5.07629 8.99181 5.99473 8 7.15975 8H16.8402C18.0053 8 18.9237 8.9918 18.8344 10.1534L18.142 19.1534C18.0619 20.1954 17.193 21 16.1479 21H7.85206C6.80699 21 5.93811 20.1954 5.85795 19.1534L5.16565 10.1534Z" stroke="#000000" stroke-width="2"></path>
-                                        <path d="M19.5 5H4.5" stroke="#000000" stroke-width="2" stroke-linecap="round"></path>
-                                        <path d="M10 3C10 2.44772 10.4477 2 11 2H13C13.5523 2 14 2.44772 14 3V5H10V3Z" stroke="#000000" stroke-width="2"></path>
-                                    </svg>
+                        <!-- Image Upload -->
+                        <div class="flex flex-col mt-5">
+                            <label class="text-xs text-gray-600 ml-2 text-start">Outfit Image</label>
+                            <div class="mt-2 ml-2 flex items-center">
+                                <label class="relative cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
+                                    <span>Choose File</span>
+                                    <input type="file" class="hidden" @change="onFileSelected" accept="image/*" ref="fileInput">
                                 </label>
-                                <input id="file" type="file" class="hidden" @change="updateFileName" accept="image/*">
-                            
-                                
+                                <span class="ml-3 text-sm text-gray-600">{{ selectedFileName || 'No file chosen' }}</span>
                             </div>
                         </div>
 
@@ -656,7 +632,7 @@
             </form>
      
      <!-- Outfits Modal -->
-    <div v-if="showOutfitsModal" @click.self="closeOutfitsModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+    <div v-if="showOutfitsModal" @click.self="closeOutfitsModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-40">
         <div class="bg-white p-6 rounded-lg shadow-lg w-[1000px]">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold">All Outfits</h2>
@@ -681,8 +657,8 @@
                     <option v-for="type in distinctOutfitTypes" :key="type" :value="type">
                         {{ type }}s
                     </option>
-                </select>
-            </div>
+        </select>
+     </div>       
     
     <!-- Outfits Table -->
         <div class="h-[400px] flex flex-col">
@@ -701,7 +677,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="outfit in paginatedOutfits" :key="outfit.outfit_id" class="bg-white border-b hover:bg-gray-50">
+                        <tr v-for="outfit in paginatedOutfits" 
+                            :key="outfit.outfit_id" 
+                            class="bg-white border-b hover:bg-gray-50 cursor-pointer"
+                            @click="openEditOutfit(outfit)">
                             <td class="px-2 py-3">{{ outfit.dummyIndex }}</td>
                             <td class="px-2 py-3 truncate">{{ outfit.outfit_name }}</td>
                             <td class="px-2 py-3 capitalize truncate">{{ outfit.outfit_type }}</td>
@@ -710,7 +689,7 @@
                             <td class="px-2 py-3">{{ formatPrice(outfit.rent_price) }} php</td>
                             <td class="px-2 py-3">
                                 <span 
-                                    :class="outfit.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                                    :class="outfit.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
                                     class="px-2 py-1 rounded-full text-xs font-medium"
                                 >
                                     {{ outfit.status }}
@@ -718,9 +697,10 @@
                             </td>
                             <td class="px-2 py-3">
                                 <img 
-                                    :src="outfit.outfit_img" 
+                                    :src="getOutfitImageUrl(outfit.outfit_img)" 
                                     :alt="outfit.outfit_name"
                                     class="w-10 h-10 object-cover rounded"
+                                    @error="handleImageError"
                                 >
                             </td>
                         </tr>
@@ -793,6 +773,136 @@
     
     
     </div>
+
+    <!-- Edit Outfit Form -->
+    <form v-if="isEditingOutfit" @submit.prevent="handleEditSubmit" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto z-50" @click.self="closeEditOutfitForm">
+        <div class="bg-white w-[600px] p-5 rounded-lg shadow-lg overflow-y-auto">
+            <div class="flex justify-between items-center m-3">
+                <h1 class="font-semibold text-xl font-raleway text-gray-800">Edit Outfit</h1>
+            </div>
+            <div class="border border-gray-500 mt-5 items-center"></div>
+            <div class="m-5">
+                <span>{{ errorMessage }}</span>
+
+                <!-- Outfit Name -->
+                <div class="flex flex-row mt-5">
+                    <input type="text" 
+                        class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                        v-model="editingOutfit.outfit_name" 
+                        placeholder="Outfit Name" 
+                        required>
+                    <!-- Outfit Type -->
+                    <select class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                            v-model="editingOutfit.outfit_type" 
+                            required>
+                        <option value="" disabled selected>Outfit Type</option>
+                        <option value="Wedding Gown">Wedding Gown</option>
+                        <option value="Saree">Saree</option>
+                        <option value="Lehenga">Lehenga</option>
+                        <option value="Suit">Suit</option>
+                        <option value="Gown">Gown</option>
+                        <option value="Jumpsuit">Jumpsuit</option>
+                        <option value="Reception Dress">Reception Dress</option>
+                        <option value="Bridal Robe">Bridal Robe</option>
+                        <option value="Tuxedo">Tuxedo</option>
+                        <option value="Sherwani">Sherwani</option>
+                        <option value="Kurta Pajama">Kurta Pajama</option>
+                        <option value="Bespoke Tailored Outfit">Bespoke Tailored Outfit</option>
+                        <option value="Barong Tagalog">Barong Tagalog</option>
+                        <option value="Morning Coat">Morning Coat</option>
+                        <option value="Bridesmaid Dress">Bridesmaid Dress</option>
+                        <option value="Cultural Attire">Cultural Attire</option>
+                        <option value="Mix-and-Match Dress">Mix-and-Match Dress</option>
+                        <option value="Flower Girl Dress">Flower Girl Dress</option>
+                        <option value="Ring Bearer Suit">Ring Bearer Suit</option>
+                        <option value="Formal Attire">Formal Attire</option>
+                        <option value="Semi-Formal Attire">Semi-Formal Attire</option>
+                        <option value="Traditional/Tribal Wear">Traditional/Tribal Wear</option>
+                        <option value="Engagement Outfit">Engagement Outfit</option>
+                        <option value="Rehearsal Dinner Attire">Rehearsal Dinner Attire</option>
+                        <option value="Haldi Ceremony Outfit">Haldi Ceremony Outfit</option>
+                        <option value="Mehndi Ceremony Outfit">Mehndi Ceremony Outfit</option>
+                        <option value="Cocktail Party Wear">Cocktail Party Wear</option>
+                        <option value="Destination Wedding Attire">Destination Wedding Attire</option>
+                        <option value="Seasonal Attire">Seasonal Attire</option>
+                    </select>
+                </div>
+
+                <!-- Outfit Color -->
+                <div class="flex flex-row mt-5">
+                    <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.outfit_color" placeholder="Outfit Color" required>
+                    <!-- Rent Price -->
+                    <input type="number" step="0.01" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.rent_price" placeholder="Rent Price" required>
+                </div>
+
+                <!-- Size -->
+                <div class="flex flex-row mt-5">
+                    <select class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.size" required>
+                        <option value="" disabled selected>Size</option>
+                        <option value="XS">XS</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="2XL">2XL</option>
+                        <option value="3XL">3XL</option>
+                        <option value="4XL">4XL</option>
+                        <option value="5XL">5XL</option>
+                    </select>
+                    <!-- Weight -->
+                    <input type="number" step="0.01" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.weight" placeholder="Weight" required>
+                </div>
+
+                <!-- Status Toggle -->
+                <div class="flex flex-row mt-5 items-center">
+                    <label class="relative inline-flex items-center cursor-pointer ml-2">
+                        <input type="checkbox" 
+                               v-model="editingOutfit.status" 
+                               :true-value="'Available'" 
+                               :false-value="'Unavailable'" 
+                               class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
+                                  peer-checked:after:translate-x-full peer-checked:after:border-white 
+                                  after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                                  after:bg-white after:border-gray-300 after:border after:rounded-full 
+                                  after:h-5 after:w-5 after:transition-all 
+                                  peer-checked:bg-green-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-900">
+                            {{ editingOutfit.status }}
+                        </span>
+                    </label>
+                </div>
+                
+                <!-- Outfit Description -->
+                <div class="flex flex-col mt-5">
+                    <label class="text-xs text-gray-600 ml-2 text-start">Outfit Description</label>
+                    <textarea class="mt-2 ml-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.outfit_desc" placeholder="Description" required></textarea>
+                </div>
+
+                <!-- Image Upload -->
+                <div class="flex flex-col mt-5">
+                    <label class="text-xs text-gray-600 ml-2 text-start">Outfit Image</label>
+                    <div class="mt-2 ml-2 flex items-center">
+                        <label class="relative cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
+                            <span>Choose File</span>
+                            <input type="file" class="hidden" @change="onEditFileSelected" accept="image/*" ref="editFileInput">
+                        </label>
+                        <span class="ml-3 text-sm text-gray-600">{{ editingSelectedFileName || 'No file chosen' }}</span>
+                    </div>
+                </div>
+
+                <!-- Confirm and Cancel Buttons -->
+                <div class="flex justify-end items-center mt-5 space-x-2">
+                    <button class="w-20 h-10 bg-gray-300 text-white px-3 py-1 rounded transform transition duration-300 transform hover:scale-105 hover:bg-gray-400" @click="closeEditOutfitForm">
+                        Cancel
+                    </button>
+                    <button type="submit" class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform transition duration-300 transform hover:scale-105">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
     </template>
     
     <script>
@@ -845,9 +955,7 @@
             },
             outfitArchive: {
                 creation_address: '',
-                creation_date: '',
-                owner: '',
-                retail_price: ''
+                owner: ''
             },
           
             previewSrc: null,
@@ -896,10 +1004,29 @@
             rowsPerPage: 5,
             
             // Selection mode for the outfit modal ('add' or 'edit')
-            outfitSelectionMode: 'add'
+            outfitSelectionMode: 'add',
             
-                
+            // Image upload properties
+            selectedFileName: null,
+            apiBaseUrl: 'http://127.0.0.1:5000',
 
+            // Edit mode properties
+            isEditingOutfit: false,
+            editingOutfit: null,
+            editingOutfitArchive: {
+                archive_id: null,
+                outfit_id: null,
+                creation_address: '',
+                creation_date: '',
+                owner: '',
+                retail_price: '',
+                usage: 0
+            },
+            editingSelectedFileName: null,
+            
+            // Image upload properties
+            selectedFile: null,
+            editingSelectedFile: null,
         };
     },
 
@@ -930,8 +1057,8 @@
                 // Filter by search query
                 const matchesSearch = !this.outfitSearchQuery || 
                     outfit.outfit_name.toLowerCase().includes(this.outfitSearchQuery.toLowerCase()) ||
-                    outfit.outfit_type.toLowerCase().includes(this.outfitSearchQuery.toLowerCase()) ||
-                    outfit.outfit_color.toLowerCase().includes(this.outfitSearchQuery.toLowerCase());
+                                    outfit.outfit_type.toLowerCase().includes(this.outfitSearchQuery.toLowerCase()) ||
+                                    outfit.outfit_color.toLowerCase().includes(this.outfitSearchQuery.toLowerCase());
                 
                 // Filter by outfit type
                 const matchesType = !this.outfitTypeFilter || 
@@ -1045,7 +1172,7 @@
             this.errorMessage = '';
         },
 
-        async fetchOutfits() {
+    async fetchOutfits() {
             try {
             const token = localStorage.getItem('access_token');
             if (!token) {
@@ -1073,12 +1200,15 @@
                 outfit_img: item.outfit_img,
                 size: item.size,
                 weight: item.weight,
+                creation_address: item.creation_address,
+                owner: item.owner,
+                archive_id: item.archive_id,
                 dummyIndex: index + 1,
             }));
 
             // Separate outfits by type
-            this.gowns = this.outfits.filter(outfit => outfit.outfit_type === 'Gown');
-            this.tuxedos = this.outfits.filter(outfit => outfit.outfit_type === 'Tuxedo');
+            this.gowns = this.outfits.filter(outfit => outfit.outfit_type.toLowerCase().includes('gown'));
+            this.tuxedos = this.outfits.filter(outfit => outfit.outfit_type.toLowerCase().includes('tuxedo'));
 
             } catch (error) {
             console.error('Error fetching outfits:', error.response?.data || error.message);
@@ -1263,7 +1393,7 @@
                     tuxedo_ids: []
                 }; // Reset form fields to default
                 this.errorMessage = ''; // Clear error messages
-            },
+                },
 
             // New methods for Update Outfit Package form
             removeOutfitFromPackage(outfitId) {
@@ -1289,7 +1419,7 @@
                 
                 // Open the outfit selection modal
                 this.showOutfitModal = true;
-            },
+                },
 
 			addOutfitsBtn() {
 				this.addOutfitForm = true;
@@ -1298,52 +1428,135 @@
                 this.addOutfitForm = false;
             },
 
+            onFileSelected(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.selectedFile = file;
+                    this.selectedFileName = file.name;
+                }
+            },
+
             async handleSubmit() {
                 try {
+                    this.isLoading = true;
+                    this.errorMessage = '';
                     const token = localStorage.getItem('access_token');
-                    const response = await axios.post('http://127.0.0.1:5000/outfits', this.newOutfit, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
 
-                    if (response.data) {
-                        alert('Outfit added successfully');
+                    // Check if all required fields are filled
+                    if (!this.outfit.outfit_name || !this.outfit.outfit_type || !this.outfit.outfit_color || 
+                        !this.outfit.rent_price || !this.outfit.size || !this.outfit.weight) {
+                      this.errorMessage = 'Please fill in all required fields';
+                      this.isLoading = false;
+                      return;
+                    }
+
+                    if (this.selectedFile) {
+                      // If a file is selected, use FormData
+                      const formData = new FormData();
+                      formData.append('outfit_name', this.outfit.outfit_name);
+                      formData.append('outfit_type', this.outfit.outfit_type);
+                      formData.append('outfit_color', this.outfit.outfit_color);
+                      formData.append('outfit_desc', this.outfit.outfit_desc || '');
+                      formData.append('rent_price', this.outfit.rent_price);
+                      formData.append('size', this.outfit.size);
+                      formData.append('weight', this.outfit.weight);
+                      formData.append('status', 'Available');
+                      
+                      // Create archive data as a nested object
+                      const archiveData = {
+                        creation_address: this.outfitArchive.creation_address || '',
+                        owner: this.outfitArchive.owner || ''
+                      };
+                      
+                      // Add archive data as a JSON string
+                      formData.append('archive', JSON.stringify(archiveData));
+                      
+                      // Add the file
+                      formData.append('outfit_image', this.selectedFile);
+                      
+                      // Send request to API
+                      const response = await axios.post('http://127.0.0.1:5000/outfits', formData, {
+                        headers: {
+                          'Content-Type': 'multipart/form-data',
+                          'Authorization': `Bearer ${token}`
+                        }
+                      });
+                      
+                      this.selectedFileName = null;
+                      
+                      this.$emit('outfit-added', response.data);
+                      this.showForm = false;
                         this.resetForm();
-                        this.closeAddOutfitForm();
-                        // You might want to refresh the outfits list here
-                        // await this.fetchOutfits();
+                    } else {
+                      // If no file is selected, send as JSON
+                      const outfitData = {
+                        outfit_name: this.outfit.outfit_name,
+                        outfit_type: this.outfit.outfit_type,
+                        outfit_color: this.outfit.outfit_color,
+                        outfit_desc: this.outfit.outfit_desc || '',
+                        rent_price: this.outfit.rent_price,
+                        size: this.outfit.size,
+                        weight: this.outfit.weight,
+                        status: 'Available',
+                        archive: {
+                          creation_address: this.outfitArchive.creation_address || '',
+                          owner: this.outfitArchive.owner || ''
+                        }
+                      };
+                      
+                      // Send request to API
+                      const response = await axios.post('http://127.0.0.1:5000/outfits', outfitData, {
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        }
+                      });
+                      
+                      this.$emit('outfit-added', response.data);
+                      this.showForm = false;
+                      this.resetForm();
                     }
                 } catch (error) {
                     console.error('Error adding outfit:', error);
-                    this.errorMessage = error.response?.data?.message || 'Failed to add outfit';
+                    if (error.response) {
+                      // The request was made and the server responded with a status code
+                      // that falls out of the range of 2xx
+                      this.errorMessage = error.response.data.message || 'Error adding outfit. Please try again.';
+                      if (error.response.status === 413) {
+                        this.errorMessage = 'File size is too large. Please choose a smaller file.';
+                      } else if (error.response.status === 401) {
+                        this.errorMessage = 'Unauthorized. Please log in again.';
+                      }
+                    } else if (error.request) {
+                      // The request was made but no response was received
+                      this.errorMessage = 'No response from server. Please try again later.';
+                    } else {
+                      // Something happened in setting up the request that triggered an Error
+                      this.errorMessage = 'Error adding outfit. Please try again.';
+                    }
+                  } finally {
+                    this.isLoading = false;
                 }
             },
 
             resetForm() {
-                this.newOutfit = {
+                this.outfit = {
                     outfit_name: '',
                     outfit_type: '',
                     outfit_color: '',
                     outfit_desc: '',
                     rent_price: '',
-                    status: 'Available',
-                    outfit_img: '',
                     size: '',
                     weight: ''
                 };
                 this.outfitArchive = {
                     creation_address: '',
-                    creation_date: new Date().toISOString().split('T')[0],
-                    owner: '',
-                    retail_price: '',
-                    usage: 0
+                    owner: ''
                 };
                 this.selectedFile = null;
-                this.previewSrc = null;
+                this.selectedFileName = null;
                 this.errorMessage = '';
-                document.getElementById('displayFileName').textContent = 'No file selected';
+                this.isLoading = false;
             },
 
             openOutfitSelection(type) {
@@ -1596,6 +1809,240 @@
             return this.calculateEditSubtotal() - this.calculateEditDiscount();
         },
 
+        getOutfitImageUrl(imageFileName) {
+            // If the outfit has an image
+            if (imageFileName && imageFileName.length > 0) {
+                // Check if it's a full URL or just a path
+                if (imageFileName.startsWith('http')) {
+                    return imageFileName;
+                } else {
+                    // Use the API endpoint for outfit images with a cache busting parameter
+                    const timestamp = new Date().getTime();
+                    return `${this.apiBaseUrl}/api/outfit-image/${imageFileName}?t=${timestamp}`;
+                }
+            }
+            
+            // Default fallback - just return empty string to avoid errors
+            return '';
+        },
+        
+        handleImageError(e) {
+            // Don't try to load a placeholder, just hide the broken image
+            e.target.style.display = 'none';
+        },
+    
+        async openEditOutfit(outfit) {
+          try {
+            this.isEditingOutfit = true;
+            this.editingOutfit = { ...outfit };
+            this.errorMessage = '';
+            
+            // Fetch the outfit archive data
+            const token = localStorage.getItem('access_token');
+            try {
+              const response = await axios.get(`http://127.0.0.1:5000/outfits/${outfit.outfit_id}/archive`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              
+              if (response.data) {
+                // If archive data is returned, use it
+                this.editingOutfitArchive = {
+                  archive_id: response.data.archive_id || null,
+                  outfit_id: outfit.outfit_id,
+                  creation_address: response.data.creation_address || '',
+                  owner: response.data.owner || ''
+                };
+              } else {
+                // If no archive data is returned, use default values
+                this.editingOutfitArchive = {
+                  archive_id: null,
+                  outfit_id: outfit.outfit_id,
+                  creation_address: '',
+                  owner: ''
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching outfit archive data:', error);
+              // If there's an error fetching the archive data, use any available archive data from the outfit object
+              this.editingOutfitArchive = {
+                archive_id: outfit.archive_id || null,
+                outfit_id: outfit.outfit_id,
+                creation_address: outfit.creation_address || '',
+                owner: outfit.owner || ''
+              };
+            }
+            
+            this.editingSelectedFileName = null;
+          } catch (error) {
+            console.error('Error opening edit form:', error);
+            this.errorMessage = 'Error opening edit form. Please try again.';
+          }
+        },
+
+        closeEditOutfitForm() {
+            this.isEditingOutfit = false;
+            this.editingOutfit = null;
+            this.editingOutfitArchive = null;
+            this.editingSelectedFileName = null;
+            this.errorMessage = '';
+        },
+
+        onEditFileSelected(event) {
+            console.log("File selection event:", event);
+            const files = event.target.files;
+            console.log("Files array:", files);
+            
+            if (files && files.length > 0) {
+                const file = files[0];
+                console.log("Selected file details:", {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size
+                });
+                this.editingSelectedFile = file;
+                this.editingSelectedFileName = file.name;
+            } else {
+                console.log("No file selected");
+            }
+        },
+
+        async handleEditSubmit() {
+            try {
+                this.isLoading = true;
+                this.errorMessage = '';
+                const token = localStorage.getItem('access_token');
+
+                // Check if all required fields are filled
+                if (!this.editingOutfit.outfit_name || !this.editingOutfit.outfit_type || !this.editingOutfit.outfit_color || 
+                    !this.editingOutfit.rent_price || !this.editingOutfit.size || !this.editingOutfit.weight) {
+                  this.errorMessage = 'Please fill in all required fields';
+                  this.isLoading = false;
+                  return;
+                }
+
+                console.log("Selected file:", this.editingSelectedFile);
+                
+                if (this.editingSelectedFile) {
+                  // If a file is selected, use FormData
+                  const formData = new FormData();
+                  formData.append('outfit_id', this.editingOutfit.outfit_id);
+                  formData.append('outfit_name', this.editingOutfit.outfit_name);
+                  formData.append('outfit_type', this.editingOutfit.outfit_type);
+                  formData.append('outfit_color', this.editingOutfit.outfit_color);
+                  formData.append('outfit_desc', this.editingOutfit.outfit_desc || '');
+                  formData.append('rent_price', this.editingOutfit.rent_price);
+                  formData.append('size', this.editingOutfit.size);
+                  formData.append('weight', this.editingOutfit.weight);
+                  formData.append('status', this.editingOutfit.status || 'Available');
+                  
+                  // Create archive data as a nested object
+                  const archiveData = {
+                    archive_id: this.editingOutfitArchive.archive_id,
+                    outfit_id: this.editingOutfit.outfit_id,
+                    creation_address: this.editingOutfitArchive.creation_address || '',
+                    owner: this.editingOutfitArchive.owner || ''
+                  };
+                  
+                  // Add archive data as a JSON string
+                  formData.append('archive', JSON.stringify(archiveData));
+                  
+                  // Add the file - make sure to use the correct field name expected by the backend
+                  formData.append('outfit_image', this.editingSelectedFile);
+                  
+                  // Send request to API
+                  const response = await axios.put(`http://127.0.0.1:5000/outfits/${this.editingOutfit.outfit_id}`, formData, {
+                    headers: {
+                      'Content-Type': 'multipart/form-data',
+                      'Authorization': `Bearer ${token}`
+                    }
+                  });
+                  
+                  this.editingSelectedFileName = null;
+                  
+                  this.$emit('outfit-updated', response.data);
+                  this.isEditingOutfit = false;
+                  this.resetEditForm();
+                  await this.fetchOutfits(); // Refresh the outfits list
+                } else {
+                  // If no file is selected, send as JSON
+                  const outfitData = {
+                    outfit_id: this.editingOutfit.outfit_id,
+                    outfit_name: this.editingOutfit.outfit_name,
+                    outfit_type: this.editingOutfit.outfit_type,
+                    outfit_color: this.editingOutfit.outfit_color,
+                    outfit_desc: this.editingOutfit.outfit_desc || '',
+                    rent_price: this.editingOutfit.rent_price,
+                    size: this.editingOutfit.size,
+                    weight: this.editingOutfit.weight,
+                    status: this.editingOutfit.status || 'Available',
+                    archive: {
+                      archive_id: this.editingOutfitArchive.archive_id,
+                      outfit_id: this.editingOutfit.outfit_id,
+                      creation_address: this.editingOutfitArchive.creation_address || '',
+                      owner: this.editingOutfitArchive.owner || ''
+                    }
+                  };
+                  
+                  // Send request to API
+                  const response = await axios.put(`http://127.0.0.1:5000/outfits/${this.editingOutfit.outfit_id}`, outfitData, {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`
+                    }
+                  });
+                  
+                  this.$emit('outfit-updated', response.data);
+                  this.isEditingOutfit = false;
+                  this.resetEditForm();
+                  await this.fetchOutfits(); // Refresh the outfits list
+                }
+              } catch (error) {
+                console.error('Error updating outfit:', error);
+                if (error.response) {
+                  // The request was made and the server responded with a status code
+                  // that falls out of the range of 2xx
+                  this.errorMessage = error.response.data.message || 'Error updating outfit. Please try again.';
+                  if (error.response.status === 413) {
+                    this.errorMessage = 'File size is too large. Please choose a smaller file.';
+                  } else if (error.response.status === 401) {
+                    this.errorMessage = 'Unauthorized. Please log in again.';
+                  }
+                } else if (error.request) {
+                  // The request was made but no response was received
+                  this.errorMessage = 'No response from server. Please try again later.';
+                } else {
+                  // Something happened in setting up the request that triggered an Error
+                  this.errorMessage = 'Error updating outfit. Please try again.';
+                }
+              } finally {
+                this.isLoading = false;
+              }
+        },
+        resetEditForm() {
+          this.editingOutfit = {
+            outfit_id: null,
+            outfit_name: '',
+            outfit_type: '',
+            outfit_color: '',
+            outfit_desc: '',
+            rent_price: '',
+            size: '',
+            weight: '',
+            status: 'Available'
+          };
+          this.editingOutfitArchive = {
+            archive_id: null,
+            outfit_id: null,
+            creation_address: '',
+            owner: ''
+          };
+          this.editingSelectedFile = null;
+          this.editingSelectedFileName = null;
+          this.errorMessage = '';
+          this.isLoading = false;
+        },
     },
     
         mounted() {
