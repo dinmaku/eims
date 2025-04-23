@@ -452,36 +452,33 @@
         <div class="grid grid-cols-2 gap-4 mb-6 font-amaticSC">
           <div>
             <label class="block text-xs font-medium mb-1 text-gray-600 text-start">Event Name</label>
-            <input v-model="selectedEvent.event_name" disabled  type="text" class="w-full p-2 border rounded rounded text-sm">
+            <input v-model="selectedEvent.event_name" type="text" class="w-full p-2 border rounded rounded text-sm">
           </div>
           <div>
             <label class="block text-xs font-medium mb-1 text-gray-600 text-start">Theme</label>
-            <input v-model="selectedEvent.event_theme" disabled type="text" class="w-full p-2 border rounded rounded text-sm">
+            <input v-model="selectedEvent.event_theme" type="text" class="w-full p-2 border rounded rounded text-sm">
           </div>
           <div>
             <label class="block text-xs font-medium mb-1 text-gray-600 text-start">Color</label>
-            <input v-model="selectedEvent.event_color" disabled  type="text" class="w-full p-2 border rounded rounded text-sm">
+            <input v-model="selectedEvent.event_color" type="text" class="w-full p-2 border rounded rounded text-sm">
           </div>
-          <div>
-            <label class="block text-xs font-medium mb-1 text-gray-600 text-start">Booked By</label>
-            <input v-model="fullName" type="text" disabled class="w-full p-2 border rounded rounded text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-medium mb-1 text-gray-600 text-start">Contact</label>
-            <input v-model="selectedEvent.contactnumber" disabled type="text" class="w-full p-2 border rounded rounded text-sm">
-          </div>
+  
           <div>
             <label class="block text-xs font-medium mb-1 text-gray-600 text-start">Schedule</label>
-            <input v-model="selectedEvent.schedule" disabled type="text" class="w-full p-2 border rounded text-sm">
+            <input v-model="selectedEvent.schedule" type="date" class="w-full p-2 border rounded text-sm">
           </div>
           <div>
             <label class="block text-xs font-medium mb-1 text-gray-600 text-start">Start Time</label>
-            <input v-model="selectedEvent.start_time" disabled type="text" class="w-full p-2 border rounded text-sm">
+            <input v-model="selectedEvent.start_time" type="time" class="w-full p-2 border rounded text-sm">
           </div>
           <div>
             <label class="block text-xs font-medium mb-1 text-gray-600 text-start">End Time</label>
-            <input v-model="selectedEvent.end_time" disabled type="text" class="w-full p-2 border rounded text-sm">
+            <input v-model="selectedEvent.end_time" type="time" class="w-full p-2 border rounded text-sm">
           </div>
+        </div>
+        <div class="mb-2">  
+            <label class="text-xs font-medium mb-1 text-gray-600">Booked By</label>
+            <p class="text-lg font-semibold"> {{ fullName }} <span class="text-lg text-gray-500">({{ selectedEvent.contactnumber }})</span></p>
         </div>
         <div class ="mb-2">
             <label class="text-xs font-medium mb-1 text-gray-600">Package Name</label>
@@ -2270,7 +2267,7 @@
       let total = 0;
 
       // Add venue price if approved
-      if (this.selectedEvent.venue && this.selectedEvent.venue_status === 'Approved') {
+      if (this.selectedEvent.venue && this.selectedEvent.venue.status === 'Approved') {
         total += parseFloat(this.selectedEvent.venue.venue_price) || 0;
       }
 
@@ -2296,7 +2293,26 @@
       if (this.selectedEvent.services) {
         total += this.selectedEvent.services
           .filter(service => service.status === 'Approved')
-          .reduce((sum, service) => sum + (parseFloat(service.add_service_price) || 0), 0);
+          .reduce((sum, service) => sum + (parseFloat(service.add_service_price) || parseFloat(service.price) || 0), 0);
+      }
+
+      // Add additional capacity charges if any
+      if (this.selectedEvent.additional_capacity > 0 && this.selectedEvent.additional_capacity_total_price) {
+        total += parseFloat(this.selectedEvent.additional_capacity_total_price) || 0;
+      } else if (this.selectedEvent.description && this.selectedEvent.description.includes('[Additional capacity:')) {
+        // Extract additional charges from description if stored there
+        try {
+          const regex = /Additional charge: ₱([0-9,.]+)\]/;
+          const match = this.selectedEvent.description.match(regex);
+          if (match && match[1]) {
+            const charge = parseFloat(match[1].replace(/,/g, ''));
+            if (!isNaN(charge)) {
+              total += charge;
+            }
+          }
+        } catch (error) {
+          console.error('Error extracting additional capacity charge from description:', error);
+        }
       }
 
       return total;
@@ -2889,23 +2905,68 @@
       }
     },
     addCapacity() {
-      if (!this.newCapacity.capacity) {
-        alert('Please enter capacity range.');
+      if (!this.additionalCapacity || this.additionalCapacity <= 0) {
+        alert('Please enter a valid additional capacity greater than 0.');
         return;
       }
         
-      if (!this.newCapacity.charges) {
-        alert('Please enter charges.');
-        return;
+      try {
+        // Calculate additional charges
+        const additionalCharges = this.calculateAdditionalCharges();
+        
+        // Store the original capacity in case we need to revert
+        const originalCapacity = parseInt(this.selectedEvent.capacity) || 0;
+        
+        // Update the capacity directly (this is the primary field that exists in the DB)
+        const newCapacity = originalCapacity + parseInt(this.additionalCapacity);
+        this.selectedEvent.capacity = newCapacity;
+        
+        // Store the additional capacity info as a note in the description field if it doesn't fit in the schema
+        if (!this.selectedEvent.description) {
+          this.selectedEvent.description = '';
+        }
+        
+        // Add a note about the additional capacity
+        const capacityNote = `[Additional capacity: ${this.additionalCapacity} persons, Additional charge: ₱${this.formatPrice(additionalCharges)}]`;
+        if (!this.selectedEvent.description.includes('[Additional capacity:')) {
+          this.selectedEvent.description += '\n' + capacityNote;
+        } else {
+          // Replace existing capacity note
+          const regex = /\[Additional capacity:.*?\]/g;
+          this.selectedEvent.description = this.selectedEvent.description.replace(regex, capacityNote);
+        }
+        
+        // Try to use the dedicated fields too, but these might not exist in the schema
+        this.selectedEvent.additional_capacity = this.additionalCapacity;
+        this.selectedEvent.additional_capacity_total_price = additionalCharges;
+        
+        // Save the updated capacity to the database
+        this.saveUpdatedWishlist(false)
+          .then(saved => {
+            if (saved) {
+              this.showCapacityModal = false;
+              this.additionalCapacity = 0; // Reset input
+              alert('Additional capacity added successfully!');
+            } else {
+              // Revert on failure
+              this.selectedEvent.capacity = originalCapacity;
+              // Remove the capacity note
+              if (this.selectedEvent.description) {
+                this.selectedEvent.description = this.selectedEvent.description.replace('\n' + capacityNote, '');
+              }
+              this.selectedEvent.additional_capacity = 0;
+              this.selectedEvent.additional_capacity_total_price = 0;
+              alert('Failed to save additional capacity. Please try again.');
+            }
+          })
+          .catch(error => {
+            console.error('Error saving capacity:', error);
+            alert('Error saving capacity: ' + error.message);
+          });
+      } catch (error) {
+        console.error('Error in addCapacity:', error);
+        alert('An error occurred while adding capacity: ' + error.message);
       }
-        
-      this.capacityList.push({
-        capacity: this.newCapacity.capacity,
-        charges: parseFloat(this.newCapacity.charges),
-        unit: this.newCapacity.unit
-      });
-        
-      this.closeCapacityModal();
     },
 
     closeOutfitModal() {
@@ -3873,6 +3934,16 @@
             total_price: parseFloat(this.selectedEvent.total_price) || 0,
             event_type_id: this.selectedEvent.event_type_id || null,
             status: this.selectedEvent.status || 'Wishlist',
+            // Add the editable fields
+            event_name: this.selectedEvent.event_name || '',
+            event_theme: this.selectedEvent.event_theme || '',
+            event_color: this.selectedEvent.event_color || '',
+            schedule: this.selectedEvent.schedule || '',
+            start_time: this.selectedEvent.start_time || '',
+            end_time: this.selectedEvent.end_time || '',
+            // Add additional capacity fields
+            additional_capacity: parseInt(this.selectedEvent.additional_capacity) || 0,
+            additional_capacity_total_price: parseFloat(this.selectedEvent.additional_capacity_total_price) || 0,
             outfits: this.selectedEvent.outfits.map(outfit => ({
               ...outfit,
               status: outfit.status || 'Pending'

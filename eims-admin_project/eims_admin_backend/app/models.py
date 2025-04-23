@@ -3120,141 +3120,275 @@ def update_wishlist_package(wishlist_id, package_data):
         # Log the venue_status for debugging
         venue_status = package_data.get('venue_status', 'Pending')
         logger.info(f"Updating wishlist_package {wishlist_id} with venue_status: {venue_status}")
+
+        # Get the events_id associated with this wishlist
+        cursor.execute("SELECT events_id FROM wishlist_packages WHERE wishlist_id = %s", (wishlist_id,))
+        result = cursor.fetchone()
+        if not result:
+            logger.error(f"No events_id found for wishlist_id {wishlist_id}")
+            conn.rollback()
+            return False
+
+        events_id = result[0]
         
-        # Update main package details
-        cursor.execute("""
-            UPDATE wishlist_packages SET
-                package_name = %s,
-                capacity = %s,
-                description = %s,
-                venue_id = %s,
-                gown_package_id = %s,
-                additional_capacity_charges = %s,
-                charge_unit = %s,
-                total_price = %s,
-                event_type_id = %s,
-                status = %s,
-                venue_status = %s
-            WHERE wishlist_id = %s
-        """, (
-            package_data.get('package_name'),
-            package_data.get('capacity'),
-            package_data.get('description'),
-            package_data.get('venue_id'),
-            package_data.get('gown_package_id'),
-            package_data.get('additional_capacity_charges', 0),
-            package_data.get('charge_unit', 1),
-            package_data.get('total_price', 0),
-            package_data.get('event_type_id'),
-            package_data.get('status', 'Active'),
-            venue_status,
-            wishlist_id
-        ))
+        # We'll use separate transactions for different operations to avoid aborting everything
+        
+        # First, update the events table
+        try:
+            cursor.execute("""
+                UPDATE events SET
+                    event_name = COALESCE(%s, event_name),
+                    event_theme = COALESCE(%s, event_theme),
+                    event_color = COALESCE(%s, event_color),
+                    schedule = COALESCE(%s, schedule),
+                    start_time = COALESCE(%s, start_time),
+                    end_time = COALESCE(%s, end_time)
+                WHERE events_id = %s
+            """, (
+                package_data.get('event_name'),
+                package_data.get('event_theme'),
+                package_data.get('event_color'),
+                package_data.get('schedule'),
+                package_data.get('start_time'),
+                package_data.get('end_time'),
+                events_id
+            ))
+            conn.commit()
+            logger.info(f"Successfully updated events table for events_id {events_id}")
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error updating events table: {str(e)}")
+            # We'll continue with other updates anyway
+            
+        # Update capacity separately
+        if package_data.get('capacity') is not None:
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE events SET capacity = %s WHERE events_id = %s
+                """, (
+                    package_data.get('capacity'),
+                    events_id
+                ))
+                conn.commit()
+                logger.info(f"Updated capacity for events_id {events_id} to {package_data.get('capacity')}")
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error updating capacity: {str(e)}")
+            finally:
+                cursor.close()
+                conn.close()
+                
+        # Update description field which stores our alternative capacity info
+        if package_data.get('description') is not None:
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE events SET description = %s WHERE events_id = %s
+                """, (
+                    package_data.get('description'),
+                    events_id
+                ))
+                conn.commit()
+                logger.info(f"Updated description for events_id {events_id}")
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error updating description: {str(e)}")
+            finally:
+                cursor.close()
+                conn.close()
+        
+        # Now update the main wishlist package
+        try:
+            conn = db.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE wishlist_packages SET
+                    package_name = %s,
+                    capacity = %s,
+                    description = %s,
+                    venue_id = %s,
+                    gown_package_id = %s,
+                    additional_capacity_charges = %s,
+                    charge_unit = %s,
+                    total_price = %s,
+                    event_type_id = %s,
+                    status = %s,
+                    venue_status = %s
+                WHERE wishlist_id = %s
+            """, (
+                package_data.get('package_name'),
+                package_data.get('capacity'),
+                package_data.get('description'),
+                package_data.get('venue_id'),
+                package_data.get('gown_package_id'),
+                package_data.get('additional_capacity_charges', 0),
+                package_data.get('charge_unit', 1),
+                package_data.get('total_price', 0),
+                package_data.get('event_type_id'),
+                package_data.get('status', 'Active'),
+                venue_status,
+                wishlist_id
+            ))
+            conn.commit()
+            logger.info(f"Successfully updated wishlist_packages for wishlist_id {wishlist_id}")
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error updating wishlist_packages: {str(e)}")
+            # Continue with other updates
+        finally:
+            cursor.close()
+            conn.close()
 
         # Update venue in wishlist_venues if provided
         if package_data.get('venue'):
             venue_data = package_data['venue']
-            # First check if venue exists
-            cursor.execute("""
-                SELECT wishlist_venue_id FROM wishlist_venues 
-                WHERE wishlist_id = %s
-            """, (wishlist_id,))
-            existing_venue = cursor.fetchone()
-
-            if existing_venue:
-                # Update existing venue
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                # First check if venue exists
                 cursor.execute("""
-                    UPDATE wishlist_venues SET
-                        venue_id = %s,
-                        price = %s,
-                        remarks = %s,
-                        status = %s
+                    SELECT wishlist_venue_id FROM wishlist_venues 
                     WHERE wishlist_id = %s
-                """, (
-                    venue_data.get('venue_id'),
-                    venue_data.get('venue_price', 0),
-                    venue_data.get('remarks', ''),
-                    venue_status,
-                    wishlist_id
-                ))
-            else:
-                # Insert new venue
-                cursor.execute("""
-                    INSERT INTO wishlist_venues (
-                        wishlist_id, venue_id, price, remarks, status
-                    ) VALUES (
-                        %s, %s, %s, %s, %s
-                    )
-                """, (
-                    wishlist_id,
-                    venue_data.get('venue_id'),
-                    venue_data.get('venue_price', 0),
-                    venue_data.get('remarks', ''),
-                    venue_status
-                ))
+                """, (wishlist_id,))
+                existing_venue = cursor.fetchone()
+
+                if existing_venue:
+                    # Update existing venue
+                    cursor.execute("""
+                        UPDATE wishlist_venues SET
+                            venue_id = %s,
+                            price = %s,
+                            remarks = %s,
+                            status = %s
+                        WHERE wishlist_id = %s
+                    """, (
+                        venue_data.get('venue_id'),
+                        venue_data.get('venue_price', 0),
+                        venue_data.get('remarks', ''),
+                        venue_status,
+                        wishlist_id
+                    ))
+                else:
+                    # Insert new venue
+                    cursor.execute("""
+                        INSERT INTO wishlist_venues (
+                            wishlist_id, venue_id, price, remarks, status
+                        ) VALUES (
+                            %s, %s, %s, %s, %s
+                        )
+                    """, (
+                        wishlist_id,
+                        venue_data.get('venue_id'),
+                        venue_data.get('venue_price', 0),
+                        venue_data.get('remarks', ''),
+                        venue_status
+                    ))
+                conn.commit()
+                logger.info(f"Successfully updated venue for wishlist_id {wishlist_id}")
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error updating venue: {str(e)}")
+            finally:
+                cursor.close()
+                conn.close()
         
         # Update services
         if 'services' in package_data:
-            # Log the services data for debugging
-            logger.info(f"Services data for wishlist {wishlist_id}: {package_data['services']}")
-            
-            # Delete existing services
-            cursor.execute("DELETE FROM wishlist_additional_services WHERE wishlist_id = %s", (wishlist_id,))
-            
-            # Insert updated services
-            for service in package_data['services']:
-                status = service.get('status', 'Pending')  # Get status from data or default to 'Pending'
-                logger.info(f"Adding service with status: {status}")
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                # Log the services data for debugging
+                logger.info(f"Services data for wishlist {wishlist_id}: {package_data['services']}")
                 
-                cursor.execute("""
-                    INSERT INTO wishlist_additional_services (wishlist_id, add_service_id, price, remarks, status)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (
-                    wishlist_id, 
-                    service['add_service_id'],
-                    service.get('price', 0) or service.get('add_service_price', 0), 
-                    service.get('remarks', ''),
-                    status
-                ))
+                # Delete existing services
+                cursor.execute("DELETE FROM wishlist_additional_services WHERE wishlist_id = %s", (wishlist_id,))
+                
+                # Insert updated services
+                for service in package_data['services']:
+                    status = service.get('status', 'Pending')  # Get status from data or default to 'Pending'
+                    logger.info(f"Adding service with status: {status}")
+                    
+                    cursor.execute("""
+                        INSERT INTO wishlist_additional_services (wishlist_id, add_service_id, price, remarks, status)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (
+                        wishlist_id, 
+                        service['add_service_id'],
+                        service.get('price', 0) or service.get('add_service_price', 0), 
+                        service.get('remarks', ''),
+                        status
+                    ))
+                conn.commit()
+                logger.info(f"Successfully updated services for wishlist_id {wishlist_id}")
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error updating services: {str(e)}")
+            finally:
+                cursor.close()
+                conn.close()
         
         # Update suppliers
         if 'suppliers' in package_data:
-            # Delete existing suppliers
-            cursor.execute("DELETE FROM wishlist_suppliers WHERE wishlist_id = %s", (wishlist_id,))
-            
-            # Insert updated suppliers
-            for supplier in package_data['suppliers']:
-                cursor.execute("""
-                    INSERT INTO wishlist_suppliers (wishlist_id, supplier_id, price, remarks, status)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (
-                    wishlist_id,
-                    supplier['supplier_id'],
-                    supplier.get('price', 0),
-                    supplier.get('remarks', ''),
-                    supplier.get('status', 'Pending')
-                ))
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                # Delete existing suppliers
+                cursor.execute("DELETE FROM wishlist_suppliers WHERE wishlist_id = %s", (wishlist_id,))
+                
+                # Insert updated suppliers
+                for supplier in package_data['suppliers']:
+                    cursor.execute("""
+                        INSERT INTO wishlist_suppliers (wishlist_id, supplier_id, price, remarks, status)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (
+                        wishlist_id,
+                        supplier['supplier_id'],
+                        supplier.get('price', 0),
+                        supplier.get('remarks', ''),
+                        supplier.get('status', 'Pending')
+                    ))
+                conn.commit()
+                logger.info(f"Successfully updated suppliers for wishlist_id {wishlist_id}")
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error updating suppliers: {str(e)}")
+            finally:
+                cursor.close()
+                conn.close()
         
         # Update outfits
         if 'outfits' in package_data:
-            # Delete existing outfits
-            cursor.execute("DELETE FROM wishlist_outfits WHERE wishlist_id = %s", (wishlist_id,))
-            
-            # Insert updated outfits
-            for outfit in package_data['outfits']:
-                cursor.execute("""
-                    INSERT INTO wishlist_outfits (wishlist_id, outfit_id, gown_package_id, price, remarks, status)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (
-                    wishlist_id,
-                    outfit.get('outfit_id'),
-                    outfit.get('gown_package_id'),
-                    outfit.get('price', 0),
-                    outfit.get('remarks', ''),
-                    outfit.get('status', 'Pending')
-                ))
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                # Delete existing outfits
+                cursor.execute("DELETE FROM wishlist_outfits WHERE wishlist_id = %s", (wishlist_id,))
+                
+                # Insert updated outfits
+                for outfit in package_data['outfits']:
+                    cursor.execute("""
+                        INSERT INTO wishlist_outfits (wishlist_id, outfit_id, gown_package_id, price, remarks, status)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (
+                        wishlist_id,
+                        outfit.get('outfit_id'),
+                        outfit.get('gown_package_id'),
+                        outfit.get('price', 0),
+                        outfit.get('remarks', ''),
+                        outfit.get('status', 'Pending')
+                    ))
+                conn.commit()
+                logger.info(f"Successfully updated outfits for wishlist_id {wishlist_id}")
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error updating outfits: {str(e)}")
+            finally:
+                cursor.close()
+                conn.close()
         
-        conn.commit()
         return True
         
     except Exception as e:
@@ -3262,8 +3396,11 @@ def update_wishlist_package(wishlist_id, package_data):
         logger.error(f"Error updating wishlist package: {str(e)}")
         return False
     finally:
-        cursor.close()
-        conn.close()
+        try:
+            cursor.close()
+            conn.close()
+        except:
+            pass
 
 def delete_wishlist_package(wishlist_id):
     """Delete a wishlist package and all related data"""
