@@ -3,21 +3,14 @@
     <form v-if="loginForm" @click.self="closeLoginForm" @submit.prevent="handleLogin" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-70">
         <div class="bg-white w-full sm:w-1/3 h-4/5 p-7 rounded-lg shadow-xl overflow-y-hidden mr-2">
             
-            <div class="flex flex-col justify-center items-center space-y-3 mt-5">
+            <div class="flex flex-col justify-center items-center space-y-3 mt-10">
                 <h1 class="text-3xl font-amaticBold font-extrabold text-blue-900">Sign In</h1>
                 <p class="font-raleway font-medium text-sm tracking-wide text-gray-500 mt-2">Enter your email and password</p>
-                <button class="flex justify-center items-center w-full h-12 bg-gray-100 rounded-xl hover:bg-gray-200">
-                    <img src="/img/google.png" class="h-6 mr-4">Continue with Google
-                </button>
-                <div class="flex items-center my-4 w-full">
-                    <div class="flex-grow border-t border-gray-300"></div>
-                    <span class="mx-4 text-gray-600">or</span>
-                    <div class="flex-grow border-t border-gray-300"></div>
-                </div>
+               
             </div>
-            <div class="flex flex-col justify-start items-start mt-5 space-y-2">
+            <div class="flex flex-col justify-start items-start mt-16 space-y-2">
                 <p class="text-sm text-red-600" v-if="errorMessage">{{ errorMessage }}</p>
-                <label for="emailInput" class="text-left text-sm text-gray-800">Email Address or Username</label>
+                <label for="emailInput" class="text-left text-sm text-gray-800">Email Address</label>
                 <input type="text" id="emailInput" v-model="identifier" class="mt-1 border border-gray-300 rounded pl-3 p-2 w-full h-10 font-medium text-sm" required/>
             </div>
             <div class="flex flex-col justify-start items-start mt-5 space-y-2">
@@ -41,7 +34,7 @@
 
     <!-- Register Form -->
     <form v-if="registerForm" @click.self="closeRegisterForm" @submit.prevent="handleRegister" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-70">
-        <div class="bg-white w-full sm:w-[45%] h-[98%] p-7 rounded-lg shadow-xl overflow-y-auto mr-2">
+        <div class="bg-white w-full sm:w-[45%] h-[93%] p-7 rounded-lg shadow-xl overflow-y-auto mr-2">
             <div class="flex flex-col justify-start items-start space-y-1">
                 <h1 class="text-2xl font-amaticBold font-extrabold text-blue-900">Create your account</h1>
                 <div class="flex justify-center items-center mt-4 space-x-1">
@@ -79,14 +72,7 @@
                 <label for="password" class="text-left text-sm text-gray-800">Password</label>
                 <input type="password" v-model="registerPassword" id="password" class="mt-1 border border-gray-300 rounded pl-3 p-2 w-full h-9 font-medium text-sm bg-gray-50" required>
             </div>
-            <div class="flex items-center my-4 w-full">
-                <div class="flex-grow border-t border-gray-300"></div>
-                <span class="mx-4 text-gray-600">or</span>
-                <div class="flex-grow border-t border-gray-300"></div>
-            </div>
-            <button class="flex justify-center items-center w-full h-12 bg-gray-100 rounded-xl hover:bg-gray-200">
-                <img src="/img/google.png" class="h-6 mr-4">Sign up with Google
-            </button>
+       
             <div class="flex items-center mt-3">
                 <div class="flex items-center">
                     <input type="checkbox" class="mr-2 bg-white border-2 rounded-sm border-gray-500 peer peer-checked:border-0 peer-checked:bg-purple-500">

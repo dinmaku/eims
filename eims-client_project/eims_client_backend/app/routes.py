@@ -9,7 +9,8 @@ from .models import (
     get_available_suppliers, get_available_venues, get_available_gown_packages, 
     get_event_types, get_all_additional_services, get_booked_schedules, add_event_item,
     create_wishlist_package, initialize_test_suppliers, get_user_profile_by_id,
-    change_password, get_db_connection, update_user_profile_picture, get_client_packages
+    change_password, get_db_connection, update_user_profile_picture, get_client_packages,
+    get_supplier_booked_events
 )
 import logging
 import jwt
@@ -988,6 +989,100 @@ def init_routes(app):
         except Exception as e:
             app.logger.error(f"Error serving venue image {filename}: {e}")
             return jsonify({'message': 'Image not found'}), 404
+
+    @app.route('/api/outfits/image/<path:filename>')
+    def serve_outfit_image(filename):
+        try:
+            # Define the absolute path to the outfits_img directory
+            outfit_img_dir = os.path.join('E:\\', 'eims', 'saved', 'outfits_img')
+            
+            # Check if the requested file exists
+            requested_file_path = os.path.join(outfit_img_dir, filename)
+            if os.path.exists(requested_file_path):
+                return send_from_directory(outfit_img_dir, filename)
+            else:
+                # Return default image
+                return send_from_directory(outfit_img_dir, 'default_outfit.png')
+                
+        except Exception as e:
+            print(f"Error serving outfit image {filename}: {e}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/supplier/events', methods=['GET'])
+    @jwt_required()
+    def get_supplier_events():
+        try:
+            # Get the current user's email from JWT
+            email = get_jwt_identity()
+            print(f"Supplier events requested by: {email}")
+            
+            # Get user profile to check if they're a supplier
+            user_id = get_user_id_by_email(email)
+            if not user_id:
+                print(f"Error: User ID not found for email: {email}")
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User not found'
+                }), 404
+                
+            user_data = get_user_profile_by_id(user_id)
+            print(f"User profile: {user_data}")
+            
+            # Check if the user is a supplier
+            if not user_data:
+                print(f"Error: User profile not found for ID: {user_id}")
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User profile not found'
+                }), 404
+            
+            # Get supplier ID from the user profile directly
+            supplier_id = None
+            # First try to get supplier_id directly
+            if 'supplier_id' in user_data:
+                supplier_id = user_data.get('supplier_id')
+                print(f"Found supplier_id in user_data: {supplier_id}")
+            
+            # If not found, try to get it from the database
+            if not supplier_id:
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT supplier_id FROM suppliers WHERE userid = %s", (user_id,))
+                    result = cursor.fetchone()
+                    if result:
+                        supplier_id = result[0]
+                        print(f"Found supplier_id from database query: {supplier_id}")
+                    cursor.close()
+                    conn.close()
+                except Exception as e:
+                    print(f"Error querying supplier_id: {e}")
+            
+            # If still not found, return an error
+            if not supplier_id:
+                print(f"Error: Supplier ID not found for user: {email}")
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Supplier ID not found'
+                }), 404
+            
+            # Get the supplier's booked events
+            events = get_supplier_booked_events(supplier_id)
+            print(f"Found {len(events)} events for supplier ID: {supplier_id}")
+            
+            return jsonify({
+                'status': 'success',
+                'data': events
+            }), 200
+            
+        except Exception as e:
+            print(f"Error fetching supplier events: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
 
     @app.after_request
     def after_request(response):

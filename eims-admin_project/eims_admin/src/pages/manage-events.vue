@@ -245,8 +245,8 @@
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30">
           <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
+                  <th scope="col" class="px-2 py-3">#</th>
                   <th scope="col" class="px-2 py-3">Event Name</th>
-                  <th scope="col" class="px-2 py-3">Client</th>
                   <th scope="col" class="px-2 py-3">Start Time</th>
                   <th scope="col" class="px-2 py-3">End Time</th>
                   <th scope="col" class="px-2 py-3">Date</th>
@@ -270,42 +270,40 @@
                     isEventInProgress(event) ? 'bg-blue-100' : 'odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800'
                   ]"
                 >
-              <td class="px-1 py-3 truncate">{{ event.event_name || 'Unnamed Event' }}</td>
-              <td class="px-1 py-3 truncate">
-                <span v-if="event.booking_type && event.booking_type.toLowerCase() === 'online'">
-                  {{ event.bookedBy || 'Unknown User' }}
-                </span>
-                <span v-else>
-                  {{ getOnsiteClientName(event) }}
-                </span>
-                <span class="ml-1 text-xs text-gray-500">
-                  {{ event.booking_type ? `(${event.booking_type})` : '' }}
-                </span>
-              </td>
+              <th scope="row" class="px-2 py-3 font-medium text-gray-900 dark:text-white">{{ (currentOngoingPage - 1) * rowsPerOngoingPage + index + 1 }}</th>
+              <td class="px-1 py-3 truncate">{{ event.event_name }}</td>
                   <td class="px-1 py-3 truncate">{{ formatTime(event.start_time) }}</td>
                   <td class="px-1 py-3 truncate">{{ formatTime(event.end_time) }}</td>
                   <td class="px-1 py-3 truncate">{{ formatDate(event.schedule) }}</td>
               <td class="px-1 py-3 truncate">{{ event.event_type || 'Standard Event' }}</td>
               <td class="px-1 py-3 truncate font-medium" :class="getPriceCellClass(event)">
-                    <span v-if="event.remainingBalance !== undefined">₱ {{ formatPrice(event.remainingBalance) }}</span>
-                    <span v-else>Loading...</span>
+                  <span>{{ event.has_invoice ? `₱ ${formatPrice(event.remainingBalance || 0)}` : 'No Invoice' }}</span>
               </td>
-              <td class="px-1 py-3 flex justify-start">
+              <td class="px-1 py-3">
+                <div class="flex items-center space-x-0.5">
                 <button
-                    @click="openWishlistModal(event)"
-                    class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200">
-                    <img src="/img/update3.png" alt="View" class="w-5 h-5" title="View Details">
+                        @click="confirmAndCreateInvoice(event)"
+                        class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+                        :title="event.has_invoice ? 'View Invoice' : 'Create Invoice'"
+                    >
+                        <img src="/img/invoice.png" alt="Invoice" class="w-5 h-5">
                 </button>
                 <button
-                  @click="confirmAndCreateInvoice(event)"
+                      @click="openWishlistModal(event)"
                   class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200">
-                  <img src="/img/invoice.png" alt="Invoice" class="w-5 h-5" title="View Invoice">
+                      <img src="/img/update3.png" alt="Update" class="w-5 h-5" title="Update Details">
                 </button>
                 <button
                   @click="markAsCompleted(event)"
                   class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200">
                   <img src="/img/approve.png" alt="Mark as Completed" class="w-5 h-5" title="Mark as Completed">
                 </button>
+                  <button
+                    @click="cancelEvent(event)"
+                    class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200">
+                    <img src="/img/cancel.png" alt="Cancel Event" class="w-5 h-5" title="Cancel Event">
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -2109,9 +2107,53 @@
       immediate: true,
       async handler(events) {
         if (events && events.length > 0) {
-          for (const event of events) {
-            event.remainingBalance = await this.getRemainingBalanceForEvent(event);
+          // Fetch all invoices in one batch for better performance
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            console.warn('No authentication token found');
+            return;
           }
+
+          // Initialize remaining balance and invoice flag for all events
+          for (const event of events) {
+            event.remainingBalance = 0;
+            event.has_invoice = false;
+          }
+
+          // Fetch invoices for all events in parallel
+          const promises = events.map(async (event) => {
+            try {
+              const response = await fetch(`http://127.0.0.1:5000/api/invoices/event/${event.events_id}`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+
+              if (response.status === 404) {
+                return; // Skip further processing for events without invoices
+              }
+
+              if (!response.ok) {
+                return;
+              }
+
+              const invoice = await response.json();
+              if (!invoice) {
+                return;
+              }
+
+              // Mark that this event has an invoice and store the final amount
+              event.has_invoice = true;
+              event.remainingBalance = invoice.final_amount || 0;
+              
+            } catch (error) {
+              console.warn(`Error fetching invoice for event ${event.events_id}:`, error);
+          }
+          });
+
+          // Wait for all fetches to complete
+          await Promise.all(promises);
         }
       }
     }
@@ -5093,11 +5135,10 @@
         try {
           const token = localStorage.getItem('access_token');
           if (!token) {
-            console.error('No authentication token found');
+            console.warn('No authentication token found');
             return 0;
           }
 
-          // Fetch invoice for the event
           const response = await fetch(`http://127.0.0.1:5000/api/invoices/event/${event.events_id}`, {
             method: 'GET',
             headers: {
@@ -5105,19 +5146,21 @@
             }
           });
 
+          if (response.status === 404) {
+            return 0;
+          }
+
           if (!response.ok) {
-            console.error('Failed to fetch invoice');
+            console.warn(`Failed to fetch invoice for event ${event.events_id}: ${response.status}`);
             return 0;
           }
 
           const invoice = await response.json();
-          
-          // If no invoice exists, return 0
           if (!invoice) {
             return 0;
           }
 
-          // Fetch all payments for this invoice
+          // Fetch payments
           const paymentsResponse = await fetch(`http://127.0.0.1:5000/api/payments/invoice/${invoice.invoice_id}`, {
             method: 'GET',
             headers: {
@@ -5126,22 +5169,14 @@
           });
 
           if (!paymentsResponse.ok) {
-            console.error('Failed to fetch payments');
-            return invoice.final_amount || invoice.total_amount || 0;
+            return invoice.final_amount;
           }
 
           const payments = await paymentsResponse.json();
-          
-          // Calculate total payments
           const totalPaid = payments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
-          
-          // Calculate remaining balance
-          const totalAmount = invoice.final_amount || invoice.total_amount || 0;
-          const remainingBalance = Math.max(0, totalAmount - totalPaid);
-
-          return remainingBalance;
+          return Math.max(0, invoice.final_amount - totalPaid);
         } catch (error) {
-          console.error('Error calculating remaining balance:', error);
+          console.warn('Error calculating remaining balance:', error);
           return 0;
         }
       },

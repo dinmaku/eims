@@ -59,23 +59,27 @@ export default {
     async handleLogin() {
         try {
             const response = await axios.post('http://127.0.0.1:5000/login', {
-                email: this.email,
+                identifier: this.email,
                 password: this.password,
             });
 
             // Store the JWT token in localStorage
-            localStorage.setItem('access_token', response.data.access_token); // assuming your API returns 'token'
+            localStorage.setItem('access_token', response.data.access_token);
+            
+            // Store the user profile in localStorage
+            if (response.data.user_profile) {
+                localStorage.setItem('userProfile', JSON.stringify(response.data.user_profile));
+                console.log('Stored user profile:', response.data.user_profile); // Debug log
+            }
 
             // Set the 'loggedIn' status to true
-            localStorage.setItem('loggedIn', 'true'); // Mark as logged in
-
-           
+            localStorage.setItem('loggedIn', 'true');
 
             // Emit an event with login success
             this.$emit('loginSuccess');
 
-            // Redirect to /add-wishlist or desired page after successful login
-            this.$router.push('/dashboard');  // Ensure this is the correct route
+            // Redirect to dashboard
+            this.$router.push('/dashboard');
 
         } catch (error) {
             // Handle errors during login attempt

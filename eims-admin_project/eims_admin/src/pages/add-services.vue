@@ -320,15 +320,21 @@
               <th class="border border-gray-300 px-4 py-2 text-left">Type</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Details</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Price</th>
+              <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(inclusion, index) in selectedPackage?.inclusions || []" :key="index" class="border border-gray-300">
+            <tr v-for="(inclusion, index) in inclusions" :key="index" class="border border-gray-300">
               <td class="border border-gray-300 px-4 py-2 capitalize">
                 {{ inclusion.type === 'supplier' ? `Supplier(${inclusion.serviceType || inclusion.data?.service || 'General'})` : inclusion.type }}
               </td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionName(inclusion) }}</td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionPrice(inclusion) }}</td>
+              <td class="border border-gray-300 px-4 py-2">
+                <button @click="removeInclusion(index)" class="text-red-500 hover:text-red-700">
+                  <img src="/img/delete.png" alt="Remove" class="w-4 h-4">
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -336,7 +342,7 @@
           <div class="flex justify-between items-center">
             <div class="text-lg font-semibold text-gray-700">Total Package Price:</div>
             <div class="text-xl font-bold text-blue-600">{{ formatPrice(
-              (selectedPackage?.inclusions || []).reduce((total, inc) => {
+              inclusions.reduce((total, inc) => {
                 if (inc.type === 'supplier' && inc.data) total += Number(inc.data.price || 0);
                 if (inc.type === 'venue' && inc.data) total += Number(inc.data.venue_price || 0);
                 if (inc.type === 'outfit' && inc.data) total += Number(inc.data.gown_package_price || 0);
@@ -477,6 +483,7 @@
               <th class="border border-gray-300 px-4 py-2 text-left">Type</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Details</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Price</th>
+              <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -486,6 +493,11 @@
               </td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionName(inclusion) }}</td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionPrice(inclusion) }}</td>
+              <td class="border border-gray-300 px-4 py-2">
+                <button @click="removeInclusionFromEdit(index)" class="text-red-500 hover:text-red-700">
+                  <img src="/img/delete.png" alt="Remove" class="w-4 h-4">
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -657,6 +669,19 @@ export default {
         selectedOutfitPackage: null,
         selectedAdditionalServices: []
       },
+      supplierTypes: [
+        'Catering',
+        'Photographer',
+        'Videographer',
+        'Entertainment',
+        'Sound and Lighting',
+        'Transportation',
+        'Host',
+        'Invitations',
+        'Keepsakes',
+        'Hair Stylist',
+        'Makeup Artist',
+      ],
     };
   },
  
@@ -758,13 +783,7 @@ export default {
           }
         };
         
-        // Add to the active inclusions list based on which modal is active
-        if (this.editPackagesForm && this.selectedPackage) {
-          this.selectedPackage.inclusions.push(newInclusion);
-        } else {
-          this.inclusions.push(newInclusion);
-        }
-        
+        this.inclusions.push(newInclusion);
         this.selectedSupplier = null;
         this.closeSupplierModal();
       }
@@ -776,16 +795,9 @@ export default {
           data: this.selectedVenue
         };
         
-        // Add to the active inclusions list based on which modal is active
-        if (this.editPackagesForm && this.selectedPackage) {
-          // Remove any existing venue first (only one venue allowed)
-          this.selectedPackage.inclusions = this.selectedPackage.inclusions.filter(inc => inc.type !== 'venue');
-          this.selectedPackage.inclusions.push(newInclusion);
-        } else {
-          // Remove any existing venue first (only one venue allowed)
-          this.inclusions = this.inclusions.filter(inc => inc.type !== 'venue');
-          this.inclusions.push(newInclusion);
-        }
+        // Remove any existing venue first (only one venue allowed)
+        this.inclusions = this.inclusions.filter(inc => inc.type !== 'venue');
+        this.inclusions.push(newInclusion);
         
         this.selectedVenue = null;
         this.closeVenueModal();
@@ -798,49 +810,25 @@ export default {
           data: this.selectedOutfit
         };
         
-        // Add to the active inclusions list based on which modal is active
-        if (this.editPackagesForm && this.selectedPackage) {
-          // Remove any existing outfit first (only one outfit package allowed)
-          this.selectedPackage.inclusions = this.selectedPackage.inclusions.filter(inc => inc.type !== 'outfit');
-          this.selectedPackage.inclusions.push(newInclusion);
-        } else {
-          // Remove any existing outfit first (only one outfit package allowed)
-          this.inclusions = this.inclusions.filter(inc => inc.type !== 'outfit');
-          this.inclusions.push(newInclusion);
-        }
+        // Remove any existing outfit first (only one outfit package allowed)
+        this.inclusions = this.inclusions.filter(inc => inc.type !== 'outfit');
+        this.inclusions.push(newInclusion);
         
         this.selectedOutfit = null;
         this.closeOutfitModal();
       }
     },
     addSelectedService() {
-      if (!this.selectedService) {
-        console.error('No service selected');
-        return;
-      }
-
-      console.log('Adding service:', this.selectedService);
-      
-      const newInclusion = {
-        type: 'service',
-        data: {
-          add_service_id: this.selectedService.add_service_id,
-          add_service_name: this.selectedService.add_service_name,
-          add_service_description: this.selectedService.add_service_description,
-          add_service_price: this.selectedService.add_service_price,
-          status: this.selectedService.status
-        }
-      };
-      
-      // Add to the active inclusions list based on which modal is active
-      if (this.editPackagesForm && this.selectedPackage) {
-        this.selectedPackage.inclusions.push(newInclusion);
-      } else {
+      if (this.selectedService) {
+        const newInclusion = {
+          type: 'service',
+          data: this.selectedService
+        };
+        
         this.inclusions.push(newInclusion);
+        this.selectedService = null;
+        this.closeServiceModal();
       }
-
-      this.selectedService = null;
-      this.closeServiceModal();
     },
     getEventTypeName(eventTypeId) {
       const eventType = this.eventTypes.find(type => type.event_type_id === eventTypeId);

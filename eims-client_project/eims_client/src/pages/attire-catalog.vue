@@ -112,7 +112,12 @@
         @click="showModal(outfit)"
       >
         <!-- Outfit Image -->
-        <img :src="outfit.outfit_img" alt="Outfit Image" class="w-full h-60 object-cover rounded-lg mb-4" />
+        <img 
+          :src="getOutfitImageUrl(outfit.outfit_img)" 
+          :alt="outfit.outfit_name" 
+          @error="handleImageError"
+          class="w-full h-60 object-cover rounded-lg mb-4" 
+        />
 
         <!-- Outfit Name and Description -->
         <h3 class="text-xl font-semibold mb-2">{{ outfit.outfit_name }}</h3>
@@ -121,9 +126,7 @@
         <div class="flex flex-col flex-grow justify-between">
           <p class="text-yellow-400 font-medium">₱  {{ outfit.rent_price }}</p>
           <div class="flex justify-between">
-            <p :class="{'text-green-600': outfit.status === 'available', 'text-red-600': outfit.status !== 'available'}" class="mt-2">
-              {{ outfit.status }}
-            </p>
+           
           </div>
         </div>
       </div>
@@ -140,7 +143,12 @@
         <button @click="closeModal" class="text-gray-500 text-3xl float-right">&times;</button>
         <div class="flex flex-col md:flex-row ml-5 mt-10 space-x-5">
           <!-- Image Section -->
-          <img :src="selectedOutfit.outfit_img" alt="Outfit Image" class="h-48 md:h-[25em] w-[350px] bg-gray-200 shadow-md rounded-lg" />
+          <img 
+            :src="getOutfitImageUrl(selectedOutfit?.outfit_img)" 
+            :alt="selectedOutfit?.outfit_name" 
+            @error="handleImageError"
+            class="h-48 md:h-[25em] w-[350px] bg-gray-200 shadow-md rounded-lg" 
+          />
           
           <!-- Outfit Details Section -->
           <div class="flex flex-col mt-5 md:mt-0">
@@ -185,7 +193,8 @@ export default {
       selectedStatus: [],
       sortBy: '',
       isLoading: true,
-      error: null
+      error: null,
+      apiBaseUrl: 'http://127.0.0.1:5000'
     };
   },
   computed: {
@@ -259,6 +268,20 @@ export default {
         this.showFilterDropdown = false;
       }
     },
+    getOutfitImageUrl(imagePath) {
+      if (!imagePath) {
+        return `${this.apiBaseUrl}/api/outfits/image/default_outfit.png`;
+      }
+      
+      if (imagePath.startsWith('http')) {
+        return imagePath;
+      }
+      
+      return `${this.apiBaseUrl}/api/outfits/image/${imagePath}`;
+    },
+    handleImageError(event) {
+      event.target.src = `${this.apiBaseUrl}/api/outfits/image/default_outfit.png`;
+    },
     async fetchOutfits() {
       this.isLoading = true;
       this.error = null;
@@ -280,7 +303,10 @@ export default {
         });
         
         console.log('API Response:', response.data); // Debug log
-        this.outfits = response.data || [];
+        this.outfits = response.data.map(outfit => ({
+          ...outfit,
+          outfit_img: this.getOutfitImageUrl(outfit.outfit_img)
+        }));
         console.log('Outfits after assignment:', this.outfits); // Debug log
         
       } catch (error) {
@@ -298,7 +324,10 @@ export default {
               }
             });
             console.log('Public API Response:', response.data); // Debug log
-            this.outfits = response.data || [];
+            this.outfits = response.data.map(outfit => ({
+              ...outfit,
+              outfit_img: this.getOutfitImageUrl(outfit.outfit_img)
+            }));
             this.error = null;
           } catch (retryError) {
             console.error('Error fetching public outfits:', retryError);

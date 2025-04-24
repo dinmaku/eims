@@ -227,7 +227,7 @@
                         </thead>
                         <tbody>
                             <tr
-                                v-for="outfit in selectedPackageOutfits"
+                                v-for="outfit in packageInclusions"
                                 :key="outfit.outfit_id"
                                 class="hover:bg-gray-100 border-t"
                             >
@@ -237,20 +237,20 @@
                                 <td class="p-2 text-sm">
                                     <button
                                         @click="removeOutfitFromPackage(outfit.outfit_id)"
-                                    class="rounded p-1 hover:bg-red-100"
-                                >
-                                    <img 
-                                        src="/img/delete.png"
-                                        alt="Remove"
-                                        class="w-4 h-4"
-                                    />
-                                </button>
+                                        class="rounded p-1 hover:bg-red-100"
+                                    >
+                                        <img 
+                                            src="/img/delete.png"
+                                            alt="Remove"
+                                            class="w-4 h-4"
+                                        />
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
-                </table>
+                    </table>
+                </div>
             </div>
-        </div>
 
 
 
@@ -318,24 +318,7 @@
                         >
                     </div>
 
-                    <!-- Search and Filter -->
-                    <div class="flex gap-4 mb-4">
-                        <input
-                            type="text"
-                            v-model="outfitSearchQuery"
-                            placeholder="Search outfits..."
-                            class="px-4 py-2 border rounded-lg flex-1"
-                        >
-                        <select 
-                            v-model="outfitTypeFilter"
-                            class="px-4 py-2 border rounded-lg"
-                        >
-                            <option value="">All Types</option>
-                            <option v-for="type in distinctOutfitTypes" :key="type" :value="type">
-                                {{ type }}s
-                            </option>
-                        </select>
-                    </div>
+                    
 
                     <!-- Combined Outfits Table -->
                     <div style="max-height: 300px; overflow-y: auto;">
@@ -1397,19 +1380,32 @@
 
             // New methods for Update Outfit Package form
             removeOutfitFromPackage(outfitId) {
-                // Check if the outfit is in selectedGowns
-                const gownIndex = this.selectedGownPackage.selectedGowns.indexOf(outfitId);
-                if (gownIndex !== -1) {
-                    // Remove from gowns if found
-                    this.selectedGownPackage.selectedGowns.splice(gownIndex, 1);
-                    return;
-                }
-                
-                // Check if the outfit is in selectedTuxedos
-                const tuxedoIndex = this.selectedGownPackage.selectedTuxedos.indexOf(outfitId);
-                if (tuxedoIndex !== -1) {
-                    // Remove from tuxedos if found
-                    this.selectedGownPackage.selectedTuxedos.splice(tuxedoIndex, 1);
+                // Check if we're in edit mode
+                if (this.editGownPackageForm) {
+                    // Remove from selectedGowns array
+                    const gownIndex = this.selectedGownPackage.selectedGowns.indexOf(outfitId);
+                    if (gownIndex !== -1) {
+                        this.selectedGownPackage.selectedGowns.splice(gownIndex, 1);
+                    }
+                    
+                    // Remove from selectedTuxedos array
+                    const tuxedoIndex = this.selectedGownPackage.selectedTuxedos.indexOf(outfitId);
+                    if (tuxedoIndex !== -1) {
+                        this.selectedGownPackage.selectedTuxedos.splice(tuxedoIndex, 1);
+                    }
+                } else {
+                    // Regular mode (Add Package form)
+                    // Remove from packageInclusions
+                    const inclusionIndex = this.packageInclusions.findIndex(item => item.outfit_id === outfitId);
+                    if (inclusionIndex !== -1) {
+                        this.packageInclusions.splice(inclusionIndex, 1);
+                    }
+                    
+                    // Remove from selectedOutfits
+                    const outfitIndex = this.selectedOutfits.findIndex(item => item.outfit_id === outfitId);
+                    if (outfitIndex !== -1) {
+                        this.selectedOutfits.splice(outfitIndex, 1);
+                    }
                 }
             },
             
@@ -1443,8 +1439,8 @@
                     const token = localStorage.getItem('access_token');
 
                     // Check if all required fields are filled
-                    if (!this.outfit.outfit_name || !this.outfit.outfit_type || !this.outfit.outfit_color || 
-                        !this.outfit.rent_price || !this.outfit.size || !this.outfit.weight) {
+                    if (!this.newOutfit.outfit_name || !this.newOutfit.outfit_type || !this.newOutfit.outfit_color || 
+                        !this.newOutfit.rent_price || !this.newOutfit.size || !this.newOutfit.weight) {
                       this.errorMessage = 'Please fill in all required fields';
                       this.isLoading = false;
                       return;
@@ -1453,13 +1449,13 @@
                     if (this.selectedFile) {
                       // If a file is selected, use FormData
                       const formData = new FormData();
-                      formData.append('outfit_name', this.outfit.outfit_name);
-                      formData.append('outfit_type', this.outfit.outfit_type);
-                      formData.append('outfit_color', this.outfit.outfit_color);
-                      formData.append('outfit_desc', this.outfit.outfit_desc || '');
-                      formData.append('rent_price', this.outfit.rent_price);
-                      formData.append('size', this.outfit.size);
-                      formData.append('weight', this.outfit.weight);
+                      formData.append('outfit_name', this.newOutfit.outfit_name);
+                      formData.append('outfit_type', this.newOutfit.outfit_type);
+                      formData.append('outfit_color', this.newOutfit.outfit_color);
+                      formData.append('outfit_desc', this.newOutfit.outfit_desc || '');
+                      formData.append('rent_price', this.newOutfit.rent_price);
+                      formData.append('size', this.newOutfit.size);
+                      formData.append('weight', this.newOutfit.weight);
                       formData.append('status', 'Available');
                       
                       // Create archive data as a nested object
@@ -1485,18 +1481,18 @@
                       this.selectedFileName = null;
                       
                       this.$emit('outfit-added', response.data);
-                      this.showForm = false;
-                        this.resetForm();
+                      this.addOutfitForm = false;
+                      this.resetForm();
                     } else {
                       // If no file is selected, send as JSON
                       const outfitData = {
-                        outfit_name: this.outfit.outfit_name,
-                        outfit_type: this.outfit.outfit_type,
-                        outfit_color: this.outfit.outfit_color,
-                        outfit_desc: this.outfit.outfit_desc || '',
-                        rent_price: this.outfit.rent_price,
-                        size: this.outfit.size,
-                        weight: this.outfit.weight,
+                        outfit_name: this.newOutfit.outfit_name,
+                        outfit_type: this.newOutfit.outfit_type,
+                        outfit_color: this.newOutfit.outfit_color,
+                        outfit_desc: this.newOutfit.outfit_desc || '',
+                        rent_price: this.newOutfit.rent_price,
+                        size: this.newOutfit.size,
+                        weight: this.newOutfit.weight,
                         status: 'Available',
                         archive: {
                           creation_address: this.outfitArchive.creation_address || '',
@@ -1513,14 +1509,12 @@
                       });
                       
                       this.$emit('outfit-added', response.data);
-                      this.showForm = false;
+                      this.addOutfitForm = false;
                       this.resetForm();
                     }
                 } catch (error) {
                     console.error('Error adding outfit:', error);
                     if (error.response) {
-                      // The request was made and the server responded with a status code
-                      // that falls out of the range of 2xx
                       this.errorMessage = error.response.data.message || 'Error adding outfit. Please try again.';
                       if (error.response.status === 413) {
                         this.errorMessage = 'File size is too large. Please choose a smaller file.';
@@ -1528,10 +1522,8 @@
                         this.errorMessage = 'Unauthorized. Please log in again.';
                       }
                     } else if (error.request) {
-                      // The request was made but no response was received
                       this.errorMessage = 'No response from server. Please try again later.';
                     } else {
-                      // Something happened in setting up the request that triggered an Error
                       this.errorMessage = 'Error adding outfit. Please try again.';
                     }
                   } finally {
@@ -1540,7 +1532,7 @@
             },
 
             resetForm() {
-                this.outfit = {
+                this.newOutfit = {
                     outfit_name: '',
                     outfit_type: '',
                     outfit_color: '',
@@ -1615,33 +1607,26 @@
                     // Add to selectedOutfits array
                     this.selectedOutfits.push(outfit);
                     
-                    // Add to package inclusions
+                    // Add to packageInclusions
                     this.packageInclusions.push({
                         outfit_id: outfit.outfit_id,
-                        outfit_name: outfit.outfit_name,
                         outfit_type: outfit.outfit_type,
-                        rent_price: outfit.rent_price,
-                        quantity: 1
+                        outfit_name: outfit.outfit_name,
+                        rent_price: outfit.rent_price
                     });
-                    
-                    // Update total
-                    this.calculateTotal();
-                    
-                    // Close the modal
-                    this.closeOutfitModal();
                 } else {
                     // Remove from selectedOutfits array
                     this.selectedOutfits.splice(index, 1);
                     
-                    // Remove from package inclusions
+                    // Remove from packageInclusions
                     const inclusionIndex = this.packageInclusions.findIndex(item => item.outfit_id === outfit.outfit_id);
                     if (inclusionIndex !== -1) {
                         this.packageInclusions.splice(inclusionIndex, 1);
                     }
-                    
-                    // Update total
-                    this.calculateTotal();
                 }
+                
+                // Close the modal after selection
+                this.closeOutfitModal();
             },
     
             async togglePackageStatus(packages) {

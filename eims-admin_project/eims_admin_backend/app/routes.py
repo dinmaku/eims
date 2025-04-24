@@ -45,10 +45,13 @@ from .models import (
     update_invoice, record_payment, get_payments_by_invoice,
     get_all_discounts, get_active_discounts, get_inactive_discounts,
     update_wishlist_venue_status, get_wishlist_venues, get_venues,
-    get_inactive_event_packages, toggle_event_package_status
+    get_inactive_event_packages, toggle_event_package_status,
+    get_user_profile_by_id, update_user_profile, update_user_profile_picture,
+    change_password
 )
 from werkzeug.utils import secure_filename
 import json
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,22 +60,14 @@ logger = logging.getLogger(__name__)
 SECRET_KEY = os.getenv('eims', 'fallback_jwt_secret')
 
 def init_routes(app):
-    # Initialize CORS with proper configuration
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": ["http://localhost:5173"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "supports_credentials": True
-        },
-        r"/*": {
-            "origins": ["http://localhost:5173"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "supports_credentials": True
-        }
-    })
-    
+    # Initialize CORS with proper configuration - single source of CORS headers
+    CORS(app, 
+        origins=["http://localhost:5173"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+        supports_credentials=True
+    )
+
     # Initialize tables
     initialize_event_types()
     initialize_supplier_social_media()
@@ -80,34 +75,43 @@ def init_routes(app):
     @app.route('/login', methods=['POST'])
     def login():
         try:
-            # Get the login data
-            data = request.get_json(force=True, silent=True) or {}
-            email = data.get('email')
+            data = request.get_json()
+            if not data:
+                return jsonify({'message': 'No data provided'}), 400
+
+            email = data.get('identifier')  # we'll use the identifier as email
             password = data.get('password')
 
-            # Check if email and password are provided
             if not email or not password:
-                logger.info("Missing email or password")
                 return jsonify({'message': 'Email and password are required!'}), 400
 
-            # Check the user credentials
+            # Check the user credentials using the existing check_user function
             is_valid, user_type = check_user(email, password)
+            
             if is_valid:
+                # Get user details for the profile
+                userid = get_user_id_by_email(email)
+                user_data = get_user_profile_by_id(userid)
+                
+                if not user_data:
+                    return jsonify({'message': 'User profile not found'}), 404
+
                 # Generate JWT token with additional claims
                 access_token = create_access_token(identity=email, additional_claims={"user_type": user_type})
+                refresh_token = create_refresh_token(identity=email)
 
                 return jsonify({
-                    'message': 'Login successful!',
+                    'message': 'Login successful',
                     'access_token': access_token,
-                    'user_type': user_type
+                    'refresh_token': refresh_token,
+                    'user_profile': user_data
                 }), 200
             else:
-                logger.info("Invalid credentials or unauthorized user type")
-                return jsonify({'message': '* Invalid email, password, or unauthorized access.'}), 401
+                return jsonify({'message': 'Invalid email or password'}), 401
 
         except Exception as e:
-            logger.error(f"Error during login: {e}")
-            return jsonify({'message': 'An error occurred during login.'}), 500
+            print(f"Login error: {e}")
+            return jsonify({'message': 'An error occurred during login'}), 500
 
         
     # Decorator to protect routes and check token
@@ -222,30 +226,16 @@ def init_routes(app):
             logger.error(f"Error fetching users: {e}")
             return jsonify({'message': 'An error occurred while fetching users'}), 500
 
-    @app.route('/get_admin', methods=['GET', 'OPTIONS'])
+    @app.route('/get_admin', methods=['GET'])
     @jwt_required()
     def get_admin_list():
-        if request.method == 'OPTIONS':
-            response = jsonify({'message': 'OK'})
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-            response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            return response, 200
-
         try:
             # Fetch users with user_type 'Admin'
             users = get_admin_users()
-            response = jsonify(users)
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            return response, 200
+            return jsonify(users), 200
         except Exception as e:
             logger.error(f"Error fetching admin users: {e}")
-            response = jsonify({'message': 'An error occurred while fetching admin users'})
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            return response, 500
+            return jsonify({'message': 'An error occurred while fetching admin users'}), 500
 
 
 
@@ -3421,5 +3411,281 @@ def init_routes(app):
         except Exception as e:
             logger.error(f"Error in get_outfit_archive: {str(e)}")
             return jsonify({'message': 'An error occurred while fetching outfit archive data'}), 500
+
+    @app.route('/api/admin/profile', methods=['GET'])
+    @jwt_required()
+    def get_admin_profile():
+        try:
+            # Get the current admin's email from JWT token
+            email = get_jwt_identity()
+            logging.info(f"Fetching profile for admin email: {email}")
+            
+            # Get admin ID from email
+            userid = get_user_id_by_email(email)
+            if not userid:
+                logging.warning(f"No admin found for email: {email}")
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Admin not found'
+                }), 404
+
+            # Query the database for admin profile data
+            user_data = get_user_profile_by_id(userid)
+            logging.info(f"Retrieved admin data: {user_data}")
+            
+            if not user_data:
+                logging.warning(f"No profile found for admin ID: {userid}")
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Profile not found'
+                }), 404
+
+            # Ensure all required fields are present
+            required_fields = ['firstname', 'lastname', 'email', 'contactnumber', 'user_img']
+            for field in required_fields:
+                if field not in user_data:
+                    logging.warning(f"Missing required field in admin data: {field}")
+                    user_data[field] = None
+
+            response = jsonify({
+                'status': 'success',
+                'data': user_data
+            })
+            return response, 200
+
+        except Exception as e:
+            logging.error(f"Error fetching admin profile: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/api/admin/update-profile', methods=['PUT'])
+    @jwt_required()
+    def update_admin_profile():
+        try:
+            # Get admin ID from the JWT token
+            email = get_jwt_identity()
+            userid = get_user_id_by_email(email)
+
+            if not userid:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Admin not found'
+                }), 404
+
+            data = request.json
+            firstname = data.get('firstname')
+            lastname = data.get('lastname')
+            username = data.get('username')
+            contactnumber = data.get('contactnumber')
+            address = data.get('address')
+
+            # Update the profile
+            success = update_user_profile(
+                userid=userid,
+                firstname=firstname,
+                lastname=lastname,
+                username=username,
+                contactnumber=contactnumber,
+                address=address
+            )
+
+            if success:
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Profile updated successfully'
+                }), 200
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to update profile'
+                }), 400
+
+        except Exception as e:
+            logging.error(f"Error updating admin profile: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/api/admin/change-password', methods=['POST'])
+    @jwt_required()
+    def change_admin_password():
+        try:
+            data = request.json
+            current_password = data.get('current_password')
+            new_password = data.get('new_password')
+
+            if not current_password or not new_password:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Current password and new password are required'
+                }), 400
+
+            # Get admin ID from the JWT token
+            email = get_jwt_identity()
+            user_id = get_user_id_by_email(email)
+
+            if not user_id:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Admin not found'
+                }), 404
+
+            # Attempt to change password
+            success, message = change_password(user_id, current_password, new_password)
+
+            if success:
+                return jsonify({
+                    'status': 'success',
+                    'message': message
+                }), 200
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': message
+                }), 400
+
+        except Exception as e:
+            logging.error(f"Error in change_admin_password: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': 'An error occurred while changing password'
+            }), 500
+
+    @app.route('/api/admin/profile-image/<path:filename>')
+    def serve_admin_profile_image(filename):
+        """Serve admin profile images from the users_profile directory"""
+        try:
+            # Check if the requested file exists
+            image_path = os.path.join('E:/eims/saved/users_profile', filename)
+            if os.path.exists(image_path):
+                return send_from_directory('E:/eims/saved/users_profile', filename)
+            
+            # If file doesn't exist, return the dummy profile pic
+            return send_from_directory('E:/eims/saved/users_profile', 'dummy_profile.png')
+        except Exception as e:
+            logger.error(f"Error serving admin profile image: {e}")
+            try:
+                # As a last resort, try to serve the dummy profile
+                return send_from_directory('E:/eims/saved/users_profile', 'dummy_profile.png')
+            except:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Image not found'
+                }), 404
+
+    @app.route('/api/admin/update-profile-picture', methods=['POST'])
+    @jwt_required()
+    def update_admin_profile_picture():
+        try:
+            if 'profile_image' not in request.files:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'No file provided'
+                }), 400
+
+            file = request.files['profile_image']
+            if file.filename == '':
+                return jsonify({
+                    'status': 'error',
+                    'message': 'No file selected'
+                }), 400
+
+            # Get current admin's email from JWT
+            email = get_jwt_identity()
+            user_id = get_user_id_by_email(email)
+            
+            if not user_id:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Admin not found'
+                }), 404
+
+            # Check if file type is allowed
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            if not file.filename.lower().endswith(tuple(allowed_extensions)):
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Invalid file type'
+                }), 400
+
+            # Generate a unique filename
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4()}_{filename}"
+            
+            # Save the file
+            save_path = os.path.join('E:/eims/saved/users_profile', unique_filename)
+            file.save(save_path)
+            
+            # Update the user's profile picture in the database
+            if update_user_profile_picture(user_id, unique_filename):
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Profile picture updated successfully',
+                    'data': {
+                        'image_url': unique_filename
+                    }
+                }), 200
+            else:
+                # If database update fails, delete the uploaded file
+                if os.path.exists(save_path):
+                    os.remove(save_path)
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to update profile picture'
+                }), 500
+
+        except Exception as e:
+            logging.error(f"Error updating admin profile picture: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/edit-admin/<int:userid>', methods=['PUT'])
+    @jwt_required()
+    def edit_admin(userid):
+        try:
+            data = request.get_json()
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Update the admin's information
+            cursor.execute("""
+                UPDATE users 
+                SET firstname = %s, 
+                    lastname = %s, 
+                    email = %s, 
+                    contactnumber = %s
+                WHERE userid = %s AND user_type = 'Admin'
+                RETURNING userid
+            """, (
+                data['firstname'],
+                data['lastname'],
+                data['email'],
+                data['contactnumber'],
+                userid
+            ))
+            
+            updated = cursor.fetchone()
+            conn.commit()
+            
+            if updated:
+                return jsonify({'message': 'Admin updated successfully'}), 200
+            return jsonify({'message': 'Admin not found or not authorized'}), 404
+            
+        except Exception as e:
+            logger.error(f"Error updating admin: {e}")
+            if conn:
+                conn.rollback()
+            return jsonify({'message': f'Error updating admin: {str(e)}'}), 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
     return app

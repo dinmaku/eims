@@ -1468,34 +1468,27 @@ export default {
         if (!outfitsLoaded && this.event.wishlist_package && this.event.wishlist_package.gown_package_id) {
           console.log('Using gown package from wishlist_package:', this.event.wishlist_package.gown_package_id);
           
-          // For a wedding with a gown package but no specific outfits, create a fallback entry
           this.attires = [{
             no: 1,
-            name: this.event.wishlist_package.gown_package_name || 'Wedding Attire Set (Package)',
+            name: this.event.wishlist_package.gown_package_name || 'Gown Package',
             type: 'Package',
-            price: parseFloat(this.event.wishlist_package.gown_package_price || 7500)
+            price: parseFloat(this.event.wishlist_package.gown_package_price || 0)
           }];
           
-          console.log('Created fallback gown package attire:', this.attires);
+          console.log('Created gown package attire:', this.attires);
           outfitsLoaded = true;
         }
         
-        // Create a fallback for wedding events if still no attires
-        if (!outfitsLoaded && 
-            (this.event.event_type === 'Wedding' || 
-             (this.event.event_type_name && this.event.event_type_name.includes('Wedding')))) {
-          console.log('Creating fallback wedding attire');
-          this.attires = [{
-            no: 1,
-            name: 'Wedding Attire Set',
-            type: 'Wedding',
-            price: 7500
-          }];
+        // If no outfits were loaded, initialize an empty array
+        if (!outfitsLoaded) {
+          console.log('No outfits found, initializing empty array');
+          this.attires = [];
         }
         
         console.log('Final attires:', this.attires);
       } catch (attireError) {
         console.error('Error loading attire data:', attireError);
+        this.attires = [];
       }
       
       // Try to load additional services as a separate category

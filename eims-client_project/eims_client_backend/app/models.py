@@ -3,7 +3,8 @@
 import hashlib
 from .db import get_db_connection
 import logging
-from datetime import date, time
+from datetime import date, time, datetime
+from psycopg2.extras import RealDictCursor
 
 
 
@@ -77,9 +78,18 @@ def get_user_wishlist(userid):
             WITH outfit_details AS (
                 SELECT 
                     wo.wishlist_id,
-                    array_agg(
-                        (o.outfit_id, o.outfit_name, o.outfit_type, o.outfit_color, o.outfit_desc, wo.price, o.outfit_img, wo.status, wo.remarks)::record
-                        ORDER BY (o.outfit_id, o.outfit_name, o.outfit_type, o.outfit_color, o.outfit_desc, wo.price, o.outfit_img, wo.status, wo.remarks)
+                    ARRAY_AGG(
+                        ARRAY[
+                            o.outfit_id::text,
+                            o.outfit_name,
+                            o.outfit_type,
+                            o.outfit_color,
+                            o.outfit_desc,
+                            wo.price::text,
+                            o.outfit_img,
+                            wo.status,
+                            COALESCE(wo.remarks, '')
+                        ]
                     ) as outfit_details
                 FROM wishlist_outfits wo
                 JOIN outfits o ON wo.outfit_id = o.outfit_id
@@ -150,21 +160,31 @@ def get_user_wishlist(userid):
             
             # Format outfit details
             if item_dict.get('outfit_details'):
-                logger.info(f"Processing outfits for wishlist. Raw outfit data: {item_dict}")
-                item_dict['outfits'] = [
-                    {
-                        'outfit_id': details[0],
-                        'outfit_name': details[1],
-                        'outfit_type': details[2],
-                        'outfit_color': details[3],
-                        'outfit_desc': details[4],
-                        'rent_price': details[5],
-                        'outfit_img': details[6],
-                        'status': details[7],
-                        'remarks': details[8]
-                    }
-                    for details in item_dict['outfit_details']
-                ]
+                try:
+                    logger.info(f"Processing outfits for wishlist. Raw outfit data: {item_dict['outfit_details']}")
+                    # Check if outfit_details is not None and is a list
+                    if isinstance(item_dict['outfit_details'], list):
+                        item_dict['outfits'] = [
+                            {
+                                'outfit_id': details[0] if len(details) > 0 else None,
+                                'outfit_name': details[1] if len(details) > 1 else None,
+                                'outfit_type': details[2] if len(details) > 2 else None,
+                                'outfit_color': details[3] if len(details) > 3 else None,
+                                'outfit_desc': details[4] if len(details) > 4 else None,
+                                'rent_price': details[5] if len(details) > 5 else None,
+                                'outfit_img': details[6] if len(details) > 6 else None,
+                                'status': details[7] if len(details) > 7 else None,
+                                'remarks': details[8] if len(details) > 8 else None
+                            }
+                            for details in item_dict['outfit_details']
+                            if details is not None
+                        ]
+                    else:
+                        logger.warning(f"outfit_details is not a list: {type(item_dict['outfit_details'])}")
+                        item_dict['outfits'] = []
+                except Exception as e:
+                    logger.error(f"Error processing outfit details: {str(e)}")
+                    item_dict['outfits'] = []
                 logger.info(f"Processed outfits: {item_dict['outfits']}")
             else:
                 logger.info("No outfit_details found in item_dict")
@@ -500,7 +520,7 @@ def get_booked_outfits_by_user(userid):
 def get_client_packages():
     """
     Get packages formatted for the client-side application.
-    Only returns active packages with active venues and gown packages.
+    Only returns active packages regardless of venue and gown package status.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -529,8 +549,6 @@ def get_client_packages():
             LEFT JOIN gown_package gp ON p.gown_package_id = gp.gown_package_id
             LEFT JOIN event_type et ON p.event_type_id = et.event_type_id
             WHERE UPPER(COALESCE(p.status, 'Active')) = 'ACTIVE'
-            AND (v.status IS NULL OR v.status = 'Active')
-            AND (gp.status IS NULL OR gp.status = 'Active')
             ORDER BY p.created_at DESC
         """)
         rows = cursor.fetchall()
@@ -543,7 +561,7 @@ def get_client_packages():
         packages = []
         for row in rows:
             package = {
-                'package_id': row[0],  # Use package_id to match frontend expectations
+                'package_id': row[0],
                 'package_name': row[1],
                 'event_type_name': row[2],
                 'event_type_id': row[3],
@@ -562,7 +580,7 @@ def get_client_packages():
                 'additional_services': []
             }
             
-            # Get suppliers for this package (only active suppliers)
+            # Get suppliers for this package (include all suppliers regardless of status)
             cursor.execute("""
                 SELECT 
                     s.supplier_id,
@@ -576,7 +594,6 @@ def get_client_packages():
                 LEFT JOIN suppliers s ON ps.supplier_id = s.supplier_id
                 LEFT JOIN users u ON s.userid = u.userid
                 WHERE eps.package_id = %s
-                AND (s.status IS NULL OR s.status = 'Active')
             """, (row[0],))
             
             supplier_rows = cursor.fetchall()
@@ -594,7 +611,7 @@ def get_client_packages():
                     print(f"Error processing supplier row: {e}")
                     continue
                 
-            # Get additional services for this package (only active services)
+            # Get additional services for this package (include all services regardless of status)
             cursor.execute("""
                 SELECT 
                     a.add_service_id,
@@ -603,7 +620,6 @@ def get_client_packages():
                 FROM event_package_additional_services epas
                 LEFT JOIN additional_services a ON epas.add_service_id = a.add_service_id
                 WHERE epas.package_id = %s
-                AND (a.status IS NULL OR a.status = 'Active')
             """, (row[0],))
             
             service_rows = cursor.fetchall()
@@ -1217,91 +1233,92 @@ def create_wishlist_package(events_id, package_data):
     cursor = conn.cursor()
     
     try:
-        # Extract gown_package_id, ensuring it's NULL if not provided or in inclusions
+        # Extract gown_package_id from inclusions
         gown_package_id = None
-        # Only set gown_package_id if explicitly included in inclusions
         if 'inclusions' in package_data:
             outfit_inclusion = next((item for item in package_data['inclusions'] if item['type'] == 'outfit'), None)
             if outfit_inclusion and 'data' in outfit_inclusion:
                 outfit_data = outfit_inclusion['data']
-                if 'gown_package_id' in outfit_data:
-                    gown_package_id = outfit_data['gown_package_id']
-                elif 'outfit_id' in outfit_data:
-                    gown_package_id = outfit_data['outfit_id']
+                gown_package_id = outfit_data.get('gown_package_id')  # Get gown_package_id directly
+
+        # Get venue_id from inclusions if available
+        venue_id = None
+        venue_data = None
+        if 'inclusions' in package_data:
+            venue_inclusion = next((item for item in package_data['inclusions'] if item['type'] == 'venue'), None)
+            if venue_inclusion and 'data' in venue_inclusion:
+                venue_data = venue_inclusion['data']
+                venue_id = venue_data.get('venue_id')
         
         # Insert the main wishlist package
         cursor.execute("""
             INSERT INTO wishlist_packages (
                 events_id, package_name, capacity, description, venue_id,
                 gown_package_id, additional_capacity_charges, charge_unit,
-                total_price, event_type_id, status
+                total_price, event_type_id, status, venue_status
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             ) RETURNING wishlist_id
         """, (
             events_id,
             package_data.get('package_name'),
             package_data.get('capacity'),
             package_data.get('description'),
-            package_data.get('venue_id'),
-            gown_package_id,  # Use the extracted gown_package_id
+            venue_id,
+            gown_package_id,
             package_data.get('additional_capacity_charges', 0),
             package_data.get('charge_unit', 1),
             package_data.get('total_price', 0),
             package_data.get('event_type_id'),
-            package_data.get('status', 'Active')
+            package_data.get('status', 'Active'),
+            'Pending'  # Default venue_status
         ))
         
         wishlist_id = cursor.fetchone()[0]
         
-        # Add venue to wishlist_venues table if venue_id is provided
-        venue_id = package_data.get('venue_id')
-        if venue_id:
-            venue_price = 0
-            venue_remarks = ''
-            
-            # Check if venue details are provided in 'venue' property
-            if package_data.get('venue'):
-                venue_info = package_data['venue']
-                
-                # Try different possible keys for venue price
-                if 'venue_price' in venue_info:
-                    venue_price = venue_info['venue_price']
-                elif 'price' in venue_info:
-                    venue_price = venue_info['price']
-                
-                # Get remarks if available
-                if 'remarks' in venue_info:
-                    venue_remarks = venue_info['remarks']
-                
-                logger.info(f"Using venue price {venue_price} for venue_id {venue_id}")
-            
-            # If we still don't have a price, try to get it from the database
-            if not venue_price:
-                try:
-                    temp_cursor = conn.cursor()
-                    temp_cursor.execute("SELECT venue_price FROM venues WHERE venue_id = %s", (venue_id,))
-                    price_result = temp_cursor.fetchone()
-                    if price_result and price_result[0]:
-                        venue_price = float(price_result[0])
-                        logger.info(f"Retrieved venue price {venue_price} from database for venue_id {venue_id}")
-                    temp_cursor.close()
-                except Exception as e:
-                    logger.error(f"Error fetching venue price from database: {e}")
+        # Add venue to wishlist_venues table if venue data is available
+        if venue_data:
+            venue_price = float(venue_data.get('price') or venue_data.get('venue_price') or 0)
+            venue_remarks = venue_data.get('remarks', '')
             
             cursor.execute("""
-                INSERT INTO wishlist_venues (wishlist_id, venue_id, price, remarks, status)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO wishlist_venues (
+                    wishlist_id, venue_id, price, remarks, status, has_been_updated
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s
+                )
             """, (
                 wishlist_id,
                 venue_id,
                 venue_price,
                 venue_remarks,
-                'Pending'
+                'Pending',  # Default status
+                False  # Default has_been_updated
             ))
             
             logger.info(f"Inserted venue {venue_id} with price {venue_price} into wishlist_venues")
-        
+
+        # Add gown package to wishlist_outfits if available
+        if gown_package_id:
+            outfit_data = next((item['data'] for item in package_data.get('inclusions', []) 
+                              if item['type'] == 'outfit' and 'data' in item), None)
+            if outfit_data:
+                cursor.execute("""
+                    INSERT INTO wishlist_outfits (
+                        wishlist_id, gown_package_id, price, remarks, status, has_been_updated
+                    ) VALUES (
+                        %s, %s, %s, %s, %s, %s
+                    )
+                """, (
+                    wishlist_id,
+                    gown_package_id,
+                    float(outfit_data.get('price', 0)),
+                    outfit_data.get('remarks', ''),
+                    outfit_data.get('status', 'Pending'),
+                    outfit_data.get('has_been_updated', False)
+                ))
+                logger.info(f"Inserted gown package {gown_package_id} into wishlist_outfits")
+
         # Add services from inclusions first (preferred method)
         if 'inclusions' in package_data:
             for inclusion in package_data['inclusions']:
@@ -1378,7 +1395,7 @@ def create_wishlist_package(events_id, package_data):
     except Exception as e:
         conn.rollback()
         logger.error(f"Error creating wishlist package: {str(e)}")
-        raise
+        raise e
     finally:
         cursor.close()
         conn.close()
@@ -1648,3 +1665,125 @@ def change_password(user_id, current_password, new_password):
     finally:
         cursor.close()
         conn.close()
+
+def get_supplier_booked_events(supplier_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Query to get events where the supplier is booked
+        cursor.execute("""
+            WITH outfit_info AS (
+                SELECT 
+                    wo.wishlist_id,
+                    array_agg(
+                        json_build_object(
+                            'wishlist_outfit_id', wo.wishlist_outfit_id,
+                            'outfit_id', o.outfit_id,
+                            'outfit_name', o.outfit_name,
+                            'outfit_type', o.outfit_type,
+                            'outfit_color', o.outfit_color,
+                            'outfit_desc', o.outfit_desc,
+                            'outfit_img', o.outfit_img,
+                            'gown_package_id', wo.gown_package_id,
+                            'gown_package_name', gp.gown_package_name,
+                            'gown_package_price', gp.gown_package_price,
+                            'price', wo.price,
+                            'status', wo.status,
+                            'remarks', wo.remarks,
+                            'created_at', wo.created_at,
+                            'has_been_updated', wo.has_been_updated
+                        )
+                    ) as outfit_details
+                FROM wishlist_outfits wo
+                LEFT JOIN outfits o ON wo.outfit_id = o.outfit_id
+                LEFT JOIN gown_package gp ON wo.gown_package_id = gp.gown_package_id
+                GROUP BY wo.wishlist_id
+            )
+            SELECT 
+                e.events_id,
+                e.event_name,
+                e.event_type,
+                e.event_theme,
+                e.event_color,
+                e.schedule,
+                e.start_time,
+                e.end_time,
+                e.status as event_status,
+                e.total_price as event_total_price,
+                e.booking_type,
+                client.firstname as client_firstname,
+                client.lastname as client_lastname,
+                client.contactnumber as client_contact,
+                client.address as client_address,
+                ws.status as booking_status,
+                ws.price as supplier_price,
+                ws.remarks as booking_remarks,
+                supp.service as supplier_service,
+                u.username as supplier_username,
+                wp.package_name,
+                wp.venue_status,
+                v.venue_id,
+                v.venue_name,
+                v.location as venue_location,
+                v.venue_price,
+                v.description as venue_description,
+                v.venue_capacity,
+                v.image as venue_image,
+                wv.price as booked_venue_price,
+                oi.outfit_details
+            FROM events e
+            JOIN users client ON e.userid = client.userid
+            JOIN wishlist_packages wp ON e.events_id = wp.events_id
+            JOIN wishlist_suppliers ws ON wp.wishlist_id = ws.wishlist_id
+            JOIN suppliers supp ON ws.supplier_id = supp.supplier_id
+            JOIN users u ON supp.userid = u.userid
+            LEFT JOIN wishlist_venues wv ON wp.wishlist_id = wv.wishlist_id
+            LEFT JOIN venues v ON wp.venue_id = v.venue_id OR wv.venue_id = v.venue_id
+            LEFT JOIN outfit_info oi ON wp.wishlist_id = oi.wishlist_id
+            WHERE ws.supplier_id = %s
+            ORDER BY 
+                CASE 
+                    WHEN e.schedule > CURRENT_DATE THEN 1
+                    WHEN e.schedule = CURRENT_DATE THEN 2
+                    ELSE 3
+                END,
+                e.schedule ASC,
+                e.start_time ASC
+        """, (supplier_id,))
+        
+        events = cursor.fetchall()
+        
+        # Convert the results to a list of dictionaries
+        formatted_events = []
+        for event in events:
+            formatted_event = dict(event)
+            # Convert time objects to string format
+            if formatted_event['start_time']:
+                formatted_event['start_time'] = formatted_event['start_time'].strftime('%H:%M:%S')
+            if formatted_event['end_time']:
+                formatted_event['end_time'] = formatted_event['end_time'].strftime('%H:%M:%S')
+            # Convert date object to string format
+            if formatted_event.get('schedule'):
+                formatted_event['schedule'] = formatted_event['schedule'].strftime('%Y-%m-%d')
+            
+            # Format created_at timestamp in outfit details if it exists
+            if formatted_event.get('outfit_details'):
+                for outfit in formatted_event['outfit_details']:
+                    if outfit.get('created_at'):
+                        outfit['created_at'] = outfit['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Add some computed fields
+            formatted_event['is_upcoming'] = (
+                formatted_event['schedule'] >= datetime.now().strftime('%Y-%m-%d')
+            )
+            
+            formatted_events.append(formatted_event)
+
+        cursor.close()
+        conn.close()
+        
+        return formatted_events
+    except Exception as e:
+        print(f"Error in get_supplier_booked_events: {e}")
+        return []

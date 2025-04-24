@@ -298,13 +298,6 @@ transition-transform duration-300 transform hover:scale-105" @click="addUserBtn"
         </select>
       </div>
 
-      <div v-if="addSupplierDetails" class="flex justify-start items-center mt-5">
-        <button class= "w-40 h-10 bg-[#9B111E] text-white px-3 py-1 rounded transform-transition duration-300 transform hover:scale-105 "
-         @click.prevent ="addSocialMediaModal(selectedSupplier)">
-          Add Social Media
-        </button>
-      </div>
-
       <!-- Confirm Button -->
       <div class="flex justify-end items-center mt-5 space-x-2">
           <button class="bg-gray-300 text-white w-20 h-10 rounded-lg transform-transition duration-300 transform hover:scale-105 hover:bg-gray-400" @click="closeAddUserForm">
@@ -516,8 +509,9 @@ transition-transform duration-300 transform hover:scale-105" @click="addUserBtn"
                 <option value="Hair and Makeup">Hair and Makeup</option>
                 <option value="Host">Host</option>
                 <option value="Entertainment">Entertainer / Singer</option>
-                <option value="Multimedia">Photographer and Videographer</option>
-                <option value="Sound and Light">Sound and Lighting</option>
+                <option value="Photographer">Photographer</option>
+                <option value="Videographer">Videographer</option>
+                <option value="Sound and Lighting">Sound and Lighting</option>
                 <option value="Transportation">Transportation</option>
                 <option value="Invitations and Stationery">Invitations and Stationery</option>
                 <option value="Favors and Gifts">Favors and Gifts</option>
@@ -538,7 +532,7 @@ transition-transform duration-300 transform hover:scale-105" @click="addUserBtn"
             <div class="border border-gray-200 rounded-lg p-4">
               <div class="flex justify-between items-center mb-3">
                 <p class="text-gray-700 font-medium">Social Media Accounts</p>
-                <button @click="addSocialMedia" type="button" class="text-blue-600 hover:text-blue-800 text-sm">
+                <button @click.prevent="addSocialMedia" type="button" class="text-blue-600 hover:text-blue-800 text-sm">
                   + Add Account
                 </button>
               </div>
@@ -631,6 +625,72 @@ transition-transform duration-300 transform hover:scale-105" @click="addUserBtn"
   </div>
 </form> 
 
+<!-- Edit Admin Form -->
+<form v-if="editAdminForm" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-30" @click.self="closeEditAdminBtn">
+  <div class="bg-white w-[500px] p-5 rounded-lg shadow-lg overflow-y-auto">
+    <div class="flex justify-between items-center m-3">
+      <h1 class="font-semibold text-xl font-raleway text-gray-800">Update Admin Info</h1>
+    </div>
+    <div class="border border-gray-500 mt-5 items-center"></div>
+    <div class="m-5">
+      <div class="flex flex-col space-y-5">
+        <div>
+          <label class="text-xs text-gray-600 block text-start">First Name</label>
+          <input
+            type="text"
+            v-model="selectedAdmin.firstname"
+            required
+            class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700"
+          />
+        </div>
+        <div>
+          <label class="text-xs text-gray-600 block text-start">Last Name</label>
+          <input
+            type="text"
+            v-model="selectedAdmin.lastname"
+            required
+            class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700"
+          />
+        </div>
+        <div>
+          <label class="text-xs text-gray-600 block text-start">Email</label>
+          <input
+            type="email"
+            v-model="selectedAdmin.email"
+            required
+            class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700"
+          />
+        </div>
+        <div>
+          <label class="text-xs text-gray-600 block text-start">Contact Number</label>
+          <input
+            type="text"
+            v-model="selectedAdmin.contactnumber"
+            required
+            class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700"
+          />
+        </div>
+      </div>
+
+      <div class="flex justify-end items-center mt-10 space-x-3">
+        <button
+          type="button"
+          @click="closeEditAdminBtn"
+          class="w-20 h-10 bg-gray-300 text-white px-3 py-1 rounded transform-transition duration-300 transform hover:scale-105 hover:bg-gray-400"
+        >
+          Cancel
+        </button>
+        <button
+          @click.prevent="confirmEditAdmin"
+          class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform-transition duration-300 transform hover:scale-105"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+
 </div>
 
 </template>
@@ -702,6 +762,8 @@ export default {
         handle: '',
         url: ''
       },
+      editAdminForm: false,
+      selectedAdmin: null,
     };
   },
   computed: {
@@ -1431,14 +1493,18 @@ export default {
       this.showInactiveSuppliersModal = false;
       this.inactiveSuppliers = [];
     },
-    addSocialMediaModal(supplier) {
-      console.log('Opening social media modal for supplier:', supplier);
-      this.selectedSupplier = supplier;
-      this.showSocialMediaModal = true;
-      // Close any other modals that might be open
-      this.showInactiveSuppliersModal = false;
-      this.editSupplierForm = false;
-      this.showStatusConfirmModal = false;
+    addSocialMedia() {
+      // Store the current supplier before showing the modal
+      if (this.selectedSupplier) {
+        this.showSocialMediaModal = true;
+        this.socialMediaForm = {
+          platform: '',
+          handle: '',
+          url: ''
+        };
+      } else {
+        alert('No supplier selected');
+      }
     },
     closeSocialMediaModal() {
       this.showSocialMediaModal = false;
@@ -1490,56 +1556,61 @@ export default {
         alert(error.response?.data?.error || 'Failed to add social media');
       }
     },
-    async editSupplier(supplier) {
+    editAdminBtn(index) {
+      console.log("Selected Admin:", JSON.parse(JSON.stringify(this.paginatedAdmins[index])));
+      this.selectedAdmin = this.paginatedAdmins[index];
+      this.editAdminForm = true;
+    },
+    closeEditAdminBtn() {
+      this.editAdminForm = false;
+      this.selectedAdmin = null;
+    },
+    async confirmEditAdmin() {
       try {
-        console.log('Editing supplier:', supplier);
-        this.selectedSupplier = { ...supplier };
-        // Fetch social media for the supplier
-        console.log('Fetching social media for supplier_id:', supplier.no); 
-        const response = await axios.get(`${this.baseURL}/api/supplier/${supplier.no}/social-media`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        const token = localStorage.getItem('access_token');
+        if (!this.selectedAdmin) {
+          alert("No admin selected for editing.");
+          return;
+        }
+        if (!this.selectedAdmin.userid) {
+          alert("Admin ID is missing or invalid.");
+          return;
+        }
+        const response = await axios.put(
+          `${this.baseURL}/edit-admin/${this.selectedAdmin.userid}`,
+          {
+            firstname: this.selectedAdmin.firstname,
+            lastname: this.selectedAdmin.lastname,
+            email: this.selectedAdmin.email,
+            contactnumber: this.selectedAdmin.contactnumber
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        });
-        console.log('Social media response:', response.data);
-        this.selectedSupplier.socialMedia = response.data;
-        this.editSupplierForm = true;
+        );
+        if (response.status === 200) {
+          alert("Admin updated successfully!");
+          this.closeEditAdminBtn();
+        } else {
+          alert("Failed to update admin.");
+        }
       } catch (error) {
-        console.error('Error fetching supplier social media:', error);
-        this.selectedSupplier.socialMedia = [];
+        console.error("Error updating admin:", error);
+        if (error.response) {
+          alert(error.response.data.message);
+        } else {
+          alert("Error updating admin. Please try again.");
+        }
       }
     },
-    addSocialMedia() {
-      console.log('Opening social media modal for supplier:', this.selectedSupplier);
-      this.showSocialMediaModal = true;
-    },
     async toggleInactiveSupplierStatus(supplier) {
-      this.pendingSupplier = supplier;
-      this.pendingStatus = 'active';
-      this.showStatusConfirmModal = true;
-    },
-    editInactiveSupplier(supplier) {
-      console.log('Editing inactive supplier:', supplier);
-      this.selectedSupplier = { ...supplier };
-      // Ensure we have the supplier_id
-      this.selectedSupplier.no = supplier.supplier_id;
-      this.editSupplierForm = true;
-      this.showInactiveSuppliersModal = false;
-    },
-    addInactiveSupplierSocialMedia(supplier) {
-      console.log('Adding social media for inactive supplier:', supplier);
-      this.selectedSupplier = { ...supplier };
-      // Ensure we have the supplier_id
-      this.selectedSupplier.no = supplier.supplier_id;
-      this.showSocialMediaModal = true;
-      this.showInactiveSuppliersModal = false;
-    },
-    async confirmStatusChange() {
       try {
         const token = localStorage.getItem('access_token');
         
         const response = await axios.put(
-          `${this.baseURL}/toggle-supplier-status/${this.pendingSupplier.no}`,
+          `${this.baseURL}/toggle-supplier-status/${supplier.supplier_id}`,
           {},
           {
             headers: {
@@ -1549,30 +1620,29 @@ export default {
         );
 
         if (response.status === 200) {
-          if (response.data.new_status === 'inactive') {
-            const index = this.suppliers.findIndex(s => s.no === this.pendingSupplier.no);
-            if (index !== -1) {
-              this.suppliers.splice(index, 1);
-            }
-            alert('Supplier has been set to Inactive');
-          } else {
-            const index = this.inactiveSuppliers.findIndex(s => s.no === this.pendingSupplier.no);
-            if (index !== -1) {
-              this.inactiveSuppliers.splice(index, 1);
-            }
-            await this.fetchSuppliers();
-            alert('Supplier has been set to Active');
+          // Remove from inactive suppliers list
+          const index = this.inactiveSuppliers.findIndex(s => s.supplier_id === supplier.supplier_id);
+          if (index !== -1) {
+            this.inactiveSuppliers.splice(index, 1);
           }
-          this.closeStatusConfirmModal();
+          
+          // Refresh the active suppliers list
+          await this.fetchSuppliers();
+          
+          alert('Supplier has been activated successfully');
+          
+          // If there are no more inactive suppliers, close the modal
+          if (this.inactiveSuppliers.length === 0) {
+            this.closeInactiveSuppliersModal();
+          }
         }
       } catch (error) {
         console.error("Error toggling supplier status:", error);
         if (error.response) {
-          alert(`Error toggling supplier status: ${error.response.data.message}`);
+          alert(`Error activating supplier: ${error.response.data.message}`);
         } else {
-          alert("Error updating supplier status. Please try again.");
+          alert("Error activating supplier. Please try again.");
         }
-        this.closeStatusConfirmModal();
       }
     },
   },

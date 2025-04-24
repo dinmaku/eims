@@ -10,10 +10,12 @@ def create_app():
 
     # Configure CORS with simpler setup
     CORS(app, 
-         origins=["http://localhost:5173"], 
-         supports_credentials=True,
-         allow_headers=["Content-Type", "Authorization"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+         resources={r"/*": {"origins": ["http://localhost:5173"],
+                           "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                           "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+                           "supports_credentials": True,
+                           "expose_headers": ["Content-Range", "X-Content-Range"]}},
+         supports_credentials=True)
 
     # Set up the Flask-JWT-Extended configuration
     app.config['JWT_SECRET_KEY'] = os.getenv('eims', 'fallback_jwt_secret')  # Ensure you set a JWT secret key

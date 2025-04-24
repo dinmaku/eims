@@ -306,13 +306,6 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-4 md:mt-7 flex justify-end items-center">
-                <button class="flex items-center space-x-1 px-2 py-1 rounded-lg text-red-500 hover:shadow-lg hover:text-red-700 hover:border-b-2 border-red-600"
-                        @click="deleteWishlistItem(selectedWishlist.events_id)">
-                    <img src="/img/delete.png" alt="Delete Icon" class="w-4 md:w-5 h-4 md:h-5">
-                    <span>Delete</span>
-                </button>
-            </div>
         </div>
     </div>
 </div>

@@ -1001,7 +1001,10 @@ export default {
                   venue_id: pkg.venue_id,
                   venue_name: details.venue_name,
                   location: details.venue_location,
-                  venue_price: details.venue_price
+                  price: details.venue_price || 0,
+                  remarks: '',
+                  status: 'Pending',
+                  has_been_updated: false
                 };
                 console.log('Adding venue:', venueData);
                 this.inclusions.push({
@@ -1833,15 +1836,14 @@ addSelectedOutfit() {
             return;
         }
 
-        // Get the price from the outfit package
-        const price = parseFloat(this.selectedOutfit.gown_package_price || 0);
-        
-        // Create outfit data with proper name and price
+        // Create outfit data with proper gown_package_id
         const outfitData = {
-            outfit_id: this.selectedOutfit.gown_package_id,
-            name: this.selectedOutfit.gown_package_name,  // Make sure to include the name
-            price: price,  // Make sure price is included
-            outfit_name: this.selectedOutfit.gown_package_name  // Add this for consistency
+            gown_package_id: this.selectedOutfit.gown_package_id,  // Store as gown_package_id, not outfit_id
+            gown_package_name: this.selectedOutfit.gown_package_name,
+            price: parseFloat(this.selectedOutfit.gown_package_price || 0),
+            remarks: '',
+            status: 'Pending',
+            has_been_updated: false
         };
 
         // Add to inclusions

@@ -72,7 +72,15 @@
                 <div class="py-1 text-left" role="none">
                   <a href="/user-profile" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-200" role="menuitem" tabindex="-1">Profile</a>
                   <a href="/booked-services" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-200" role="menuitem" tabindex="-1">My Bookings</a>
-                  <a href="/vendor-schedule" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-200" role="menuitem" tabindex="-1">Booked Schedules</a>
+                  <a 
+                    v-if="isSupplier"
+                    href="/vendor-schedule" 
+                    class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-200" 
+                    role="menuitem" 
+                    tabindex="-1"
+                  >
+                    Booked Schedules
+                  </a>
                   <router-link to="/">
                     <button 
                       @click="handleLogout" 
@@ -212,6 +220,11 @@ export default {
       
       // Default fallback
       return '/default-profile.jpg';
+    },
+    isSupplier() {
+      return this.userProfile && 
+             this.userProfile.user_type && 
+             this.userProfile.user_type.toLowerCase() === 'suppliers';
     }
   },
   mounted() {
@@ -282,7 +295,6 @@ export default {
         
         if (response.data.status === 'success') {
           this.userProfile = response.data.data;
-          console.log('Navigation: Profile data loaded:', this.userProfile);
         } else {
           console.error('Failed to load profile:', response.data.message);
         }

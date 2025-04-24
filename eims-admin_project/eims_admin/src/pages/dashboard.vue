@@ -18,7 +18,10 @@
 
             <p @click="toggleSection('setup')" class="ml-2 mb-5 text-lg text-left font-bold text-[#FFE4C4] cursor-pointer">Setup</p>
             <div v-if="visibleSections.setup" class="ml-4 border-l-2 border-gray-50">
-              <router-link to="/manage-users" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link 
+                v-if="userType !== 'staff'" 
+                to="/manage-users" 
+                class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/manage-user.png">
                 Accounts
               </router-link>
@@ -82,17 +85,7 @@
         <!--Hamburger Menu-->
         <div class="w-[calc(100%-200px)] flex justify-center ">
           </div>
-     
-          <!--User Icon-->
-          <div class="w-[200px] ">
-            <div class="flex items-center justify-start space-x-4">
-              <img class="w-9 h-9 rounded-full border-2 border-gray-50 bg-white" src="/img/ID.jpg" alt="">
-              <div class="font-semibold dark:text-white text-left">
-                <div>Dean Mark</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">Admin</div>
-              </div>
-            </div>
-          </div>
+  
        </div>
 
 
@@ -116,12 +109,27 @@
     name: 'AdminDashboard',
   data() {
     return {
+      userType: null,
       showDropDown: false,
       showSide: true,
       visibleSections: {
         setup: true,
         management: true,
+        reports: false
       },
+    }
+  },
+  async created() {
+    try {
+      // Get user profile from localStorage
+      const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+      if (userProfile && userProfile.user_type) {
+        // Convert to lowercase and trim any whitespace
+        this.userType = userProfile.user_type.toLowerCase().trim();
+        console.log('User type:', this.userType); // Add this for debugging
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
     }
   },
   mounted() {

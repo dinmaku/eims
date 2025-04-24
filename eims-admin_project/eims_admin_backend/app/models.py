@@ -3838,7 +3838,7 @@ def fetch_upcoming_events():
                     event['outfits'].append(outfit_data)
             
             events.append(event)
-            
+        
         logger.info(f"Found {len(events)} upcoming events")
         return events
     except Exception as e:
@@ -4812,6 +4812,225 @@ def get_gown_package_outfits(gown_package_id):
     except Exception as e:
         logger.error(f"Error getting gown package outfits: {str(e)}")
         return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_id_by_email(email):
+    """Get user ID from email."""
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("SELECT userid FROM users WHERE email = %s", (email,))
+        result = cursor.fetchone()
+        return result[0] if result else None
+    except Exception as e:
+        logger.error(f"Error getting user ID by email: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_profile_by_id(userid):
+    """Get user profile information by user ID."""
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT 
+                userid,
+                firstname,
+                lastname,
+                username,
+                email,
+                contactnumber,
+                address,
+                user_type,
+                user_img
+            FROM users 
+            WHERE userid = %s
+        """, (userid,))
+        
+        row = cursor.fetchone()
+        
+        if row:
+            user_data = {
+                'userid': row[0],
+                'firstname': row[1],
+                'lastname': row[2],
+                'username': row[3],
+                'email': row[4],
+                'contactnumber': row[5],
+                'address': row[6],
+                'user_type': row[7].lower() if row[7] else None,
+                'user_img': row[8]
+            }
+            
+            logger.info(f"Raw user data from database: {user_data}")
+            
+            # If there's no profile picture, use the new default
+            if not user_data['user_img']:
+                user_data['user_img'] = "saved/users_profile/dummy_profile.png"
+                logger.info("Using default profile picture")
+            
+            logger.info(f"Final user data: {user_data}")
+            return user_data
+            
+        logger.warning(f"No user found with ID: {userid}")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error in get_user_profile_by_id: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_user_profile(userid, firstname, lastname, username, contactnumber, address):
+    """Update user profile information."""
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            """UPDATE users 
+               SET firstname = %s, lastname = %s, username = %s, contactnumber = %s, address = %s
+               WHERE userid = %s""",
+            (firstname, lastname, username, contactnumber, address, userid)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        logger.error(f"Error updating user profile: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_user_profile_picture(userid, image_path):
+    """Update user profile picture."""
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Log the update attempt
+        logger.info(f"Updating profile picture for user {userid} with path {image_path}")
+        
+        cursor.execute(
+            """UPDATE users 
+               SET user_img = %s
+               WHERE userid = %s
+               RETURNING user_img""",
+            (image_path, userid)
+        )
+        
+        # Get the updated value to confirm it worked
+        updated_path = cursor.fetchone()
+        
+        conn.commit()
+        
+        if updated_path:
+            logger.info(f"Successfully updated profile picture for user {userid}")
+            return True
+        
+        logger.warning(f"Failed to update profile picture: no rows updated for user {userid}")
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error updating user profile picture: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def change_password(user_id, current_password, new_password):
+    """Change user password after verifying current password."""
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    current_password_hash = hash_password(current_password)
+    new_password_hash = hash_password(new_password)
+
+    try:
+        # First verify the current password
+        cursor.execute(
+            "SELECT password FROM users WHERE userid = %s",
+            (user_id,)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            return False, "User not found"
+            
+        if user[0] != current_password_hash:
+            return False, "Current password is incorrect"
+            
+        # Update the password
+        cursor.execute(
+            "UPDATE users SET password = %s WHERE userid = %s",
+            (new_password_hash, user_id)
+        )
+        conn.commit()
+        return True, "Password changed successfully"
+        
+    except Exception as e:
+        logger.error(f"Error in change_password: {str(e)}")
+        return False, "An error occurred while changing password"
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_by_email(email):
+    """Get user by email."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT userid, firstname, lastname, email, password, user_type, username
+            FROM users 
+            WHERE email = %s
+        """, (email,))
+        user = cursor.fetchone()
+        if user:
+            return {
+                'userid': user[0],
+                'firstname': user[1],
+                'lastname': user[2],
+                'email': user[3],
+                'password': user[4],
+                'user_type': user[5],
+                'username': user[6]
+            }
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_by_username(username):
+    """Get user by username."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT userid, firstname, lastname, email, password, user_type, username
+            FROM users 
+            WHERE username = %s
+        """, (username,))
+        user = cursor.fetchone()
+        if user:
+            return {
+                'userid': user[0],
+                'firstname': user[1],
+                'lastname': user[2],
+                'email': user[3],
+                'password': user[4],
+                'user_type': user[5],
+                'username': user[6]
+            }
+        return None
     finally:
         cursor.close()
         conn.close()

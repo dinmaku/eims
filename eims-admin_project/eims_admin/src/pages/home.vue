@@ -1,6 +1,6 @@
 <template>
   <div class= "ml-10 mt-5 text-start">
-    <h1 class="font-amaticBold font-bold text-4xl pb-1">Welcome, Admin</h1>
+    <h1 class="font-amaticBold font-bold text-4xl pb-1">Welcome, {{ userFullName }}</h1>
     <p class="font-amaticRegular font-bold text-gray-400">Check your latest updates</p>
     <hr class="w-[1100px] mt-2">
   </div>
@@ -220,6 +220,7 @@
             data: [2, 6, 14, 21, 24], // Number of people for each rating
           },
         ],
+        userFullName: ''
       };
     },
     methods: {
@@ -227,6 +228,13 @@
         this.isDetailsVisible = !this.isDetailsVisible;
       },
       
+    },
+    mounted() {
+      // Get user profile from localStorage
+      const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+      if (userProfile) {
+        this.userFullName = `${userProfile.firstname} ${userProfile.lastname}`;
+      }
     },
     setup() {
       const date = ref(new Date());
