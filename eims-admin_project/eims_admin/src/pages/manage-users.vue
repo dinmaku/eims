@@ -687,9 +687,9 @@ transition-transform duration-300 transform hover:scale-105" @click="addUserBtn"
           Save
         </button>
       </div>
-    </div>
+        </div>
   </div>
-</form>
+</form> 
 
 </div>
 
@@ -1496,7 +1496,7 @@ export default {
     addSocialMedia() {
       // Store the current supplier before showing the modal
       if (this.selectedSupplier) {
-        this.showSocialMediaModal = true;
+      this.showSocialMediaModal = true;
         this.socialMediaForm = {
           platform: '',
           handle: '',
@@ -1585,7 +1585,7 @@ export default {
             contactnumber: this.selectedAdmin.contactnumber
           },
           {
-            headers: {
+          headers: {
               Authorization: `Bearer ${token}`,
             },
           }
@@ -1622,12 +1622,12 @@ export default {
         if (response.status === 200) {
           // Remove from inactive suppliers list
           const index = this.inactiveSuppliers.findIndex(s => s.supplier_id === supplier.supplier_id);
-          if (index !== -1) {
-            this.inactiveSuppliers.splice(index, 1);
-          }
+            if (index !== -1) {
+              this.inactiveSuppliers.splice(index, 1);
+            }
           
           // Refresh the active suppliers list
-          await this.fetchSuppliers();
+            await this.fetchSuppliers();
           
           alert('Supplier has been activated successfully');
           

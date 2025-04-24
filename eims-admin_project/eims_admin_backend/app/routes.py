@@ -67,7 +67,7 @@ def init_routes(app):
         allow_headers=["Content-Type", "Authorization"],
         supports_credentials=True
     )
-
+    
     # Initialize tables
     initialize_event_types()
     initialize_supplier_social_media()

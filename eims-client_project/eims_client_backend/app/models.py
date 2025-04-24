@@ -1666,13 +1666,28 @@ def change_password(user_id, current_password, new_password):
         cursor.close()
         conn.close()
 
-def get_supplier_booked_events(supplier_id):
+def get_supplier_booked_events(user_email):
     try:
+        print(f"DEBUG: Getting events for supplier email: {user_email}")
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Query to get events where the supplier is booked
+        # First check if the user exists and is a supplier
         cursor.execute("""
+            SELECT u.userid, u.email, s.supplier_id, s.service 
+            FROM users u
+            JOIN suppliers s ON u.userid = s.userid
+            WHERE u.email = %s
+        """, (user_email,))
+        supplier_info = cursor.fetchone()
+        print(f"DEBUG: Supplier info: {supplier_info}")
+        
+        if not supplier_info:
+            print(f"DEBUG: No supplier found for email {user_email}")
+            return []
+            
+        # Query to get events where the supplier is booked
+        query = """
             WITH outfit_info AS (
                 SELECT 
                     wo.wishlist_id,
@@ -1741,7 +1756,8 @@ def get_supplier_booked_events(supplier_id):
             LEFT JOIN wishlist_venues wv ON wp.wishlist_id = wv.wishlist_id
             LEFT JOIN venues v ON wp.venue_id = v.venue_id OR wv.venue_id = v.venue_id
             LEFT JOIN outfit_info oi ON wp.wishlist_id = oi.wishlist_id
-            WHERE ws.supplier_id = %s
+            WHERE supp.supplier_id = %s
+            AND UPPER(ws.status) = 'APPROVED'
             ORDER BY 
                 CASE 
                     WHEN e.schedule > CURRENT_DATE THEN 1
@@ -1750,19 +1766,24 @@ def get_supplier_booked_events(supplier_id):
                 END,
                 e.schedule ASC,
                 e.start_time ASC
-        """, (supplier_id,))
+        """
+        print(f"DEBUG: Executing query with supplier_id: {supplier_info['supplier_id']}")
+        cursor.execute(query, (supplier_info['supplier_id'],))
         
         events = cursor.fetchall()
+        print(f"DEBUG: Raw events count: {len(events)}")
         
         # Convert the results to a list of dictionaries
         formatted_events = []
         for event in events:
             formatted_event = dict(event)
+            
             # Convert time objects to string format
             if formatted_event['start_time']:
                 formatted_event['start_time'] = formatted_event['start_time'].strftime('%H:%M:%S')
             if formatted_event['end_time']:
                 formatted_event['end_time'] = formatted_event['end_time'].strftime('%H:%M:%S')
+            
             # Convert date object to string format
             if formatted_event.get('schedule'):
                 formatted_event['schedule'] = formatted_event['schedule'].strftime('%Y-%m-%d')
@@ -1771,19 +1792,24 @@ def get_supplier_booked_events(supplier_id):
             if formatted_event.get('outfit_details'):
                 for outfit in formatted_event['outfit_details']:
                     if outfit.get('created_at'):
-                        outfit['created_at'] = outfit['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                        # Check if created_at is already a string
+                        if not isinstance(outfit['created_at'], str):
+                            outfit['created_at'] = outfit['created_at'].strftime('%Y-%m-%d %H:%M:%S')
             
-            # Add some computed fields
-            formatted_event['is_upcoming'] = (
-                formatted_event['schedule'] >= datetime.now().strftime('%Y-%m-%d')
-            )
+            # Add is_upcoming field by comparing with current date
+            current_date = datetime.now().date()
+            event_date = datetime.strptime(formatted_event['schedule'], '%Y-%m-%d').date() if formatted_event.get('schedule') else None
+            formatted_event['is_upcoming'] = event_date >= current_date if event_date else False
             
             formatted_events.append(formatted_event)
 
+        print(f"DEBUG: Returning {len(formatted_events)} formatted events")
         cursor.close()
         conn.close()
         
         return formatted_events
     except Exception as e:
         print(f"Error in get_supplier_booked_events: {e}")
+        import traceback
+        traceback.print_exc()
         return []

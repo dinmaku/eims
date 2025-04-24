@@ -237,20 +237,20 @@
                                 <td class="p-2 text-sm">
                                     <button
                                         @click="removeOutfitFromPackage(outfit.outfit_id)"
-                                        class="rounded p-1 hover:bg-red-100"
-                                    >
-                                        <img 
-                                            src="/img/delete.png"
-                                            alt="Remove"
-                                            class="w-4 h-4"
-                                        />
-                                    </button>
+                                    class="rounded p-1 hover:bg-red-100"
+                                >
+                                    <img 
+                                        src="/img/delete.png"
+                                        alt="Remove"
+                                        class="w-4 h-4"
+                                    />
+                                </button>
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
-                </div>
+                </table>
             </div>
+        </div>
 
 
 
@@ -1383,15 +1383,15 @@
                 // Check if we're in edit mode
                 if (this.editGownPackageForm) {
                     // Remove from selectedGowns array
-                    const gownIndex = this.selectedGownPackage.selectedGowns.indexOf(outfitId);
-                    if (gownIndex !== -1) {
-                        this.selectedGownPackage.selectedGowns.splice(gownIndex, 1);
-                    }
-                    
+                const gownIndex = this.selectedGownPackage.selectedGowns.indexOf(outfitId);
+                if (gownIndex !== -1) {
+                    this.selectedGownPackage.selectedGowns.splice(gownIndex, 1);
+                }
+                
                     // Remove from selectedTuxedos array
-                    const tuxedoIndex = this.selectedGownPackage.selectedTuxedos.indexOf(outfitId);
-                    if (tuxedoIndex !== -1) {
-                        this.selectedGownPackage.selectedTuxedos.splice(tuxedoIndex, 1);
+                const tuxedoIndex = this.selectedGownPackage.selectedTuxedos.indexOf(outfitId);
+                if (tuxedoIndex !== -1) {
+                    this.selectedGownPackage.selectedTuxedos.splice(tuxedoIndex, 1);
                     }
                 } else {
                     // Regular mode (Add Package form)
@@ -1482,7 +1482,7 @@
                       
                       this.$emit('outfit-added', response.data);
                       this.addOutfitForm = false;
-                      this.resetForm();
+                        this.resetForm();
                     } else {
                       // If no file is selected, send as JSON
                       const outfitData = {

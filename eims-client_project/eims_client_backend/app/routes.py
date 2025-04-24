@@ -1014,61 +1014,39 @@ def init_routes(app):
         try:
             # Get the current user's email from JWT
             email = get_jwt_identity()
-            print(f"Supplier events requested by: {email}")
+            print(f"DEBUG: JWT token contains email: {email}")
             
-            # Get user profile to check if they're a supplier
-            user_id = get_user_id_by_email(email)
-            if not user_id:
-                print(f"Error: User ID not found for email: {email}")
+            # First check if the user is a supplier
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT u.userid, s.supplier_id, s.service
+                FROM users u
+                JOIN suppliers s ON u.userid = s.userid
+                WHERE u.email = %s
+            """, (email,))
+            supplier_info = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not supplier_info:
+                print(f"DEBUG: User {email} is not a supplier")
                 return jsonify({
                     'status': 'error',
-                    'message': 'User not found'
-                }), 404
+                    'message': 'User is not a supplier'
+                }), 403
                 
-            user_data = get_user_profile_by_id(user_id)
-            print(f"User profile: {user_data}")
+            print(f"DEBUG: Found supplier info: {supplier_info}")
             
-            # Check if the user is a supplier
-            if not user_data:
-                print(f"Error: User profile not found for ID: {user_id}")
-                return jsonify({
-                    'status': 'error',
-                    'message': 'User profile not found'
-                }), 404
+            # Get the supplier's booked events directly using email
+            events = get_supplier_booked_events(email)
+            print(f"DEBUG: Found {len(events)} events for supplier email: {email}")
             
-            # Get supplier ID from the user profile directly
-            supplier_id = None
-            # First try to get supplier_id directly
-            if 'supplier_id' in user_data:
-                supplier_id = user_data.get('supplier_id')
-                print(f"Found supplier_id in user_data: {supplier_id}")
-            
-            # If not found, try to get it from the database
-            if not supplier_id:
-                try:
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT supplier_id FROM suppliers WHERE userid = %s", (user_id,))
-                    result = cursor.fetchone()
-                    if result:
-                        supplier_id = result[0]
-                        print(f"Found supplier_id from database query: {supplier_id}")
-                    cursor.close()
-                    conn.close()
-                except Exception as e:
-                    print(f"Error querying supplier_id: {e}")
-            
-            # If still not found, return an error
-            if not supplier_id:
-                print(f"Error: Supplier ID not found for user: {email}")
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Supplier ID not found'
-                }), 404
-            
-            # Get the supplier's booked events
-            events = get_supplier_booked_events(supplier_id)
-            print(f"Found {len(events)} events for supplier ID: {supplier_id}")
+            # Log the first event if any
+            if events:
+                print(f"DEBUG: First event: {events[0]}")
+            else:
+                print("DEBUG: No events found")
             
             return jsonify({
                 'status': 'success',
