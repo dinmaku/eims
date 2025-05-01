@@ -10,7 +10,7 @@ from .models import (
     get_event_types, get_all_additional_services, get_booked_schedules, add_event_item,
     create_wishlist_package, initialize_test_suppliers, get_user_profile_by_id,
     change_password, get_db_connection, update_user_profile_picture, get_client_packages,
-    get_supplier_booked_events
+    get_supplier_booked_events, get_gown_package_outfits, add_event_feedback, get_event_feedback
 )
 import logging
 import jwt
@@ -885,116 +885,31 @@ def init_routes(app):
             response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response, 500
 
-    @app.route('/api/user/profile-image/<path:filename>')
-    def serve_profile_image(filename):
-        """Serve profile images from the users_profile directory"""
+    @app.route('/api/outfits-packages-bg/<path:filename>')
+    def serve_outfit_package_background(filename):
         try:
+            # Get the absolute path to the project root directory
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            bg_img_dir = os.path.join(root_dir, 'saved', 'outfits_packages_bg')
+            
             # Check if the requested file exists
-            image_path = os.path.join('E:/eims/saved/users_profile', filename)
-            if os.path.exists(image_path):
-                return send_from_directory('E:/eims/saved/users_profile', filename)
-            
-            # If file doesn't exist, return the dummy profile pic
-            return send_from_directory('E:/eims/saved/users_profile', 'dummy_profile.png')
-        except Exception as e:
-            logger.error(f"Error serving profile image: {e}")
-            try:
-                # As a last resort, try to serve the dummy profile
-                return send_from_directory('E:/eims/saved/users_profile', 'dummy_profile.png')
-            except:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Image not found'
-                }), 404
-
-    @app.route('/api/user/update-profile-picture', methods=['POST'])
-    @jwt_required()
-    def update_profile_picture():
-        try:
-            if 'profile_image' not in request.files:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'No file provided'
-                }), 400
-
-            file = request.files['profile_image']
-            if file.filename == '':
-                return jsonify({
-                    'status': 'error',
-                    'message': 'No file selected'
-                }), 400
-
-            # Get current user's email from JWT
-            email = get_jwt_identity()
-            user_id = get_user_id_by_email(email)
-            
-            if not user_id:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'User not found'
-                }), 404
-
-            # Check if file type is allowed
-            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-            if not '.' in file.filename or \
-               file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Invalid file type'
-                }), 400
-
-            # Create a secure filename with timestamp and UUID
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            file_extension = file.filename.rsplit('.', 1)[1].lower()
-            filename = f"profile_{user_id}_{timestamp}_{str(uuid.uuid4())[:8]}.{file_extension}"
-            
-            # Ensure the directory exists
-            os.makedirs('E:/eims/saved/users_profile', exist_ok=True)
-            
-            # Save file to the specified directory
-            save_path = os.path.join('E:/eims/saved/users_profile', filename)
-            file.save(save_path)
-
-            # Update user's profile picture in database
-            if update_user_profile_picture(user_id, filename):
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Profile picture updated successfully',
-                    'data': {
-                        'image_url': filename
-                    }
-                }), 200
+            requested_file_path = os.path.join(bg_img_dir, filename)
+            if os.path.exists(requested_file_path):
+                return send_from_directory(bg_img_dir, filename)
             else:
-                # If database update fails, delete the uploaded file
-                if os.path.exists(save_path):
-                    os.remove(save_path)
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Failed to update profile picture in database'
-                }), 500
-
+                # Return the first available background as fallback
+                return send_from_directory(bg_img_dir, 'bg1.png')
+                
         except Exception as e:
-            logger.error(f"Error updating profile picture: {e}")
-            return jsonify({
-                'status': 'error',
-                'message': str(e)
-            }), 500
-
-    @app.route('/saved/venue_img/<path:filename>')
-    def serve_venue_image(filename):
-        try:
-            # The base directory where venue images are stored
-            venue_img_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'saved', 'venue_img')
-            return send_from_directory(venue_img_dir, filename)
-        except Exception as e:
-            app.logger.error(f"Error serving venue image {filename}: {e}")
-            return jsonify({'message': 'Image not found'}), 404
+            print(f"Error serving outfit package background image {filename}: {e}")
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/api/outfits/image/<path:filename>')
     def serve_outfit_image(filename):
         try:
-            # Define the absolute path to the outfits_img directory
-            outfit_img_dir = os.path.join('E:\\', 'eims', 'saved', 'outfits_img')
+            # Get the absolute path to the project root directory
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            outfit_img_dir = os.path.join(root_dir, 'saved', 'outfits_img')
             
             # Check if the requested file exists
             requested_file_path = os.path.join(outfit_img_dir, filename)
@@ -1007,6 +922,50 @@ def init_routes(app):
         except Exception as e:
             print(f"Error serving outfit image {filename}: {e}")
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/user/profile-image/<path:filename>')
+    def serve_profile_image(filename):
+        """Serve profile images from the users_profile directory"""
+        try:
+            # Get the absolute path to the project root directory
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            profile_img_dir = os.path.join(root_dir, 'saved', 'users_profile')
+            
+            # Check if the requested file exists
+            image_path = os.path.join(profile_img_dir, filename)
+            if os.path.exists(image_path):
+                return send_from_directory(profile_img_dir, filename)
+            
+            # If file doesn't exist, return the dummy profile pic
+            return send_from_directory(profile_img_dir, 'dummy_profile.png')
+        except Exception as e:
+            logger.error(f"Error serving profile image: {e}")
+            try:
+                # As a last resort, try to serve the dummy profile
+                return send_from_directory(profile_img_dir, 'dummy_profile.png')
+            except:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Image not found'
+                }), 404
+
+    @app.route('/saved/venue_img/<path:filename>')
+    def serve_venue_image(filename):
+        try:
+            # Get the absolute path to the project root directory
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            venue_img_dir = os.path.join(root_dir, 'saved', 'venue_img')
+            
+            # Check if the requested file exists
+            requested_file_path = os.path.join(venue_img_dir, filename)
+            if os.path.exists(requested_file_path):
+                return send_from_directory(venue_img_dir, filename)
+            else:
+                # Return default venue image
+                return send_from_directory(venue_img_dir, 'grandballroom.png')
+        except Exception as e:
+            app.logger.error(f"Error serving venue image {filename}: {e}")
+            return jsonify({'message': 'Image not found'}), 404
 
     @app.route('/api/supplier/events', methods=['GET'])
     @jwt_required()
@@ -1057,6 +1016,171 @@ def init_routes(app):
             print(f"Error fetching supplier events: {e}")
             import traceback
             traceback.print_exc()
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/api/gown-package/<int:package_id>/outfits', methods=['GET'])
+    @jwt_required()
+    def get_gown_package_outfits_route(package_id):
+        """Get all outfits for a specific gown package"""
+        try:
+            outfits = get_gown_package_outfits(package_id)
+            return jsonify({
+                'status': 'success',
+                'data': outfits
+            }), 200
+        except Exception as e:
+            app.logger.error(f"Error fetching gown package outfits: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': 'An error occurred while fetching gown package outfits'
+            }), 500
+
+    @app.route('/api/user/update-profile-picture', methods=['POST'])
+    @jwt_required()
+    def update_profile_picture():
+        try:
+            if 'profile_image' not in request.files:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'No file provided'
+                }), 400
+
+            file = request.files['profile_image']
+            if file.filename == '':
+                return jsonify({
+                    'status': 'error',
+                    'message': 'No file selected'
+                }), 400
+
+            # Get current user's email from JWT
+            email = get_jwt_identity()
+            user_id = get_user_id_by_email(email)
+            
+            if not user_id:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User not found'
+                }), 404
+
+            # Check if file type is allowed
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            if not '.' in file.filename or \
+               file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Invalid file type'
+                }), 400
+
+            # Create a secure filename with timestamp and UUID
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            file_extension = file.filename.rsplit('.', 1)[1].lower()
+            filename = f"profile_{user_id}_{timestamp}_{str(uuid.uuid4())[:8]}.{file_extension}"
+            
+            # Get the absolute path to the project root directory
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            profile_img_dir = os.path.join(root_dir, 'saved', 'users_profile')
+            
+            # Ensure the directory exists
+            os.makedirs(profile_img_dir, exist_ok=True)
+            
+            # Save file to the specified directory
+            save_path = os.path.join(profile_img_dir, filename)
+            file.save(save_path)
+
+            # Update user's profile picture in database
+            if update_user_profile_picture(user_id, filename):
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Profile picture updated successfully',
+                    'data': {
+                        'image_url': filename
+                    }
+                }), 200
+            else:
+                # If database update fails, delete the uploaded file
+                if os.path.exists(save_path):
+                    os.remove(save_path)
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to update profile picture in database'
+                }), 500
+
+        except Exception as e:
+            logger.error(f"Error updating profile picture: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/event-feedback', methods=['POST'])
+    @jwt_required()
+    def submit_event_feedback():
+        try:
+            # Get current user's email and ID
+            email = get_jwt_identity()
+            userid = get_user_id_by_email(email)
+            
+            if not userid:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User not found'
+                }), 404
+
+            data = request.json
+            events_id = data.get('events_id')
+            rating = data.get('rating')
+            feedback_text = data.get('feedback_text')
+
+            # Validate required fields
+            if not events_id or not rating:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Event ID and rating are required'
+                }), 400
+
+            # Validate rating range
+            if not isinstance(rating, int) or rating < 1 or rating > 5:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Rating must be a number between 1 and 5'
+                }), 400
+
+            # Add the feedback
+            success, result = add_event_feedback(events_id, userid, rating, feedback_text)
+            
+            if success:
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Feedback submitted successfully',
+                    'feedback_id': result
+                }), 201
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': result
+                }), 409 if "already submitted" in str(result) else 500
+
+        except Exception as e:
+            app.logger.error(f"Error submitting feedback: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/event-feedback/<int:events_id>', methods=['GET'])
+    @jwt_required()
+    def get_event_feedbacks(events_id):
+        try:
+            feedbacks = get_event_feedback(events_id)
+            return jsonify({
+                'status': 'success',
+                'data': feedbacks
+            }), 200
+        except Exception as e:
+            app.logger.error(f"Error getting event feedbacks: {e}")
             return jsonify({
                 'status': 'error',
                 'message': str(e)

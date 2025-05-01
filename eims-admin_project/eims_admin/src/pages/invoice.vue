@@ -1,11 +1,31 @@
 <template>
+   <!-- Alert Modal -->
+   <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+      <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+        <div class="flex justify-between items-center mb-4">
+          <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+            {{ alertType === 'success' ? 'Success' : 'Error' }}
+          </h3>
+          <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+            <span class="text-2xl">&times;</span>
+          </button>
+        </div>
+        <p class="text-gray-700">{{ alertMessage }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+    
     <div class = "w-full h-full bg-white overflow-x-hidden pb-20">
         <div class="flex items-center justify-between m-5">
             <div class="flex items-center">
                 <img class="w-32" src="/img/logo.png" alt="">
                 <div class="inline m-2">
-                    <h1 class="text-3xl text-left font-semibold font-quicksand">Red Carpet</h1>
-                    <p class="text-md text-gray-600 font-medium font-raleway">Events and Wedding Services</p>
+                    <h1 class="text-3xl text-left font-semibold font-inter">Red Carpet</h1>
+                    <p class="text-md text-gray-600 font-medium font-inter">Events and Wedding Services</p>
                 </div>
             </div>
             <button @click="goBack" class="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
@@ -17,8 +37,8 @@
         </div>
 
       <div class = "flex">
-          <h1 class = "mt-2 ml-20 text-4xl font-raleway">Invoice</h1>
-          <div class="ml-5 mt-3 flex items-center">
+          <h1 class = "mt-2 ml-20 text-4xl font-inter">Invoice</h1>
+          <div class="ml-5 mt-3 flex items-center space-x-3">
             <span v-if="invoice && invoice.invoice_id" 
                   :class="statusClass" 
                   class="px-3 py-1 rounded-full text-white text-sm mr-3">
@@ -31,6 +51,13 @@
               </svg>
               Refresh
             </button>
+            <button @click="showPaymentHistoryModal = true" 
+                    class="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded-full text-sm flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Payment History
+            </button>
           </div>
       </div>
       <div class = "flex mt-5 ml-20 space-x-20">
@@ -41,7 +68,7 @@
       <div class="flex mt-10 ml-20 space-x-40">
         <div class="flex flex-col text-left">
           <p class="text-blue-700 font-semibold mb-3">BILL FROM:</p>
-          <p class="font-bold font-raleway">Red Carpet</p>
+          <p class="font-bold font-inter">Red Carpet</p>
           <p>23B San Miguel Street</p>
           <p>Iligan City, Lanao del Norte</p>
           <p>+63 912 345 6789</p>
@@ -52,13 +79,13 @@
           <p class="text-blue-700 font-semibold mb-3">BILL TO:</p>
           <!-- Handle onsite bookings -->
           <div v-if="event.booking_type === 'Onsite' && (event.onsite_firstname || event.onsite_lastname)">
-            <p class="font-bold font-raleway">{{ event.onsite_firstname || '' }} {{ event.onsite_lastname || '' }}</p>
+            <p class="font-bold font-inter">{{ event.onsite_firstname || '' }} {{ event.onsite_lastname || '' }}</p>
             <p>{{ event.onsite_address || 'No address provided' }}</p>
             <p>{{ event.onsite_contact || 'No contact number provided' }}</p>
           </div>
           <!-- Handle online bookings -->
           <div v-else-if="event.booking_type === 'Online'">
-            <p class="font-bold font-raleway">
+            <p class="font-bold font-inter">
               <!-- Special case for user ID 1 (Jack Cole) -->
               <span v-if="event.userid == 1">Jack Cole</span>
               <span v-else-if="event.firstname || event.lastname">
@@ -86,7 +113,7 @@
         </div>
           <!-- General fallback -->
           <div v-else>
-            <p class="font-bold font-raleway">
+            <p class="font-bold font-inter">
               <span v-if="event.firstname || event.lastname">{{ event.firstname || '' }} {{ event.lastname || '' }}</span>
               <span v-else>Client (ID: {{ event.userid || 'Unknown' }})</span>
             </p>
@@ -113,7 +140,7 @@
             <span v-if="!showPackageSection">+</span>
             <span v-else>-</span>
         </button>
-        <h1 class="font-bold font-raleway text-blue-700 text-center">Package Deal <span class="text-sm font-normal text-gray-500 ml-2">(For reference only - not included in total)</span></h1>
+        <h1 class="font-bold font-inter text-blue-700 text-center">Package Deal <span class="text-sm font-normal text-gray-500 ml-2">(For reference only - not included in total)</span></h1>
     </div>
 </div>
 <div class="flex justify-center mt-5" v-if="showPackageSection">
@@ -146,7 +173,7 @@
             <span v-if="!showVenueSection">+</span>
             <span v-else>-</span>
         </button>
-        <h1 class="font-bold font-raleway text-blue-700 text-center">Venue</h1>
+        <h1 class="font-bold font-inter text-blue-700 text-center">Venue</h1>
     </div>
 </div>
 <div class="flex justify-center mt-5" v-if="showVenueSection">
@@ -179,7 +206,7 @@
             <span v-if="!showSupplierSection">+</span>
             <span v-else>-</span>
         </button>
-        <h1 class="font-bold font-raleway text-blue-700 text-center">Supplier</h1>
+        <h1 class="font-bold font-inter text-blue-700 text-center">Supplier</h1>
     </div>
 </div>
 <div class="flex justify-center mt-5" v-if="showSupplierSection">
@@ -214,7 +241,7 @@
             <span v-if="!showOutfitSection">+</span>
             <span v-else>-</span>
         </button>
-        <h1 class="font-bold font-raleway text-blue-700 text-center">Outfits Details</h1>
+        <h1 class="font-bold font-inter text-blue-700 text-center">Outfits Details</h1>
     </div>
 </div>
 <div class="flex justify-center mt-5" v-if="showOutfitSection">
@@ -249,7 +276,7 @@
             <span v-if="!showServiceSection">+</span>
             <span v-else>-</span>
         </button>
-        <h1 class="font-bold font-raleway text-blue-700 text-center">Additional Services</h1>
+        <h1 class="font-bold font-inter text-blue-700 text-center">Additional Services</h1>
     </div>
 </div>
 <div class="flex justify-center mt-5" v-if="showServiceSection">
@@ -298,181 +325,142 @@
           </div>
 
 
-<form v-if="paymentForm" class = "flex justify-end items-center fixed inset-0 bg-gray-800 bg-opacity-60" @click.self="closePaymentForm">
-  <div class = "bg-white w-[550px] h-full p-5 rounded-lg shadow-lg overflow-y-auto">
-        <div class = "flex justify-between items-center m-3">
-              <h1 class = "mt-2 font-semibold text-xl font-raleway text-gray-800">Payment Details</h1>
-            </div>
+<!-- Payment Details Modal -->
+<form v-if="paymentForm" class="flex justify-end items-center fixed inset-0 bg-gray-800 bg-opacity-60" @click.self="closePaymentForm">
+  <div class="bg-white w-[560px] h-full p-5 rounded-lg shadow-lg overflow-y-auto">
+    <div class="flex justify-between items-center m-3">
+      <h1 class="mt-2 font-semibold text-xl font-inter text-gray-800">Payment Details</h1>
+    </div>
             
-        <div class = "flex m-2 mt-8 space-x-5">
-            <img src="/img/payment.png" alt="payment" class = "h-12 ml-2 mt-3 rounded-full bg-gray-100">
-             <div class = "flex flex-col"> 
-            <label for="paymentInput" class = "font-semibold text-start text-lg font-raleway text-gray-600">Amount</label>
-                <div class="relative">
-            <span class="absolute left-2 top-1/2 font-bold transform -translate-y-1/2 text-gray-500">₱</span>
-            <input v-model="paymentAmount" type="number" id="paymentInput" class="pl-6 w-36 font-amaticBold font-semibold border-t-0 border-l-0 border-r-0 border-b border-b-gray-300 focus:border-b-blue-500 focus:outline-none" >
-                 </div>
-            </div>
-            <select v-model="paymentMethod" class = "mt-8 p-2 w-[260px] h-9 rounded-lg font-raleway font-semibold text-sm shadow-md border border-gray-500 focus:outline-none focus:border-blue-700">
-                    <option value="" class = "text-gray-700" disabled selected>Select Payment Method</option>
-                <option value="Cash">Cash Payment</option>
-                <option value="E-Wallet">E-Wallet</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Remittance">Remittance Center</option>
-              </select>
-        </div>
-        <div class="flex flex-col ml-[65px] mt-3">
-            <label for="referenceInput" class="font-semibold text-start text-lg font-raleway text-gray-600">
-                Reference Number
-                <span v-if="digitalPaymentMethods.includes(paymentMethod)" class="text-sm font-normal text-red-500 ml-1">(Required)</span>
-                <span v-else class="text-sm font-normal text-gray-500 ml-1">(Optional for Cash)</span>
-            </label>
-            <input v-model="referenceNumber" type="text" id="referenceInput" 
-                   :placeholder="digitalPaymentMethods.includes(paymentMethod) ? 'Required for digital payments' : 'Optional for cash payments'" 
-                   :class="[
-                     'w-[400px] font-raleway text-sm p-2 border rounded-lg focus:outline-none focus:border-blue-500',
-                     digitalPaymentMethods.includes(paymentMethod) ? 'border-red-300' : 'border-gray-300'
-                   ]">
-        </div>
-        
-        <!-- Discount Selection Section -->
-        <div class="flex m-2 mt-8 space-x-5">
-            <img src="/img/discount.png" alt="discount" class="h-12 ml-2 mt-3 rounded-full bg-gray-100">
-            <div class="flex flex-col">
-                <label class="font-semibold text-start text-lg font-raleway text-gray-600"> Discount</label>
-                <div class="flex items-center">
-                    <div v-if="discountAmount > 0 || hasExistingDiscount" class="p-2 w-[360px] rounded-lg font-raleway text-sm border border-gray-500 flex justify-between items-center">
-                        <span>
-                            {{ selectedDiscountName }} 
-                            <span class="text-green-600 ml-2">({{ formatPrice(discountAmount) }})</span>
-                        </span>
-                        <button 
-                            v-if="!hasExistingDiscount" 
-                            @click="removeDiscount" 
-                            class="text-red-500 hover:text-red-700 font-bold"
-                            title="Remove discount"
-                        >
-                            ×
-                        </button>
-                    </div>
-                    <button 
-                        v-else
-                        @click.prevent="showDiscountModal = true" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
-                        :disabled="hasExistingDiscount"
-                    >
-                        Apply Discount
-                    </button>
-                    <span v-if="hasExistingDiscount" class="ml-3 text-amber-600 text-sm">
-                        A discount has already been applied to this invoice and cannot be changed.
-                    </span>
-                </div>
-            </div>
-        </div>
-        
-        <div class = "border border-gray-400 mt-5"></div>
-
-        <div class = "flex flex-col ml-2">
-           <h1 class = "flex mt-4 font-semibold font-raleway">Payment Transactions</h1>
-
-           <p class="flex justify-between items-center mt-3 font-semibold text-gray-500 text-sm">
-                Status 
-                <span :class="statusClass" class="p-1 px-2 rounded-full text-white">
-                    {{ invoice.status || 'Unpaid' }}
-                </span>
-             </p>
-
-             <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
-                Payment Date
-                <span class="text-black">{{ formatDate(new Date()) }}</span>
-             </p>
-             <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
-                Reference No.
-                <span class="text-black">{{ invoice.invoice_number || '#' }}</span>
-             </p>
-             <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
-                Remaining Balance
-                <span class="text-black">{{ formatPrice(getRemainingBalance()) }}</span>
-             </p>
-             <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
-                Total Amount to pay
-                <span class="text-black font-medium">{{ formatPrice(totalPrice()) }}</span>
-             </p>
-             <p v-if="discountAmount > 0 || invoice.discount_amount > 0" class="flex justify-between items-center mt-1 text-sm">
-                <span class="text-gray-500">(Discount applied: <span class="text-red-600">-{{ formatPrice(discountAmount || invoice.discount_amount) }}</span>)</span>
-             </p>
-        </div>
-        <div class = "border border-gray-400 mt-5"></div>
-        <div class = "flex flex-col ml-3">
-            <h1 class = "flex mt-4 font-semibold font-raleway">Payment History</h1>
-
-            <div class="flex justify-center mt-3">
-                <div class="bg-gray-100 p-5 rounded-lg shadow-md">
-                <div class="max-h-80 overflow-y-auto"> 
-                    <table class="min-w-[400px] border-collapse overflow-y-auto">
-                    <thead>
-                        <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">#</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Amount</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Method</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Reference</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="payments.length === 0">
-                            <td colspan="5" class="px-6 py-4 text-center text-xs text-gray-500">No payment records found</td>
-                        </tr>
-                        <tr v-for="(payment, index) in payments" :key="payment.payment_id">
-                        <td class="px-6 py-4 text-left text-xs text-gray-800">{{ index + 1 }}</td>
-                        <td class="px-6 py-4 text-left text-xs text-gray-800">{{ formatAmount(payment.amount) }}</td>
-                        <td class="px-6 py-4 text-left text-xs text-gray-800">{{ payment.payment_method || 'N/A' }}</td>
-                        <td class="px-6 py-4 text-left text-xs text-gray-800" :title="payment.reference_number">
-                            {{ payment.reference_number ? payment.reference_number.substring(0, 8) + (payment.reference_number.length > 8 ? '...' : '') : 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 text-left text-xs text-gray-800">{{ formatPaymentDate(payment.payment_date) }}</td>
-                        </tr>
-                    </tbody>
-                    </table>
-                </div>
-                </div>
-            </div>
-        </div>
-
-        <div class = "flex justify-end mr-8 mt-10 space-x-6">
-            <button class="border-b border-gray-500 bg-transparent text-sm text-gray-800 font-semibold py-2 px-2 
-            focus:outline-none hover:bg-gray-400 hover:text-gray-700 rounded-lg transform-transition duration-200 transform hover:scale-105" @click="closePaymentForm">
-                Cancel Payment
-            </button>
-            <button class = "bg-gray-600 py-2 px-5 rounded-full font-semibold text-sm text-white  transform-transition duration-200 transform hover:scale-105 " @click="handlePayment">
-             Pay Now
-            </button>
-        </div>
-
-        <div v-if="successAlert" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="flex flex-col items-center bg-white p-6 rounded-lg shadow-md">
-          <div class="flex items-center mb-2">
-            <img src="/img/success.png" class="h-8 mr-2">
-            <p class="font-raleway font-semibold">Payment successful!</p>
-          </div>
-          <p v-if="lastPayment" class="text-sm text-gray-600 mt-1">
-            {{ formatAmount(lastPayment.amount) }} via {{ lastPayment.payment_method }}
-          </p>
+    <div class="flex m-2 mt-8 space-x-5">
+      <img src="/img/payment.png" alt="payment" class="h-12 ml-2 mt-3 rounded-full bg-gray-100">
+      <div class="flex flex-col"> 
+        <label for="paymentInput" class="font-semibold text-start text-lg font-inter text-gray-600">Amount</label>
+        <div class="relative">
+          <span class="absolute left-2 top-1/2 font-bold transform -translate-y-1/2 text-gray-500">₱</span>
+          <input v-model="paymentAmount" type="number" id="paymentInput" class="pl-6 w-36 font-inter font-semibold border-t-0 border-l-0 border-r-0 border-b border-b-gray-300 focus:border-b-blue-500 focus:outline-none" >
         </div>
       </div>
+      <select v-model="paymentMethod" class="mt-8 p-2 w-[260px] h-9 rounded-lg font-inter font-semibold text-sm shadow-md border border-gray-500 focus:outline-none focus:border-blue-700">
+        <option value="" class="text-gray-700" disabled selected>Select Payment Method</option>
+        <option value="Cash">Cash Payment</option>
+        <option value="E-Wallet">E-Wallet</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+        <option value="Remittance">Remittance Center</option>
+      </select>
+    </div>
 
+    <div class="flex flex-col ml-[65px] mt-3">
+      <label for="referenceInput" class="font-semibold text-start text-lg font-inter text-gray-600">
+        Reference Number
+        <span v-if="digitalPaymentMethods.includes(paymentMethod)" class="text-sm font-normal text-red-500 ml-1">(Required)</span>
+        <span v-else class="text-sm font-normal text-gray-500 ml-1">(Optional for Cash)</span>
+      </label>
+      <input v-model="referenceNumber" type="text" id="referenceInput" 
+             :placeholder="digitalPaymentMethods.includes(paymentMethod) ? 'Required for digital payments' : 'Optional for cash payments'" 
+             :class="[
+               'w-[400px] font-inter text-sm p-2 border rounded-lg focus:outline-none focus:border-blue-500',
+               digitalPaymentMethods.includes(paymentMethod) ? 'border-red-300' : 'border-gray-300'
+             ]">
+    </div>
 
+    <!-- Discount Selection Section -->
+    <div class="flex m-2 mt-8 space-x-5">
+      <img src="/img/discount.png" alt="discount" class="h-12 ml-2 mt-3 rounded-full bg-gray-100">
+      <div class="flex flex-col">
+        <label class="font-semibold text-start text-lg font-inter text-gray-600">Discount</label>
+        <div class="flex items-center">
+          <div v-if="discountAmount > 0 || hasExistingDiscount" class="p-2 w-[360px] rounded-lg font-inter text-sm border border-gray-500 flex justify-between items-center">
+            <span>
+              {{ selectedDiscountName }} 
+              <span class="text-green-600 ml-2">({{ formatPrice(discountAmount) }})</span>
+            </span>
+            <button 
+              v-if="!hasExistingDiscount" 
+              @click="removeDiscount" 
+              class="text-red-500 hover:text-red-700 font-bold"
+              title="Remove discount"
+            >
+              ×
+            </button>
+          </div>
+          <button 
+            v-else
+            @click.prevent="showDiscountModal = true" 
+            class="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+            :disabled="hasExistingDiscount"
+          >
+            Apply Discount
+          </button>
+          <span v-if="hasExistingDiscount" class="ml-3 text-amber-600 text-sm">
+            A discount has already been applied to this invoice and cannot be changed.
+          </span>
+        </div>
+      </div>
+    </div>
+         
+    <div class="border border-gray-400 mt-5"></div>
 
-       
-        
+    <div class="flex flex-col ml-2">
+      <h1 class="flex mt-4 font-semibold font-inter">Payment Transactions</h1>
+
+      <p class="flex justify-between items-center mt-3 font-semibold text-gray-500 text-sm">
+        Status 
+        <span :class="statusClass" class="p-1 px-2 rounded-full text-white">
+          {{ invoice.status || 'Unpaid' }}
+        </span>
+      </p>
+
+      <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
+        Payment Date
+        <span class="text-black">{{ formatDate(new Date()) }}</span>
+      </p>
+      <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
+        Reference No.
+        <span class="text-black">{{ invoice.invoice_number || '#' }}</span>
+      </p>
+      <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
+        Remaining Balance
+        <span class="text-black">{{ formatPrice(getRemainingBalance()) }}</span>
+      </p>
+      <p class="flex justify-between items-center mt-4 font-semibold text-gray-500 text-sm">
+        Total Amount to pay
+        <span class="text-black font-medium">{{ formatPrice(totalPrice()) }}</span>
+      </p>
+      <p v-if="discountAmount > 0 || invoice.discount_amount > 0" class="flex justify-between items-center mt-1 text-sm">
+        <span class="text-gray-500">(Discount applied: <span class="text-red-600">-{{ formatPrice(discountAmount || invoice.discount_amount) }}</span>)</span>
+      </p>
+    </div>
+
+    <div class="flex justify-end mt-20 space-x-6">
+      <button class="border-b border-gray-500 bg-transparent text-sm text-gray-800 font-semibold py-2 px-2 
+      focus:outline-none hover:bg-gray-400 hover:text-gray-700 rounded-lg transform-transition duration-200 transform hover:scale-105" @click="closePaymentForm">
+        Cancel Payment
+      </button>
+      <button class="bg-gray-600 py-2 px-5 rounded-full font-semibold text-sm text-white transform-transition duration-200 transform hover:scale-105" @click="handlePayment">
+        Pay Now
+      </button>
+    </div>
+
+    <div v-if="successAlert" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="flex flex-col items-center bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center mb-2">
+          <img src="/img/success.png" class="h-8 mr-2">
+          <p class="font-inter font-semibold">Payment successful!</p>
+        </div>
+        <p v-if="lastPayment" class="text-sm text-gray-600 mt-1">
+          {{ formatAmount(lastPayment.amount) }} via {{ lastPayment.payment_method }}
+        </p>
+      </div>
+    </div>
   </div>
-</form> 
+</form>
 
 <!-- Discount Modal -->
 <div v-if="showDiscountModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-lg w-[500px] p-5">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold font-raleway">Apply Discount</h2>
+            <h2 class="text-xl font-semibold font-inter">Apply Discount</h2>
             <button @click="showDiscountModal = false" class="text-gray-500 hover:text-gray-700">
                 <span class="text-2xl">&times;</span>
             </button>
@@ -529,6 +517,53 @@
     </div>
 </div>
 
+<!-- Add the Payment History Modal -->
+<div v-if="showPaymentHistoryModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-[800px] max-h-[80vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold font-inter">Payment History</h2>
+      <button @click="showPaymentHistoryModal = false" class="text-gray-500 hover:text-gray-700">
+        <span class="text-2xl">&times;</span>
+      </button>
+    </div>
+
+    <div class="bg-gray-100 p-5 rounded-lg shadow-md">
+      <table class="min-w-full border-collapse">
+        <thead>
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">#</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Amount</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Method</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Reference</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-w-normal border-b border-blue-900">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="payments.length === 0">
+            <td colspan="5" class="px-6 py-4 text-center text-xs text-gray-500">No payment records found</td>
+          </tr>
+          <tr v-for="(payment, index) in payments" :key="payment.payment_id">
+            <td class="px-6 py-4 text-left text-xs text-gray-800">{{ index + 1 }}</td>
+            <td class="px-6 py-4 text-left text-xs text-gray-800">{{ formatAmount(payment.amount) }}</td>
+            <td class="px-6 py-4 text-left text-xs text-gray-800">{{ payment.payment_method || 'N/A' }}</td>
+            <td class="px-6 py-4 text-left text-xs text-gray-800" :title="payment.reference_number">
+              {{ payment.reference_number ? payment.reference_number.substring(0, 8) + (payment.reference_number.length > 8 ? '...' : '') : 'N/A' }}
+            </td>
+            <td class="px-6 py-4 text-left text-xs text-gray-800">{{ formatPaymentDate(payment.payment_date) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex justify-end mt-4">
+      <button @click="showPaymentHistoryModal = false" 
+              class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
 </div>
 </template>
 
@@ -556,6 +591,10 @@ export default {
          showSupplierSection: false,
          showOutfitSection: false,
          showServiceSection: false,
+
+        showAlert: false,
+        alertType: 'success',
+        alertMessage: '',
 
        venues: [
               { no: 1, venueName: 'Grand Ballroom', price: 5000 },
@@ -594,6 +633,7 @@ export default {
         selectedDiscountName: '',
         selectedDiscountTemp: '',
         selectedDiscountObj: null,
+        showPaymentHistoryModal: false,
         }
     },
 
@@ -860,19 +900,19 @@ export default {
     async handlePayment() {
       if (this.successAlert) return;
       if (!this.paymentAmount || !this.paymentMethod) {
-        alert('Please enter payment amount and select payment method');
+        this.showAlert('Please enter payment amount and select payment method');
         return;
       }
       
       if (parseFloat(this.paymentAmount) <= 0) {
-        alert('Payment amount must be greater than zero');
+        this.showAlert('Payment amount must be greater than zero');
         return;
       }
       
       // Check for reference number when using digital payment methods
       const digitalPaymentMethods = ['GCash', 'Bank Transfer'];
       if (digitalPaymentMethods.includes(this.paymentMethod) && !this.referenceNumber) {
-        alert('Please enter a reference number for digital payments');
+        this.showAlert('Please enter a reference number for digital payments');
         return;
       }
       
@@ -1040,7 +1080,7 @@ export default {
         }, 2000);
       } catch (error) {
         console.error('Error processing payment:', error);
-        alert(`Payment failed: ${error.message}`);
+        this.showAlertMessage(`Payment failed: ${error.message}`);
       }
     },
 
@@ -1704,7 +1744,7 @@ export default {
         }
       } catch (error) {
         console.error('Error creating invoice:', error);
-        alert(`Failed to create invoice: ${error.message}`);
+        this.showAlertMessage(`Failed to create invoice: ${error.message}`);
         throw error;
       }
     },
@@ -2173,94 +2213,101 @@ export default {
 
     // New method to fetch user details
     async fetchUserDetails(userId) {
-      if (!userId) {
-        console.warn('No user ID provided for fetchUserDetails');
-        return null;
-      }
-      
-      console.log('Fetching user details for userId:', userId);
-      
-      // For userid 2, which we know is causing CORS issues, use hardcoded data
-      if (userId === 2) {
-        console.log('Using hardcoded data for known user (ID 2)');
-        return {
-          userid: 2,
-          firstname: 'John',
-          lastname: 'Doe',
-          email: 'john.doe@example.com',
-          contactnumber: '09123456789',
-          address: 'Iligan City, Philippines'
-        };
-      }
-      
-      // Try several API endpoints with fallbacks
-      const possibleUrls = [
-        `http://127.0.0.1:5000/api/users/${userId}`,
-        `/api/users/${userId}`,
-        `http://127.0.0.1:5000/users/${userId}`,
-        `/users/${userId}`,
-        `/api/users/info/${userId}`,
-        `/api/user-details/${userId}`
-      ];
-      
-      for (const url of possibleUrls) {
-        try {
-          console.log('Trying user URL:', url);
-          
-          const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          let data;
-          try {
-            data = await response.json();
-          } catch (jsonError) {
-            console.log(`URL ${url} returned non-JSON response:`, response);
-            continue; // Try next URL
-          }
-          
-          if (data) {
-            console.log(`Successfully fetched user data from ${url}:`, data);
-            return data;
-          }
-        } catch (error) {
-          console.error(`❌ Error with URL ${url}:`, error.message);
-          // Continue trying other URLs
+      try {
+        if (!userId) {
+          console.warn('No user ID provided for fetchUserDetails');
+          return null;
         }
-      }
-      
-      // All URLs failed, use a sensible fallback based on event data
-      console.warn('All user detail fetches failed, using fallback');
-      
-      // If we have onsite_firstname/lastname, use that
-      if (this.event.onsite_firstname || this.event.onsite_lastname) {
+        
+        console.log('Fetching user details for userId:', userId);
+        
+        // For userid 1, use hardcoded data since we know it's causing issues
+        if (userId === 1) {
+          console.log('Using hardcoded data for known user (ID 1)');
+          return {
+            userid: 1,
+            firstname: 'Jack',
+            lastname: 'Cole',
+            email: 'jack.cole@example.com',
+            contactnumber: '09123456789',
+            address: '123 Seaside Avenue, Iligan City'
+          };
+        }
+        
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          console.warn('No authentication token found');
+          return null;
+        }
+
+        // Try several API endpoints with fallbacks
+        const possibleUrls = [
+          `http://127.0.0.1:5000/api/users/${userId}`,
+          `http://127.0.0.1:5000/api/users/info/${userId}`,
+          `http://127.0.0.1:5000/api/user-details/${userId}`
+        ];
+        
+        for (const url of possibleUrls) {
+          try {
+            console.log('Trying user URL:', url);
+            
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              credentials: 'include'
+            });
+            
+            // Check if we got a JSON response
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+              console.log(`URL ${url} returned non-JSON response: ${contentType}`);
+              continue;
+            }
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`Successfully fetched user data from ${url}:`, data);
+              return data;
+            } else {
+              console.log(`Failed with URL ${url}: ${response.status} ${response.statusText}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error with URL ${url}:`, error.message);
+            // Continue trying other URLs
+          }
+        }
+        
+        // All URLs failed, use a sensible fallback based on event data
+        console.warn('All user detail fetches failed, using fallback');
+        
+        // If we have onsite_firstname/lastname, use that
+        if (this.event.onsite_firstname || this.event.onsite_lastname) {
+          return {
+            userid: userId,
+            firstname: this.event.onsite_firstname || 'Client',
+            lastname: this.event.onsite_lastname || '',
+            contactnumber: this.event.onsite_contact || '',
+            address: this.event.onsite_address || ''
+          };
+        }
+        
+        // Last resort fallback
         return {
           userid: userId,
-          firstname: this.event.onsite_firstname || 'Client',
-          lastname: this.event.onsite_lastname || '',
-          contactnumber: this.event.onsite_contact || '',
-          address: this.event.onsite_address || ''
+          firstname: 'Client',
+          lastname: `#${userId}`,
+          email: '',
+          contactnumber: '',
+          address: ''
         };
+      } catch (error) {
+        console.error('Error in fetchUserDetails:', error);
+        return null;
       }
-      
-      // Last resort fallback
-      return {
-        userid: userId,
-        firstname: 'Client',
-        lastname: `#${userId}`,
-        email: '',
-        contactnumber: '',
-        address: ''
-      };
     },
     
     // Add these new methods for discount functionality
@@ -2627,6 +2674,15 @@ export default {
         } else {
             return `₱${this.formatPrice(discount.value)}`;
         }
+    },
+    showAlertMessage(message, type = 'error') {
+      this.this.showAlertMessageMessage = message;
+      this.this.showAlertMessageType = type;
+      this.showAlert = true;
+    },
+    closeAlert() {
+      this.showAlert = false;
+      this.this.showAlertMessageMessage = '';
     },
   },
   

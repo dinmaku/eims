@@ -1,7 +1,26 @@
     <template>
+    <!-- Alert Modal -->
+    <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+      <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+        <div class="flex justify-between items-center mb-4">
+          <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+            {{ alertType === 'success' ? 'Success' : 'Error' }}
+          </h3>
+          <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+            <span class="text-2xl">&times;</span>
+          </button>
+        </div>
+        <p class="text-gray-700">{{ alertMessage }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="bg-gray-200 w-full h-full">
         <div class="w-full h-[65px] bg-gray-100 mt-2 flex items-center justify-between px-5 shadow-lg">
-            <h1 class="font-amaticBold font-extraLight text-3xl">
+            <h1 class="font-inter font-extraLight text-3xl">
                 Events Packages
             </h1>
             <button class="bg-[#9B111E] font-semibold text-white px-3 py-1 rounded shadow-lg 
@@ -10,7 +29,7 @@
         
         <div class="flex flex-row items-center m-5 space-x-5">
             <div class="flex justify-start w-52 h-20 bg-white rounded-lg shadow-lg px-2 items-center border-l-2 border-green-400 space-x-5">
-                <h2 class="font-amaticRegular text-4xl font-bold mb-0"> {{ totalPackages }} <span class = "text-sm antialiased text-gray-600">packages</span></h2>
+                <h2 class="font-inter text-4xl font-bold mb-0"> {{ totalPackages }} <span class = "text-sm antialiased text-gray-600">packages</span></h2>
             </div>
             <button class="bg-[#9B111E] font-semibold text-white px-3 py-1 rounded shadow-lg 
               transition-transform duration-300 transform hover:scale-105 mt-10" @click="displayEventTypeBtn">Event Type</button>
@@ -18,14 +37,14 @@
         
         <div class="flex flex-row justify-end items-center m-5 my-7">
         <div class = "flex">
-        <button class = "mr-2 w-44 h-10 bg-[#9B111E] font-semibold text-gray-100 font-quicksand rounded-md shadow-lg 
+        <button class = "mr-2 w-44 h-10 bg-[#9B111E] font-semibold text-gray-100 font-inter rounded-md shadow-lg 
         transition-transform duration-300 transform hover:scale-105" @click="addPackagesBtn">
         Create Event Package
         </button>
         </div>
         </div>
         
-        <div v-if="showTable === 'packages'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-auto ml-5 mt-2 font-amaticBold mb-10">
+        <div v-if="showTable === 'packages'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-auto ml-5 mt-2 font-inter mb-10">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 table-fixed">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -319,17 +338,17 @@
             <tr>
               <th class="border border-gray-300 px-4 py-2 text-left">Type</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Details</th>
-              <th class="border border-gray-300 px-4 py-2 text-left">Price</th>
+              <th class="border border-gray-300 px-4 py-2 text-left">Rate</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(inclusion, index) in inclusions" :key="index" class="border border-gray-300">
-              <td class="border border-gray-300 px-4 py-2 capitalize">
+              <td class="border border-gray-300 px-4 py-2 capitalize text-left">
                 {{ inclusion.type === 'supplier' ? `Supplier(${inclusion.serviceType || inclusion.data?.service || 'General'})` : inclusion.type }}
               </td>
-              <td class="border border-gray-300 px-4 py-2">{{ getInclusionName(inclusion) }}</td>
-              <td class="border border-gray-300 px-4 py-2">{{ getInclusionPrice(inclusion) }}</td>
+              <td class="border border-gray-300 px-4 py-2 text-left">{{ getInclusionName(inclusion) }}</td>
+              <td class="border border-gray-300 px-4 py-2 ">{{ getInclusionPrice(inclusion) }}</td>
               <td class="border border-gray-300 px-4 py-2">
                 <button @click="removeInclusion(index)" class="text-red-500 hover:text-red-700">
                   <img src="/img/delete.png" alt="Remove" class="w-4 h-4">
@@ -398,7 +417,7 @@
 
   <!-- Edit Packages Form -->
   <form v-if="editPackagesForm" @submit.prevent="confirmEditPackage" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto" @click.self="closeEditPackagesBtn">
-    <div class="bg-white w-[800px] p-5 rounded-lg shadow-lg overflow-y-auto max-h-[90vh]">
+    <div class="bg-white w-[860px] p-5 rounded-lg shadow-lg overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-5">
         <h1 class="font-semibold text-xl text-gray-800">Update Package</h1>
       </div>
@@ -482,22 +501,16 @@
             <tr>
               <th class="border border-gray-300 px-4 py-2 text-left">Type</th>
               <th class="border border-gray-300 px-4 py-2 text-left">Details</th>
-              <th class="border border-gray-300 px-4 py-2 text-left">Price</th>
-              <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
+              <th class="border border-gray-300 px-4 py-2 text-left">Rate</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(inclusion, index) in selectedPackage?.inclusions || []" :key="index" class="border border-gray-300">
-              <td class="border border-gray-300 px-4 py-2 capitalize">
+              <td class="border border-gray-300 px-4 py-2 capitalize text-left">
                 {{ inclusion.type === 'supplier' ? `Supplier(${inclusion.serviceType || inclusion.data?.service || 'General'})` : inclusion.type }}
               </td>
-              <td class="border border-gray-300 px-4 py-2">{{ getInclusionName(inclusion) }}</td>
+              <td class="border border-gray-300 px-4 py-2 text-left">{{ getInclusionName(inclusion) }}</td>
               <td class="border border-gray-300 px-4 py-2">{{ getInclusionPrice(inclusion) }}</td>
-              <td class="border border-gray-300 px-4 py-2">
-                <button @click="removeInclusionFromEdit(index)" class="text-red-500 hover:text-red-700">
-                  <img src="/img/delete.png" alt="Remove" class="w-4 h-4">
-                </button>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -610,6 +623,9 @@ export default {
   name: 'AddServices',
   data() {
     return {
+      showAlert: false,
+      alertType: 'success',
+      alertMessage: '',
       showAddEventTypeModal: false,
       newEventTypeName: "",
       showTable: 'packages',
@@ -686,18 +702,30 @@ export default {
   },
  
   methods: {
-    addNewEventType() {
-      this.showAddEventTypeModal = true; // Show modal
-      this.packageData.event_type_id = ""; // Reset selection
+    showAlertMessage(message, type = 'success') {
+      this.alertType = type;
+      this.alertMessage = message;
+      this.showAlert = true;
     },
+    
+    closeAlert() {
+      this.showAlert = false;
+      this.alertMessage = '';
+    },
+
+    addNewEventType() {
+      this.showAddEventTypeModal = true;
+      this.packageData.event_type_id = "";
+    },
+
     closeAddEventTypeModal() {
-      this.showAddEventTypeModal = false; // Hide modal
-      this.newEventTypeName = ""; // Reset input
+      this.showAddEventTypeModal = false;
+      this.newEventTypeName = "";
     },
     
     async saveNewEventType() {
         if (!this.newEventTypeName.trim()) {
-          alert("Event type name cannot be empty.");
+          this.showAlertMessage('Event type name cannot be empty.', 'error');
           return;
         }
 
@@ -715,10 +743,10 @@ export default {
           this.eventTypes.push(newEventType);
           this.packageData.event_type_id = newEventType.event_type_id;
           this.closeAddEventTypeModal();
-          alert('Event type added successfully!');
+          this.showAlertMessage('Event type added successfully!');
         } catch (error) {
           console.error('Error creating event type:', error);
-          alert(error.response?.data?.error || 'Failed to create event type');
+          this.showAlertMessage(error.response?.data?.message || error.response?.data?.error || 'Failed to create event type', 'error');
         }
       },
     openInclusionModal(type) {
@@ -805,9 +833,15 @@ export default {
     },
     addSelectedOutfit() {
       if (this.selectedOutfit) {
+        // Ensure price is properly converted to number
+        const outfitData = {
+          ...this.selectedOutfit,
+          gown_package_price: Number(this.selectedOutfit.gown_package_price)
+        };
+        
         const newInclusion = {
           type: 'outfit',
-          data: this.selectedOutfit
+          data: outfitData
         };
         
         // Remove any existing outfit first (only one outfit package allowed)
@@ -876,7 +910,6 @@ export default {
       }
     },
     getInclusionPrice(inclusion) {
-      // Get the formatted price of an inclusion based on its type
       if (!inclusion || !inclusion.data) return this.formatPrice(0);
       
       try {
@@ -893,12 +926,18 @@ export default {
         let price = 0;
         
         // Try to get price from the data object
-        if (inclusion.data[priceField] !== undefined) {
-          price = parseFloat(inclusion.data[priceField]) || 0;
+        if (inclusion.type === 'venue') {
+          // For venues, try to get from master data first
+          const venue = this.venues?.find(v => v.venue_id === inclusion.data.venue_id);
+          price = parseFloat(venue?.venue_price || inclusion.data.venue_price) || 0;
         } 
-        // Alternative price fields based on API response format
-        else if (inclusion.type === 'service' && inclusion.data.price !== undefined) {
-          price = parseFloat(inclusion.data.price) || 0;
+        else if (inclusion.type === 'outfit') {
+          // For outfits, try to get from master data first
+          const outfit = this.gownPackages?.find(g => g.gown_package_id === inclusion.data.gown_package_id);
+          price = parseFloat(outfit?.gown_package_price || inclusion.data.gown_package_price) || 0;
+        }
+        else if (inclusion.data[priceField] !== undefined) {
+          price = parseFloat(inclusion.data[priceField]) || 0;
         }
         
         return `${this.formatPrice(price)} php`;
@@ -910,10 +949,9 @@ export default {
 
       async addPackages() {
           try {
-            // Validate that all inclusions have data selected
             const hasEmptyInclusions = this.inclusions.some(inclusion => !inclusion.data);
             if (hasEmptyInclusions) {
-              alert('Please select all inclusion details before submitting.');
+              this.showAlertMessage('Please select all inclusion details before submitting.', 'error');
               return;
             }
 
@@ -927,24 +965,25 @@ export default {
               charge_unit: Number(this.packageData.charge_unit),
               description: this.packageData.description,
               suppliers: this.inclusions
-              .filter(inclusion => inclusion.type === 'supplier' && inclusion.data)
-              .map(inclusion => ({
-                supplier_id: Number(inclusion.data.supplier_id),
-                type: 'internal',  // All suppliers are internal
-                price: Number(inclusion.data.price || 0),
-                remarks: `${inclusion.serviceType} service`
-              })),
+                .filter(inclusion => inclusion.type === 'supplier' && inclusion.data)
+                .map(inclusion => ({
+                  supplier_id: Number(inclusion.data.supplier_id),
+                  type: 'internal',
+                  price: Number(inclusion.data.price || 0),
+                  remarks: `${inclusion.serviceType} service`
+                })),
               gown_package_id: this.inclusions.find(inc => inc.type === 'outfit' && inc.data)?.data?.gown_package_id || null,
+              gown_package_price: Number(this.inclusions.find(inc => inc.type === 'outfit' && inc.data)?.data?.gown_package_price || 0),
               additional_services: this.inclusions
                 .filter(inclusion => inclusion.type === 'service' && inclusion.data)
                 .map(inclusion => ({
                   add_service_id: Number(inclusion.data.add_service_id),
                   add_service_price: Number(inclusion.data.add_service_price),
                 })),
-              total_price: 0, // Initialize total price
+              total_price: 0,
             };
 
-           // Calculate total price
+            // Calculate total price
             packageData.total_price = 
               // Supplier prices
               packageData.suppliers.reduce((acc, supplier) => acc + (supplier.price || 0), 0) +
@@ -952,29 +991,28 @@ export default {
               packageData.additional_services.reduce((acc, service) => acc + (service.add_service_price || 0), 0) +
               // Venue price
               Number(this.inclusions.find(inc => inc.type === 'venue' && inc.data)?.data?.venue_price || 0) +
-              // Outfit package price
-              Number(this.inclusions.find(inc => inc.type === 'outfit' && inc.data)?.data?.gown_package_price || 0);
-                
-              // Add this for debugging
-              console.log('Price breakdown:', {
-                suppliers: packageData.suppliers.reduce((acc, supplier) => acc + (supplier.price || 0), 0),
-                additionalServices: packageData.additional_services.reduce((acc, service) => acc + (service.add_service_price || 0), 0),
-                venue: Number(this.inclusions.find(inc => inc.type === 'venue' && inc.data)?.data?.venue_price || 0),
-                outfit: Number(this.inclusions.find(inc => inc.type === 'outfit' && inc.data)?.data?.gown_package_price || 0),
-                total: packageData.total_price
-              });
+              // Outfit package price - ensure this is included in total
+              packageData.gown_package_price;
 
-              if (!packageData.package_name || !packageData.event_type_id) {
-                  alert('Package name and event type are required.');
-                  return;
-                }
+            console.log('Price breakdown:', {
+              suppliers: packageData.suppliers.reduce((acc, supplier) => acc + (supplier.price || 0), 0),
+              additionalServices: packageData.additional_services.reduce((acc, service) => acc + (service.add_service_price || 0), 0),
+              venue: Number(this.inclusions.find(inc => inc.type === 'venue' && inc.data)?.data?.venue_price || 0),
+              outfit: packageData.gown_package_price,
+              total: packageData.total_price
+            });
 
-            if (packageData.suppliers.length === 0) {
-              alert('At least one supplier is required.');
+            if (!packageData.package_name || !packageData.event_type_id) {
+              this.showAlertMessage('Package name and event type are required.', 'error');
               return;
             }
 
-            console.log('Sending package data:', packageData);  // Debug log
+            if (packageData.suppliers.length === 0) {
+              this.showAlertMessage('At least one supplier is required.', 'error');
+              return;
+            }
+
+            console.log('Sending package data:', packageData);
 
             const response = await axios.post('http://127.0.0.1:5000/create-package', packageData, {
               headers: {
@@ -984,26 +1022,18 @@ export default {
             });
 
             if (response.status === 201) {
-              alert('Package created successfully!');
+              this.showAlertMessage('Package created successfully!');
               this.resetPackageForm();
-              this.fetchPackages(); // Refresh the packages list
+              this.fetchPackages();
             }
           } catch (error) {
             console.error('Error creating package:', error);
-            let errorMessage = 'Failed to create package. Please try again.';
-            
-            if (error.response) {
-              console.error('Error response:', error.response.data);
-              errorMessage = error.response.data.message || 
-                            error.response.data.error || 
-                            'Failed to create package. Please check your input.';
-            }
-            
-            alert(errorMessage);
-            this.errorMessage = errorMessage;
+            let errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to create package. Please check your input.';
+            this.showAlertMessage(errorMessage, 'error');
           }
-        },
-
+    },
 
     resetPackageForm() {
       this.packageData = {
@@ -1050,7 +1080,7 @@ export default {
       try {
         const token = localStorage.getItem('access_token');
         if (!token) {
-          alert('You are not logged in. Please log in to view packages.');
+          this.showAlertMessage('You are not logged in. Please log in to view packages.', 'error');
           return;
         }
 
@@ -1069,6 +1099,7 @@ export default {
         this.packages = response.data.map((pkg, index) => {
           // Ensure all data fields have default values to prevent undefined or NaN issues
           const venue_price = parseFloat(pkg.venue_price) || 0;
+          const gown_package_price = parseFloat(pkg.gown_package_price) || 0;
           
           // Process suppliers - ensure service_type is available
           const suppliers = (pkg.suppliers || []).map(supplier => {
@@ -1115,7 +1146,7 @@ export default {
               data: { 
                 gown_package_id: pkg.gown_package_id,
                 gown_package_name: pkg.gown_package_name || 'Unknown Outfit',
-                gown_package_price: parseFloat(pkg.gown_package_price) || 0
+                gown_package_price: gown_package_price
               }
             }] : []),
             ...additionalServices.map(service => ({
@@ -1145,18 +1176,19 @@ export default {
             location: pkg.location || '',
             gown_package_id: pkg.gown_package_id,
             gown_package_name: pkg.gown_package_name || '',
+            gown_package_price: gown_package_price,
             suppliers,
             additional_services: additionalServices,
             inclusions,
             dummyIndex: index + 1,
-            status: pkg.status || 'Active'  // Ensure status is set with a default value
+            status: pkg.status || 'Active'
           };
         });
         
         console.log("Processed packages data:", this.packages);
       } catch (error) {
         console.error('Error fetching packages:', error.response?.data || error.message);
-        alert('Error fetching packages. Please try again.');
+        this.showAlertMessage('Error fetching packages. Please try again.', 'error');
       }
     },
     async fetchVenues() {
@@ -1351,7 +1383,7 @@ export default {
             const token = localStorage.getItem('access_token');
 
             if (!this.selectedPackage || !this.selectedPackage.packageId) {
-                alert("Package ID is missing or invalid.");
+                this.showAlertMessage('Package ID is missing or invalid.', 'error');
                 return;
             }
 
@@ -1362,7 +1394,8 @@ export default {
                 capacity: parseInt(this.selectedPackage.capacity),
                 charge_unit: parseInt(this.selectedPackage.charge_unit),
                 additional_capacity_charges: parseFloat(this.selectedPackage.additional_capacity_charges),
-                description: this.selectedPackage.description
+                description: this.selectedPackage.description,
+                gown_package_price: parseFloat(this.selectedPackage.gown_package_price) || 0
             };
 
             console.log("Sending update data:", updateData);
@@ -1380,17 +1413,16 @@ export default {
             );
 
             if (response.status === 200) {
-                alert('Package updated successfully!');
-                await this.fetchPackages(); // Refresh the packages list
+                this.showAlertMessage('Package updated successfully!');
+                await this.fetchPackages();
                 this.closeEditPackagesBtn();
             }
           } catch (error) {
             console.error('Error updating package:', error);
             if (error.response) {
-                console.error('Error response:', error.response);
-                alert(`Error updating package: ${error.response.data.message || error.response.data.error || 'Unknown error'}`);
+                this.showAlertMessage(error.response.data.message || error.response.data.error || 'Unknown error', 'error');
             } else {
-                alert('Error updating package. Please try again.');
+                this.showAlertMessage('Error updating package. Please try again.', 'error');
             }
           }
       },
@@ -1432,39 +1464,39 @@ export default {
     },
 
     async deletePackage(packageId) {
-        try {
-            if (!confirm('Are you sure you want to delete this package? This action cannot be undone.')) {
-                return;
-            }
-
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                alert('You are not logged in. Please log in to delete packages.');
-                return;
-            }
-
-            const response = await axios.delete(`http://127.0.0.1:5000/created-package/${packageId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (response.status === 200) {
-                alert('Package deleted successfully!');
-                // Remove the deleted package from the packages array
-                this.packages = this.packages.filter(packageItem => packageItem.packageId !== packageId);
-                this.closeEditPackagesBtn();                      
-            } else {
-                alert('Failed to delete package.');
-            }
-        } catch (error) {
-            console.error('Error deleting package:', error);
-            if (error.response) {
-                alert(`Error deleting package: ${error.response.data.message}`);
-            } else {
-                alert('Error deleting package. Please try again.');
-            }
+      try {
+        this.showAlertMessage(
+          'Are you sure you want to delete this package? This action cannot be undone.',
+          'error'
+        );
+        
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          this.showAlertMessage('You are not logged in. Please log in to delete packages.', 'error');
+          return;
         }
+
+        const response = await axios.delete(`http://127.0.0.1:5000/created-package/${packageId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.status === 200) {
+          this.showAlertMessage('Package deleted successfully!', 'success');
+          this.packages = this.packages.filter(packageItem => packageItem.packageId !== packageId);
+          this.closeEditPackagesBtn();                      
+        } else {
+          this.showAlertMessage('Failed to delete package.', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting package:', error);
+        if (error.response) {
+          this.showAlertMessage(error.response.data.message, 'error');
+        } else {
+          this.showAlertMessage('Error deleting package. Please try again.', 'error');
+        }
+      }
     },
 
     changePackagesPage(page) {
@@ -1520,6 +1552,32 @@ export default {
         const eventType = this.eventTypes.find(t => t.event_type_id === packageToEdit.event_type_id);
         const eventTypeName = eventType ? eventType.event_type_name : packageToEdit.event_type_name || 'Unknown Type';
         
+        // Find the venue and outfit prices from inclusions if they exist
+        const venueInclusion = packageToEdit.inclusions?.find(inc => inc.type === 'venue');
+        const outfitInclusion = packageToEdit.inclusions?.find(inc => inc.type === 'outfit');
+
+        // Debug logs for price tracking
+        console.log("Venue Price Sources:", {
+            fromInclusion: venueInclusion?.data?.venue_price,
+            fromPackage: packageToEdit.venue_price,
+            fromVenuesList: this.venues?.find(v => v.venue_id === packageToEdit.venue_id)?.venue_price
+        });
+
+        console.log("Outfit Price Sources:", {
+            fromInclusion: outfitInclusion?.data?.gown_package_price,
+            fromPackage: packageToEdit.gown_package_price,
+            fromGownList: this.gownPackages?.find(g => g.gown_package_id === packageToEdit.gown_package_id)?.gown_package_price
+        });
+
+        // Get prices from master data if available
+        const venuePrice = this.venues?.find(v => v.venue_id === packageToEdit.venue_id)?.venue_price || 
+                          venueInclusion?.data?.venue_price || 
+                          packageToEdit.venue_price || 0;
+
+        const outfitPrice = this.gownPackages?.find(g => g.gown_package_id === packageToEdit.gown_package_id)?.gown_package_price || 
+                           outfitInclusion?.data?.gown_package_price || 
+                           packageToEdit.gown_package_price || 0;
+        
         // Initialize the selected package with complete data
         this.selectedPackage = {
             packageId: packageToEdit.packageId,
@@ -1533,7 +1591,10 @@ export default {
             inclusions: [],
             venue_id: packageToEdit.venue_id,
             venue_name: packageToEdit.venue_name,
-            venue_price: packageToEdit.venue_price
+            venue_price: parseFloat(venuePrice),
+            gown_package_id: packageToEdit.gown_package_id,
+            gown_package_name: packageToEdit.gown_package_name,
+            gown_package_price: parseFloat(outfitPrice)
         };
 
         // Copy inclusions from the original package to the selected package
@@ -1550,42 +1611,32 @@ export default {
                     if (!inclusion.serviceType && inclusion.data.service) {
                         inclusion.serviceType = inclusion.data.service;
                     }
-                    // Ensure price is a valid number
-                    if (inclusion.data.price) {
-                        inclusion.data.price = parseFloat(inclusion.data.price);
-                    }
+                    inclusion.data.price = parseFloat(inclusion.data.price) || 0;
                 }
                 
                 // Fix venue-specific data
                 if (inclusion.type === 'venue' && inclusion.data) {
-                    // Ensure venue_price is a valid number
-                    if (inclusion.data.venue_price) {
-                        inclusion.data.venue_price = parseFloat(inclusion.data.venue_price);
-                    } else if (packageToEdit.venue_price) {
-                        inclusion.data.venue_price = parseFloat(packageToEdit.venue_price);
-                    } else {
-                        // Query the venues list to get the price if it's not in the inclusion data
-                        const venueFromList = this.venues.find(v => v.venue_id === inclusion.data.venue_id);
-                        if (venueFromList) {
-                            inclusion.data.venue_price = parseFloat(venueFromList.venue_price) || 0;
-                        }
-                    }
+                    inclusion.data = {
+                        ...inclusion.data,
+                        venue_id: packageToEdit.venue_id,
+                        venue_name: packageToEdit.venue_name,
+                        venue_price: parseFloat(venuePrice)
+                    };
                 }
                 
                 // Fix outfit-specific data
                 if (inclusion.type === 'outfit' && inclusion.data) {
-                    // Ensure gown_package_price is a valid number
-                    if (inclusion.data.gown_package_price) {
-                        inclusion.data.gown_package_price = parseFloat(inclusion.data.gown_package_price);
-                    }
+                    inclusion.data = {
+                        ...inclusion.data,
+                        gown_package_id: packageToEdit.gown_package_id,
+                        gown_package_name: packageToEdit.gown_package_name,
+                        gown_package_price: parseFloat(outfitPrice)
+                    };
                 }
                 
                 // Fix service-specific data
                 if (inclusion.type === 'service' && inclusion.data) {
-                    // Ensure add_service_price is a valid number
-                    if (inclusion.data.add_service_price) {
-                        inclusion.data.add_service_price = parseFloat(inclusion.data.add_service_price);
-                    }
+                    inclusion.data.add_service_price = parseFloat(inclusion.data.add_service_price) || 0;
                 }
                 
                 return inclusion;
@@ -1649,15 +1700,16 @@ export default {
     async confirmStatusChange() {
       try {
         if (!this.pendingPackage || !this.pendingPackage.packageId) {
-          throw new Error('Invalid package selected');
+          this.showAlertMessage('Invalid package selected', 'error');
+          return;
         }
 
         const token = localStorage.getItem('access_token');
         if (!token) {
-          throw new Error('Authentication token not found');
+          this.showAlertMessage('Authentication token not found', 'error');
+          return;
         }
         
-        // Add debug logging
         console.log('Package details:', {
           id: this.pendingPackage.packageId,
           name: this.pendingPackage.package_name,
@@ -1667,7 +1719,7 @@ export default {
         
         const response = await axios.put(
           `http://127.0.0.1:5000/toggle-package-status/${this.pendingPackage.packageId}`,
-          {},  // Empty body since the status is determined server-side
+          {},
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1679,23 +1731,20 @@ export default {
 
         if (response.status === 200) {
           if (this.pendingStatus === 'Inactive') {
-            // Remove from active packages
             const index = this.packages.findIndex(p => p.packageId === this.pendingPackage.packageId);
             if (index !== -1) {
               this.packages.splice(index, 1);
             }
-            alert('Package has been set to Inactive');
+            this.showAlertMessage('Package has been set to Inactive', 'success');
           } else {
-            // Remove from inactive packages
             const index = this.inactivePackages.findIndex(p => p.packageId === this.pendingPackage.packageId);
             if (index !== -1) {
               this.inactivePackages.splice(index, 1);
             }
             await this.fetchPackages();
-            alert('Package has been set to Active');
+            this.showAlertMessage('Package has been set to Active', 'success');
           }
           
-          // Refresh the appropriate list
           if (this.showInactivePackagesModal) {
             await this.showInactivePackages();
           } else {
@@ -1715,123 +1764,9 @@ export default {
           errorMessage += error.message || "Please try again.";
         }
         
-        alert(errorMessage);
+        this.showAlertMessage(errorMessage, 'error');
       } finally {
         this.closeStatusConfirmModal();
-      }
-    },
-
-    async fetchPackages() {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          alert('You are not logged in. Please log in to view packages.');
-          return;
-        }
-
-        await this.fetchEventTypes();
-
-        const response = await axios.get('http://127.0.0.1:5000/created-packages', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          withCredentials: true,
-        });
-
-        console.log("Raw package data from API:", response.data);
-
-        this.packages = response.data.map((pkg, index) => {
-          // Ensure all data fields have default values to prevent undefined or NaN issues
-          const venue_price = parseFloat(pkg.venue_price) || 0;
-          
-          // Process suppliers - ensure service_type is available
-          const suppliers = (pkg.suppliers || []).map(supplier => {
-            return {
-              ...supplier,
-              supplier_id: supplier.supplier_id,
-              firstname: supplier.name ? supplier.name.split(' ')[0] : '',
-              lastname: supplier.name ? supplier.name.split(' ')[1] || '' : '',
-              service_type: supplier.service || 'General',
-              price: parseFloat(supplier.price) || 0,
-              status: supplier.status || 'Active'
-            };
-          });
-          
-          // Process additional services
-          const additionalServices = (pkg.additional_services || []).map(service => {
-            return {
-              add_service_id: service.service_id,
-              add_service_name: service.name || '',
-              add_service_description: service.description || '',
-              add_service_price: parseFloat(service.price) || 0,
-              status: service.status || 'Active'
-            };
-          });
-
-          // Create properly formatted inclusions from various data sources
-          const inclusions = [
-            ...suppliers.map(supplier => ({
-              type: 'supplier',
-              serviceType: supplier.service_type,
-              data: supplier
-            })),
-            ...(pkg.venue_id ? [{
-              type: 'venue',
-              data: { 
-                venue_id: pkg.venue_id, 
-                venue_name: pkg.venue_name || 'Unknown Venue',
-                venue_price: venue_price,
-                location: pkg.location || 'No location specified'
-              }
-            }] : []),
-            ...(pkg.gown_package_id ? [{
-              type: 'outfit',
-              data: { 
-                gown_package_id: pkg.gown_package_id,
-                gown_package_name: pkg.gown_package_name || 'Unknown Outfit',
-                gown_package_price: parseFloat(pkg.gown_package_price) || 0
-              }
-            }] : []),
-            ...additionalServices.map(service => ({
-              type: 'service',
-              data: service
-            }))
-          ];
-
-          // Get the proper event type name from our eventTypes list
-          const eventType = this.eventTypes.find(t => t.event_type_id === pkg.event_type_id);
-          const eventTypeName = eventType ? eventType.event_type_name : pkg.event_type_name || 'Unknown Type';
-
-          return {
-            packageId: pkg.package_id,
-            package_name: pkg.package_name,
-            event_type_id: pkg.event_type_id,
-            event_type_name: eventTypeName,
-            package_type: eventTypeName,
-            capacity: pkg.capacity || 0,
-            charge_unit: pkg.charge_unit,
-            additional_capacity_charges: pkg.additional_capacity_charges,
-            total_price: parseFloat(pkg.total_price) || 0,
-            description: pkg.description || '',
-            venue_id: pkg.venue_id,
-            venue_name: pkg.venue_name || '',
-            venue_price: venue_price,
-            location: pkg.location || '',
-            gown_package_id: pkg.gown_package_id,
-            gown_package_name: pkg.gown_package_name || '',
-            suppliers,
-            additional_services: additionalServices,
-            inclusions,
-            dummyIndex: index + 1,
-            status: pkg.status || 'Active'  // Ensure status is set with a default value
-          };
-        });
-        
-        console.log("Processed packages data:", this.packages);
-      } catch (error) {
-        console.error('Error fetching packages:', error.response?.data || error.message);
-        alert('Error fetching packages. Please try again.');
       }
     },
 

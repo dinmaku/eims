@@ -1,7 +1,27 @@
 <template>
     <div class="bg-gray-200 w-full h-full overflow-y-auto">
+        <!-- Alert Modal -->
+        <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+            <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+                <div class="flex justify-between items-center mb-4">
+                <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+                    {{ alertType === 'success' ? 'Success' : 'Error' }}
+                </h3>
+                <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+                    <span class="text-2xl">&times;</span>
+                </button>
+                </div>
+                <p class="text-gray-700">{{ alertMessage }}</p>
+                <div class="flex justify-end mt-4">
+                <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                    Close
+                </button>
+                </div>
+            </div>
+            </div>
+            
         <div class="w-full h-[65px] bg-gray-100 mt-2 flex items-center justify-between px-5 shadow-lg">
-        <h1 class="font-amaticBold font-extraLight text-3xl">
+        <h1 class="font-inter font-extraLight text-3xl">
             Discounts
         </h1>
         <button class="bg-[#9B111E] text-white px-3 py-2 rounded shadow-lg 
@@ -13,7 +33,7 @@
 
         <div class="flex flex-row items-center m-5 space-x-5">
         <div class="flex justify-start w-52 h-20 bg-white rounded-lg shadow-lg px-2 items-center border-l-2 border-green-400 space-x-5">
-            <h2 class="font-amaticRegular text-4xl font-bold mb-0"> {{ totalDiscounts }} <span class = "text-sm antialiased text-gray-600">discounts</span></h2>
+            <h2 class="font-inter text-4xl font-bold mb-0"> {{ totalDiscounts }} <span class = "text-sm antialiased text-gray-600">discounts</span></h2>
         </div>
   
     </div>
@@ -34,7 +54,7 @@
                 </router-link>
               </div>
         </form>
-                <button class = "mr-2 w-28 h-10 bg-[#9B111E] font-semibold text-gray-100 font-quicksand rounded-md shadow-lg 
+                <button class = "mr-2 w-28 h-10 bg-[#9B111E] font-semibold text-gray-100 font-inter rounded-md shadow-lg 
                 transition-transform duration-300 transform hover:scale-105" @click="openAddModal">
                 Add Discount
                 </button>
@@ -42,7 +62,7 @@
 
         <!--- Discounts Table --->
 
-        <div v-if="showTable === 'Discounts'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+        <div v-if="showTable === 'Discounts'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-inter mb-10">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30 table-fixed">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -271,11 +291,12 @@ export default {
             discounts: [],
             currentPage: 1,
             itemsPerPage: 5,
-
             showModal: false,
             isEditing: false,
-
             searchQuery: '',
+            showAlert: false,
+            alertType: 'success',
+            alertMessage: '',
             
             //Discount form inputs
             formData: {
@@ -339,6 +360,29 @@ export default {
         },
     },
     methods: {
+        showSuccessAlert(message) {
+            this.alertType = 'success';
+            this.alertMessage = message;
+            this.showAlert = true;
+            setTimeout(() => {
+                this.closeAlert();
+            }, 3000); // Auto close after 3 seconds
+        },
+
+        showErrorAlert(message) {
+            this.alertType = 'error';
+            this.alertMessage = message;
+            this.showAlert = true;
+            setTimeout(() => {
+                this.closeAlert();
+            }, 3000); // Auto close after 3 seconds
+        },
+
+        closeAlert() {
+            this.showAlert = false;
+            this.alertMessage = '';
+        },
+
         async fetchDiscounts() {
             try {
                 const token = localStorage.getItem('access_token');
@@ -365,14 +409,14 @@ export default {
 
             } catch (error) {
                 console.error('Error fetching discounts:', error);
-                this.errorMessage = 'Failed to fetch discounts';
+                this.showErrorAlert('Failed to fetch discounts');
             }
         },
 
         async handleSubmit() {
             try {
                 if (!this.formData.name || !this.formData.type || !this.formData.value) {
-                    this.errorMessage = 'Name, type, and value are required';
+                    this.showErrorAlert('Name, type, and value are required');
                     return;
                 }
 
@@ -399,11 +443,11 @@ export default {
                     );
                     
                     if (response.data.success) {
-                        alert('Discount updated successfully!');
+                        this.showSuccessAlert('Discount updated successfully!');
                         this.closeModal();
                         await this.fetchDiscounts();
                     } else {
-                        alert(response.data.error || 'Failed to update discount');
+                        this.showErrorAlert(response.data.error || 'Failed to update discount');
                     }
                 } else {
                     const response = await axios.post(
@@ -417,16 +461,16 @@ export default {
                     );
                     
                     if (response.data.success) {
-                        alert('Discount added successfully!');
+                        this.showSuccessAlert('Discount added successfully!');
                         this.closeModal();
                         await this.fetchDiscounts();
                     } else {
-                        alert(response.data.error || 'Failed to add discount');
+                        this.showErrorAlert(response.data.error || 'Failed to add discount');
                     }
                 }
             } catch (error) {
                 console.error('Error saving discount:', error.response?.data || error.message);
-                alert(error.response?.data?.error || 'Failed to save discount. Please try again.');
+                this.showErrorAlert(error.response?.data?.error || 'Failed to save discount. Please try again.');
             }
         },
 
@@ -519,18 +563,17 @@ export default {
                     },
                 });
 
-                // Check if response.data has a 'data' property containing the discounts array
                 this.inactiveDiscounts = response.data.data || response.data;
                 
                 if (this.inactiveDiscounts.length === 0) {
-                    alert('There are no inactive discounts.');
+                    this.showErrorAlert('There are no inactive discounts.');
                     return;
                 }
                 
                 this.showInactiveDiscountsModal = true;
             } catch (error) {
                 console.error("Error fetching inactive discounts:", error);
-                alert("Error fetching inactive discounts. Please try again.");
+                this.showErrorAlert("Error fetching inactive discounts. Please try again.");
             }
         },
 
@@ -566,7 +609,6 @@ export default {
                 );
 
                 if (response.status === 200) {
-                    // Check if the response has the expected structure
                     const responseData = response.data.data || response.data;
                     const newStatus = responseData.new_status || this.pendingStatus;
                     
@@ -575,23 +617,23 @@ export default {
                         if (index !== -1) {
                             this.discounts.splice(index, 1);
                         }
-                        alert('Discount has been set to Inactive');
+                        this.showSuccessAlert('Discount has been set to Inactive');
                     } else {
                         const index = this.inactiveDiscounts.findIndex(d => d.discount_id === this.pendingDiscount.discount_id);
                         if (index !== -1) {
                             this.inactiveDiscounts.splice(index, 1);
                         }
                         await this.fetchDiscounts();
-                        alert('Discount has been set to Active');
+                        this.showSuccessAlert('Discount has been set to Active');
                     }
                     this.closeStatusConfirmModal();
                 }
             } catch (error) {
                 console.error("Error toggling discount status:", error);
                 if (error.response) {
-                    alert(error.response.data.message || "Error updating discount status");
+                    this.showErrorAlert(error.response.data.message || "Error updating discount status");
                 } else {
-                    alert("Error updating discount status. Please try again.");
+                    this.showErrorAlert("Error updating discount status. Please try again.");
                 }
                 this.closeStatusConfirmModal();
             }

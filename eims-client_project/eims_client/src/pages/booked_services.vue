@@ -32,16 +32,6 @@
                                 Upcoming
                             </button>
                             <button
-                                @click="setActiveNav('ongoing')"
-                                :class="{
-                                    'text-blue-600 border-b-2 border-blue-600': activeNavButton === 'ongoing',
-                                    'text-gray-600': activeNavButton !== 'ongoing'
-                                }"
-                                class="text-sm md:text-md hover:text-blue-500 px-2 py-1 md:px-4 md:py-2"
-                            >
-                                Ongoing
-                            </button>
-                            <button
                                 @click="setActiveNav('finished')"
                                 :class="{
                                     'text-blue-600 border-b-2 border-blue-600': activeNavButton === 'finished',
@@ -92,13 +82,13 @@
                                             <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm text-gray-800">{{ item.event_name }}</td>
                                             <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm text-gray-800">{{ item.event_type }}</td>
                                             <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm text-gray-800">{{ item.event_theme }}</td>
-                                            <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm text-gray-800">{{ item.venue_name }}</td>
+                                            <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm text-gray-800">{{ item.venue?.venue_name || 'No venue selected' }}</td>
                                             <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm">
                                                 <span 
                                                     :class="{
                                                         'bg-blue-100 text-blue-800': item.event_status === 'Wishlist',
                                                         'bg-yellow-100 text-yellow-800': item.event_status === 'Upcoming',
-                                                        'bg-green-100 text-green-800': item.event_status === 'Ongoing',
+                                                        'bg-green-100 text-green-800': item.event_status === 'Finished',
                                                         'bg-purple-100 text-purple-800': item.event_status === 'Finished',
                                                         'bg-red-100 text-red-800': item.event_status === 'Cancelled'
                                                     }"
@@ -109,7 +99,14 @@
                                             </td>
                                             <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm text-gray-800">{{ formatPrice(item.total_price) }} php</td>
                                             <td class="px-2 md:px-6 py-2 md:py-4 text-left text-xs md:text-sm text-gray-800">
-                                                <button @click="displayWishlistDetails(item)" class="text-blue-500 hover:text-blue-700">View</button>
+                                                <button @click="displayWishlistDetails(item)" class="text-blue-500 hover:text-blue-700 mr-2">View</button>
+                                                <button 
+                                                    v-if="item.event_status === 'Finished'" 
+                                                    @click="openRatingModal(item)"
+                                                    class="text-green-500 hover:text-green-700"
+                                                >
+                                                    Rate
+                                                </button>
                                             </td>
                                         </tr>
                                         <tr v-if="paginatedWishlist.length === 0">
@@ -196,9 +193,9 @@
                 </div>
                 <div class="bg-gray-300 w-full px-2 py-3 space-y-2 rounded-xl">
                     <p class="text-gray-700">Venue</p>
-                    <p>{{ selectedWishlist.venue_name }}</p>
-                    <p class="text-sm text-gray-600">Location: {{ selectedWishlist.location }}</p>
-                    <p class="text-sm text-gray-600">Price: {{ formatPrice(selectedWishlist.venue_price) }} php</p>
+                    <p>{{ selectedWishlist.venue?.venue_name || 'No venue selected' }}</p>
+                    <p class="text-sm text-gray-600">Location: {{ selectedWishlist.venue?.location || 'N/A' }}</p>
+                    <p class="text-sm text-gray-600">Price: {{ formatPrice(selectedWishlist.venue?.venue_price) || 'N/A' }} php</p>
                 </div>
                 <div class="bg-gray-300 w-full px-2 py-3 space-y-2 rounded-xl">
                     <p class="text-gray-700">Package Details</p>
@@ -327,8 +324,9 @@
                 </div>
                 <div class="flex justify-center">
                     <img 
-                        :src="selectedOutfit.outfit_img" 
+                        :src="getOutfitImageUrl(selectedOutfit.outfit_img)" 
                         :alt="selectedOutfit.outfit_name" 
+                        @error="handleImageError"
                         class="w-auto h-[400px] object-contain rounded-lg"
                     >
                 </div>
@@ -350,19 +348,179 @@
 
 
     </div>
+
+    <!-- Rating Modal -->
+    <div v-if="showRatingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Rate Your Event Experience</h3>
+                <button @click="closeRatingModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <p class="text-gray-600 mb-2">Event: {{ selectedEventForRating?.event_name }}</p>
+                <div class="flex items-center space-x-2 mb-4">
+                    <span class="text-gray-700">Rating:</span>
+                    <div class="flex space-x-1">
+                        <button 
+                            v-for="star in 5" 
+                            :key="star"
+                            @click="setRating(star)"
+                            class="text-2xl focus:outline-none"
+                            :class="star <= rating ? 'text-yellow-400' : 'text-gray-300'"
+                        >
+                            ★
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">Feedback (Optional)</label>
+                    <textarea 
+                        v-model="feedbackText"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows="4"
+                        placeholder="Share your experience..."
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button 
+                    @click="closeRatingModal"
+                    class="px-4 py-2 text-gray-600 hover:text-gray-800 rounded-lg"
+                >
+                    Cancel
+                </button>
+                <button 
+                    @click="submitRating"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                    :disabled="!rating"
+                >
+                    Submit Rating
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Feedback Modal -->
+    <div v-if="showViewFeedbackModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Your Event Feedback</h3>
+                <button @click="closeRatingModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <p class="text-gray-600 mb-2">Event: {{ selectedEventForRating?.event_name }}</p>
+                <div class="flex items-center space-x-2 mb-4">
+                    <span class="text-gray-700">Your Rating:</span>
+                    <div class="flex space-x-1">
+                        <span 
+                            v-for="star in 5" 
+                            :key="star"
+                            class="text-2xl"
+                            :class="star <= (existingFeedback?.rating || 0) ? 'text-yellow-400' : 'text-gray-300'"
+                        >
+                            ★
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-gray-700 mb-2">Your Feedback:</p>
+                    <p class="px-3 py-2 bg-gray-100 rounded-lg">
+                        {{ existingFeedback?.feedback_text || 'No written feedback provided.' }}
+                    </p>
+                </div>
+
+                <div class="text-sm text-gray-500 mt-4">
+                    Submitted on: {{ existingFeedback?.created_at ? new Date(existingFeedback.created_at).toLocaleString() : 'N/A' }}
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button 
+                    @click="closeRatingModal"
+                    class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 </template>
 
 
-<script>
+<script lang="ts">
 import axios from 'axios';
+import { defineComponent } from 'vue';
 
-    export default{
-        data() {
+interface Venue {
+    venue_id: number;
+    venue_name: string;
+    location: string;
+    venue_price: number;
+    description: string;
+    venue_capacity: number;
+    status: string;
+    remarks: string;
+}
+
+interface BookedEvent {
+    events_id: number;
+    event_name: string;
+    event_type: string;
+    event_theme: string;
+    event_color: string;
+    schedule: string;
+    start_time: string;
+    end_time: string;
+    event_status: string;
+    total_price: number;
+    venue?: Venue;
+    outfits: any[];
+    suppliers: any[];
+    additional_services: any[];
+    gown_package_name?: string;
+    gown_package_price?: number;
+    package_name?: string;
+    capacity?: number;
+    description?: string;
+    additional_capacity_charges?: number;
+    charge_unit?: number;
+    package_status?: string;
+}
+
+interface Feedback {
+    feedback_id: number;
+    rating: number;
+    feedback_text: string;
+    created_at: string;
+    user_firstname: string;
+    user_lastname: string;
+}
+
+interface Outfit {
+    outfit_id: number;
+    outfit_name: string;
+    outfit_type: string;
+    outfit_color: string;
+    outfit_desc: string;
+    outfit_img: string;
+    rent_price: number;
+    status: string;
+    remarks?: string;
+}
+
+export default defineComponent({
+    name: 'BookedServices',
+    data() {
         return {
             events_navigation: true,
-            selectedWishlist: null,
-            selectedOutfit: null,
-            activeNavButton: 'wishlist',
+            selectedWishlist: null as BookedEvent | null,
+            selectedOutfit: null as Outfit | null,
+            activeNavButton: 'wishlist' as 'wishlist' | 'upcoming' | 'finished' | 'cancelled' | 'all',
             
             // Pagination
             currentPage: 1,
@@ -371,7 +529,6 @@ import axios from 'axios';
             // Display flags
             displayWishlist: true,
             displayUpcoming: false,
-            displayOngoing: false,
             displayFinished: false,
             displayCancelled: false,
             displayAll: false,
@@ -379,12 +536,18 @@ import axios from 'axios';
             displayBookedOutfits: false,
 
             // Data arrays
-            bookedWishlist: [],
-            bookedOutfits: [],
+            bookedWishlist: [] as BookedEvent[],
+            bookedOutfits: [] as Outfit[],
 
             // Modal toggles
             showSuppliers: false,
             showAdditionalServices: false,
+            showRatingModal: false,
+            showViewFeedbackModal: false,
+            selectedEventForRating: null as BookedEvent | null,
+            rating: 0,
+            feedbackText: '',
+            existingFeedback: null as Feedback | null,
         };
     },
     computed: {
@@ -398,9 +561,6 @@ import axios from 'axios';
                     break;
                 case 'upcoming':
                     filtered = this.bookedWishlist.filter(item => item.event_status === 'Upcoming');
-                    break;
-                case 'ongoing':
-                    filtered = this.bookedWishlist.filter(item => item.event_status === 'Ongoing');
                     break;
                 case 'finished':
                     filtered = this.bookedWishlist.filter(item => item.event_status === 'Finished');
@@ -433,12 +593,11 @@ import axios from 'axios';
         this.fetchBookedOutfits();
     },
     methods: {
-        setActiveNav(type) {
+        setActiveNav(type: 'wishlist' | 'upcoming' | 'finished' | 'cancelled' | 'all') {
             this.activeNavButton = type;
             // Reset all display flags
             this.displayWishlist = false;
             this.displayUpcoming = false;
-            this.displayOngoing = false;
             this.displayFinished = false;
             this.displayCancelled = false;
             this.displayAll = false;
@@ -450,9 +609,6 @@ import axios from 'axios';
                     break;
                 case 'upcoming':
                     this.displayUpcoming = true;
-                    break;
-                case 'ongoing':
-                    this.displayOngoing = true;
                     break;
                 case 'finished':
                     this.displayFinished = true;
@@ -625,13 +781,103 @@ import axios from 'axios';
                 this.currentPage = page;
             }
         },
+        async openRatingModal(event) {
+            try {
+                // First check if user has already rated this event
+                const token = localStorage.getItem('access_token');
+                const response = await axios.get(`http://127.0.0.1:5000/event-feedback/${event.events_id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.data.data && response.data.data.length > 0) {
+                    // User has already rated, show the feedback
+                    this.existingFeedback = response.data.data[0]; // Get the first feedback (should be user's own)
+                    this.selectedEventForRating = event;
+                    this.showViewFeedbackModal = true;
+                } else {
+                    // User hasn't rated yet, show rating modal
+                    this.selectedEventForRating = event;
+                    this.showRatingModal = true;
+                    this.rating = 0;
+                    this.feedbackText = '';
+                }
+            } catch (error) {
+                console.error('Error checking feedback:', error);
+                alert('Error checking feedback status');
+            }
+        },
+
+        closeRatingModal() {
+            this.showRatingModal = false;
+            this.showViewFeedbackModal = false;
+            this.selectedEventForRating = null;
+            this.rating = 0;
+            this.feedbackText = '';
+            this.existingFeedback = null;
+        },
+
+        setRating(value) {
+            this.rating = value;
+        },
+
+        async submitRating() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.error('No access token found');
+                    this.$router.push('/login');
+                    return;
+                }
+
+                const response = await axios.post('http://127.0.0.1:5000/event-feedback', {
+                    events_id: this.selectedEventForRating.events_id,
+                    rating: this.rating,
+                    feedback_text: this.feedbackText
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 201) {
+                    alert('Thank you for your feedback!');
+                    this.closeRatingModal();
+                }
+            } catch (error) {
+                console.error('Error submitting rating:', error);
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('access_token');
+                    this.$router.push('/login');
+                } else if (error.response?.status === 409) {
+                    alert('You have already submitted feedback for this event.');
+                } else {
+                    alert('Failed to submit rating. Please try again.');
+                }
+            }
+        },
+
+        getOutfitImageUrl(imageFileName) {
+            if (!imageFileName) {
+                return `http://127.0.0.1:5000/api/outfits/image/default_outfit.png`;
+            }
+            // Clean up the image filename to only use the actual filename
+            const filename = imageFileName.split(/[\/\\]/).pop();
+            return `http://127.0.0.1:5000/api/outfits/image/${filename}`;
+        },
+
+        handleImageError(e) {
+            e.target.style.display = 'none';
+        },
     },
 
     mounted() {
         this.fetchBookedWishlist();
         this.fetchBookedOutfits();  // Automatically call the function when the component is mounted
     },
-}
+})
 </script>
 
 <style scoped>

@@ -1,7 +1,27 @@
 <template>
     <div class="bg-gray-200 w-full h-full overflow-y-auto">
+        <!-- Alert Modal -->
+        <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+            <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+                <div class="flex justify-between items-center mb-4">
+                <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+                    {{ alertType === 'success' ? 'Success' : 'Error' }}
+                </h3>
+                <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+                    <span class="text-2xl">&times;</span>
+                </button>
+                </div>
+                <p class="text-gray-700">{{ alertMessage }}</p>
+                <div class="flex justify-end mt-4">
+                <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                    Close
+                </button>
+                </div>
+            </div>
+            </div>
+            
         <div class="w-full h-[65px] bg-gray-100 mt-2 flex items-center justify-between px-5 shadow-lg">
-        <h1 class="font-amaticBold font-extraLight text-3xl">
+        <h1 class="font-inter font-extraLight text-3xl">
             Outfit Packages
         </h1>
         <button 
@@ -14,11 +34,11 @@
     
         <div class="flex flex-row items-center m-5 space-x-5">
         <div class="flex justify-start w-52 h-20 bg-white rounded-lg shadow-lg px-2 items-center border-l-2 border-green-400 space-x-5">
-            <h2 class="font-amaticRegular text-4xl font-bold mb-0"> {{ totalOutfitPackages }} <span class = "text-sm antialiased text-gray-600">packages</span></h2>
+            <h2 class="font-inter text-4xl font-bold mb-0"> {{ totalOutfitPackages }} <span class = "text-sm antialiased text-gray-600">packages</span></h2>
         </div>
         <button 
         @click="showOutfitsModalFn"
-        class="flex items-center bg-white text-gray-800 font-raleway mt-10 px-3 py-2 rounded shadow-lg transition-transform duration-300 transform hover:scale-105 font-semibold"
+        class="flex items-center bg-white text-gray-800 font-inter mt-10 px-3 py-2 rounded shadow-lg transition-transform duration-300 transform hover:scale-105 font-semibold"
          > 
 
         View All Outfits
@@ -26,18 +46,18 @@
     </div>
     
     <div class="flex flex-row justify-end items-center m-5 my-7">
-        <button class = "mr-2 w-44 h-10 bg-[#9B111E] font-semibold text-gray-100 font-quicksand rounded-md shadow-lg 
+        <button class = "mr-2 w-44 h-10 bg-[#9B111E] font-semibold text-gray-100 font-inter rounded-md shadow-lg 
         transition-transform duration-300 transform hover:scale-105" @click="addOutfitsPackageBtn">
         Create Package
         </button>
-		<button class = "mr-2 w-44 h-10 bg-[#9B111E] font-semibold text-gray-100 font-quicksand rounded-md shadow-lg 
+		<button class = "mr-2 w-44 h-10 bg-[#9B111E] font-semibold text-gray-100 font-inter rounded-md shadow-lg 
         transition-transform duration-300 transform hover:scale-105" @click="addOutfitsBtn">
         Add Outfit
         </button>
     </div>
     
             <!-- Gown Packages Table -->
-                <div v-if="showTable === 'GownPackages'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+                <div v-if="showTable === 'GownPackages'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-inter mb-10">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30 table-fixed">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -175,31 +195,25 @@
 
                     <!-- Package Name -->
                     <div class="mb-4">
-                        
-                        
+                        <label class="text-xs text-gray-600 block text-left">Package Name</label>
                         <input
-                            id="package-name"
                             type="text"
                             v-model="packageDetails.name"
                             class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                            placeholder="Enter package name"
                             required
                         />
                     </div>
 
                <!-- Description -->
                 <div class="mb-4">
+                        <label class="text-xs text-gray-600 block text-left">Description</label>
                     <textarea
-                        id="description"
                         v-model="packageDetails.description"
                         class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                        placeholder="Enter description"
                         rows="3"
                         style="resize: none;"
                     ></textarea>
                 </div>
-
-
 
                     <!-- Outfit Selection Buttons -->
                     <div class="flex justify-center space-x-4 my-6">
@@ -379,6 +393,7 @@
 
                     <!-- Package Name -->
                     <div class="mb-4">
+                        <label class="text-xs text-gray-600 block text-left">Package Name</label>
                     <input
                             id="package-name"
                         type="text"
@@ -391,6 +406,7 @@
 
                     <!-- Description -->
                     <div class="mb-4">
+                        <label class="text-xs text-gray-600 block text-left">Description</label>
                         <textarea
                         id="description"
                         v-model="selectedGownPackage.description"
@@ -506,26 +522,32 @@
 
             <!-- Add Outfit Form -->
             <form v-if="addOutfitForm" @submit.prevent="handleSubmit" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto" @click.self="closeAddOutfitForm">
-                <div class="bg-white w-[600px] p-5 rounded-lg shadow-lg overflow-y-auto">
+                <div class="bg-white w-[1000px] p-5 rounded-lg shadow-lg overflow-y-auto">
                     <div class="flex justify-between items-center m-3">
-                        <h1 class="font-semibold text-xl font-raleway text-gray-800">Add Outfit</h1>
+                        <h1 class="font-semibold text-xl font-inter text-gray-800">Add Outfit</h1>
                     </div>
                     <div class="border border-gray-500 mt-5 items-center"></div>
                     <div class="m-5">
                         <span>{{ errorMessage }}</span>
 
-                <!-- Outfit Name -->
-                    <div class="flex flex-row mt-5">
+                        <div class="flex flex-row gap-5">
+                            <!-- Left Column - Input Fields -->
+                            <div class="flex-1">
+                                <!-- Outfit Name and Type -->
+                                <div class="flex flex-row mt-5 gap-2">
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block text-left">Outfit Name</label>
                         <input type="text" 
-                            class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
                             v-model="newOutfit.outfit_name" 
-                            placeholder="Outfit Name" 
                             required>
-                                <!-- Outfit Type -->
-                                <select class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                    </div>
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block text-left">Outfit Type</label>
+                                        <select class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
                                         v-model="newOutfit.outfit_type" 
                                         required>
-                                    <option value="" disabled selected>Outfit Type</option>
+                                            <option value="" disabled selected>Select Type</option>
                                     <option value="Wedding Gown">Wedding Gown</option>
                                     <option value="Saree">Saree</option>
                                     <option value="Lehenga">Lehenga</option>
@@ -556,19 +578,36 @@
                                     <option value="Destination Wedding Attire">Destination Wedding Attire</option>
                                     <option value="Seasonal Attire">Seasonal Attire</option>
                                 </select>
+                                    </div>
                             </div>
 
-                        <!-- Outfit Color -->
-                        <div class="flex flex-row mt-5">
-                            <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.outfit_color" placeholder="Outfit Color" required>
-                            <!-- Rent Price -->
-                            <input type="number" step="0.01" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.rent_price" placeholder="Rent Price" required>
+                                <!-- Color and Price -->
+                                <div class="flex flex-row mt-5 gap-2">
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block text-left">Outfit Color</label>
+                                        <input type="text" 
+                                            class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="newOutfit.outfit_color" 
+                                            required>
+                                    </div>
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block text-left">Rent Price</label>
+                                        <input type="number" 
+                                            step="0.01" 
+                                            class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="newOutfit.rent_price" 
+                                            required>
+                                    </div>
                         </div>
 
-                        <!-- Size -->
-                        <div class="flex flex-row mt-5">
-                            <select class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.size" required>
-                                <option value="" disabled selected>Size</option>
+                                <!-- Size and Weight -->
+                                <div class="flex flex-row mt-5 gap-2">
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block text-left">Size</label>
+                                        <select class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="newOutfit.size" 
+                                            required>
+                                            <option value="" disabled selected>Select Size</option>
                                 <option value="XS">XS</option>
                                 <option value="S">S</option>
                                 <option value="M">M</option>
@@ -579,34 +618,213 @@
                                 <option value="4XL">4XL</option>
                                 <option value="5XL">5XL</option>
                                 </select>
-                            <!-- Weight -->
-                            <input type="number" step="0.01" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.weight" placeholder="Weight" required>
+                                    </div>
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block text-left">Weight (kg)</label>
+                                        <input type="number" 
+                                            step="0.01" 
+                                            class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="newOutfit.weight" 
+                                            required>
+                                    </div>
                         </div>
 
-                        <!-- Outfit Description -->
+                                <!-- Description -->
                         <div class="flex flex-col mt-5">
-                            <label class="text-xs text-gray-600 ml-2 text-start">Outfit Description</label>
-                            <textarea class="mt-2 ml-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="newOutfit.outfit_desc" placeholder="Description" required></textarea>
+                                    <label class="text-xs text-gray-600 mb-2 block text-left">Outfit Description</label>
+                                    <textarea class="p-2 w-full rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                        v-model="newOutfit.outfit_desc" placeholder="Description" rows="4" required></textarea>
+                                </div>
                         </div>
 
-                        <!-- Image Upload -->
-                        <div class="flex flex-col mt-5">
-                            <label class="text-xs text-gray-600 ml-2 text-start">Outfit Image</label>
-                            <div class="mt-2 ml-2 flex items-center">
-                                <label class="relative cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
-                                    <span>Choose File</span>
+                            <!-- Right Column - Image Upload -->
+                            <div class="w-2/5">
+                                <div class="flex flex-col">
+                                    <label class="text-xs text-gray-600 mb-2">Outfit Image</label>
+                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                        <!-- Image Preview -->
+                                        <div v-if="imagePreview" class="mb-4">
+                                            <img :src="imagePreview" alt="Outfit Preview" class="max-w-full h-auto rounded-lg mx-auto mb-4">
+                                        </div>
+                                        <!-- Upload Button -->
+                                        <label class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 inline-block">
+                                            <span>{{ imagePreview ? 'Change Image' : 'Choose Image' }}</span>
                                     <input type="file" class="hidden" @change="onFileSelected" accept="image/*" ref="fileInput">
                                 </label>
-                                <span class="ml-3 text-sm text-gray-600">{{ selectedFileName || 'No file chosen' }}</span>
+                                        <p class="mt-2 text-sm text-gray-500">{{ selectedFileName || 'No file chosen' }}</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Confirm and Cancel Buttons -->
+                        <!-- Buttons -->
                         <div class="flex justify-end items-center mt-5 space-x-2">
-                            <button class="w-20 h-10 bg-gray-300 text-white px-3 py-1 rounded transform transition duration-300 transform hover:scale-105 hover:bg-gray-400" @click="closeAddOutfitForm">
+                            <button class="w-20 h-10 bg-gray-300 text-white px-3 py-1 rounded transform transition duration-300 hover:scale-105 hover:bg-gray-400" @click="closeAddOutfitForm">
                                 Cancel
                             </button>
-                            <button type="submit" class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform transition duration-300 transform hover:scale-105">
+                            <button type="submit" class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform transition duration-300 hover:scale-105">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Edit Outfit Form -->
+            <form v-if="isEditingOutfit" @submit.prevent="handleEditSubmit" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto z-50" @click.self="closeEditOutfitForm">
+                <div class="bg-white w-[1000px] p-5 rounded-lg shadow-lg overflow-y-auto">
+                    <div class="flex justify-between items-center m-3">
+                        <h1 class="font-semibold text-xl font-inter text-gray-800">Edit Outfit</h1>
+                    </div>
+                    <div class="border border-gray-500 mt-5 items-center"></div>
+                    <div class="m-5">
+                        <span>{{ errorMessage }}</span>
+
+                        <div class="flex flex-row gap-5">
+                            <!-- Left Column - Input Fields -->
+                            <div class="flex-1">
+                                <!-- Outfit Name and Type -->
+                                <div class="flex flex-row mt-5 gap-2">
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block">Outfit Name</label>
+                                        <input type="text" 
+                                            class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="editingOutfit.outfit_name" 
+                                            required>
+                                    </div>
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block">Outfit Type</label>
+                                        <select class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="editingOutfit.outfit_type" 
+                                            required>
+                                            <option value="" disabled selected>Select Type</option>
+                                            <option value="Wedding Gown">Wedding Gown</option>
+                                            <option value="Saree">Saree</option>
+                                            <option value="Lehenga">Lehenga</option>
+                                            <option value="Suit">Suit</option>
+                                            <option value="Gown">Gown</option>
+                                            <option value="Jumpsuit">Jumpsuit</option>
+                                            <option value="Reception Dress">Reception Dress</option>
+                                            <option value="Bridal Robe">Bridal Robe</option>
+                                            <option value="Tuxedo">Tuxedo</option>
+                                            <option value="Sherwani">Sherwani</option>
+                                            <option value="Kurta Pajama">Kurta Pajama</option>
+                                            <option value="Bespoke Tailored Outfit">Bespoke Tailored Outfit</option>
+                                            <option value="Barong Tagalog">Barong Tagalog</option>
+                                            <option value="Morning Coat">Morning Coat</option>
+                                            <option value="Bridesmaid Dress">Bridesmaid Dress</option>
+                                            <option value="Cultural Attire">Cultural Attire</option>
+                                            <option value="Mix-and-Match Dress">Mix-and-Match Dress</option>
+                                            <option value="Flower Girl Dress">Flower Girl Dress</option>
+                                            <option value="Ring Bearer Suit">Ring Bearer Suit</option>
+                                            <option value="Formal Attire">Formal Attire</option>
+                                            <option value="Semi-Formal Attire">Semi-Formal Attire</option>
+                                            <option value="Traditional/Tribal Wear">Traditional/Tribal Wear</option>
+                                            <option value="Engagement Outfit">Engagement Outfit</option>
+                                            <option value="Rehearsal Dinner Attire">Rehearsal Dinner Attire</option>
+                                            <option value="Haldi Ceremony Outfit">Haldi Ceremony Outfit</option>
+                                            <option value="Mehndi Ceremony Outfit">Mehndi Ceremony Outfit</option>
+                                            <option value="Cocktail Party Wear">Cocktail Party Wear</option>
+                                            <option value="Destination Wedding Attire">Destination Wedding Attire</option>
+                                            <option value="Seasonal Attire">Seasonal Attire</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Color and Price -->
+                                <div class="flex flex-row mt-5 gap-2">
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block">Outfit Color</label>
+                                        <input type="text" 
+                                            class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="editingOutfit.outfit_color" placeholder="Outfit Color" required>
+                                    </div>
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block">Rent Price</label>
+                                        <input type="number" step="0.01" class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="editingOutfit.rent_price" placeholder="Rent Price" required>
+                                    </div>
+                                </div>
+
+                                <!-- Size and Weight -->
+                                <div class="flex flex-row mt-5 gap-2">
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block">Size</label>
+                                        <select class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="editingOutfit.size" required>
+                                            <option value="" disabled selected>Select Size</option>
+                                            <option value="XS">XS</option>
+                                            <option value="S">S</option>
+                                            <option value="M">M</option>
+                                            <option value="L">L</option>
+                                            <option value="XL">XL</option>
+                                            <option value="2XL">2XL</option>
+                                            <option value="3XL">3XL</option>
+                                            <option value="4XL">4XL</option>
+                                            <option value="5XL">5XL</option>
+                                        </select>
+                                    </div>
+                                    <div class="w-full">
+                                        <label class="text-xs text-gray-600 mb-2 block">Weight (kg)</label>
+                                        <input type="number" step="0.01" class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                            v-model="editingOutfit.weight" placeholder="Weight" required>
+                                    </div>
+                                </div>
+
+                                <!-- Status Toggle -->
+                                <div class="flex flex-row mt-5 items-center">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" 
+                                               v-model="editingOutfit.status" 
+                                               :true-value="'Available'" 
+                                               :false-value="'Unavailable'" 
+                                               class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
+                                                  peer-checked:after:translate-x-full peer-checked:after:border-white 
+                                                  after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                                                  after:bg-white after:border-gray-300 after:border after:rounded-full 
+                                                  after:h-5 after:w-5 after:transition-all 
+                                                  peer-checked:bg-green-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-900">
+                                            {{ editingOutfit.status }}
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="flex flex-col mt-5">
+                                    <label class="text-xs text-gray-600 mb-2">Outfit Description</label>
+                                    <textarea class="p-2 w-full rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                        v-model="editingOutfit.outfit_desc" placeholder="Description" rows="4" required></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Right Column - Image Upload -->
+                            <div class="w-2/5">
+                                <div class="flex flex-col">
+                                    <label class="text-xs text-gray-600 mb-2">Outfit Image</label>
+                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                        <!-- Image Preview -->
+                                        <div v-if="editImagePreview" class="mb-4">
+                                            <img :src="editImagePreview" alt="Outfit Preview" class="max-w-full h-auto rounded-lg mx-auto mb-4">
+                                        </div>
+                                        <!-- Upload Button -->
+                                        <label class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 inline-block">
+                                            <span>{{ editImagePreview ? 'Change Image' : 'Choose Image' }}</span>
+                                            <input type="file" class="hidden" @change="onEditFileSelected" accept="image/*" ref="editFileInput">
+                                        </label>
+                                        <p class="mt-2 text-sm text-gray-500">{{ editingSelectedFileName || 'No file chosen' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex justify-end items-center mt-5 space-x-2">
+                            <button class="w-20 h-10 bg-gray-300 text-white px-3 py-1 rounded transform transition duration-300 hover:scale-105 hover:bg-gray-400" @click="closeEditOutfitForm">
+                                Cancel
+                            </button>
+                            <button type="submit" class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform transition duration-300 hover:scale-105">
                                 Save
                             </button>
                         </div>
@@ -759,26 +977,32 @@
 
     <!-- Edit Outfit Form -->
     <form v-if="isEditingOutfit" @submit.prevent="handleEditSubmit" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto z-50" @click.self="closeEditOutfitForm">
-        <div class="bg-white w-[600px] p-5 rounded-lg shadow-lg overflow-y-auto">
+        <div class="bg-white w-[1000px] p-5 rounded-lg shadow-lg overflow-y-auto">
             <div class="flex justify-between items-center m-3">
-                <h1 class="font-semibold text-xl font-raleway text-gray-800">Edit Outfit</h1>
+                <h1 class="font-semibold text-xl font-inter text-gray-800">Edit Outfit</h1>
             </div>
             <div class="border border-gray-500 mt-5 items-center"></div>
             <div class="m-5">
                 <span>{{ errorMessage }}</span>
 
-                <!-- Outfit Name -->
-                <div class="flex flex-row mt-5">
+                <div class="flex flex-row gap-5">
+                    <!-- Left Column - Input Fields -->
+                    <div class="flex-1">
+                        <!-- Outfit Name and Type -->
+                        <div class="flex flex-row mt-5 gap-2">
+                            <div class="w-full">
+                                <label class="text-xs text-gray-600 mb-2 block">Outfit Name</label>
                     <input type="text" 
-                        class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                    class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
                         v-model="editingOutfit.outfit_name" 
-                        placeholder="Outfit Name" 
                         required>
-                    <!-- Outfit Type -->
-                    <select class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                            </div>
+                            <div class="w-full">
+                                <label class="text-xs text-gray-600 mb-2 block">Outfit Type</label>
+                                <select class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
                             v-model="editingOutfit.outfit_type" 
                             required>
-                        <option value="" disabled selected>Outfit Type</option>
+                                    <option value="" disabled selected>Select Type</option>
                         <option value="Wedding Gown">Wedding Gown</option>
                         <option value="Saree">Saree</option>
                         <option value="Lehenga">Lehenga</option>
@@ -809,19 +1033,31 @@
                         <option value="Destination Wedding Attire">Destination Wedding Attire</option>
                         <option value="Seasonal Attire">Seasonal Attire</option>
                     </select>
+                            </div>
                 </div>
 
-                <!-- Outfit Color -->
-                <div class="flex flex-row mt-5">
-                    <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.outfit_color" placeholder="Outfit Color" required>
-                    <!-- Rent Price -->
-                    <input type="number" step="0.01" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.rent_price" placeholder="Rent Price" required>
+                        <!-- Color and Price -->
+                        <div class="flex flex-row mt-5 gap-2">
+                            <div class="w-full">
+                                <label class="text-xs text-gray-600 mb-2 block">Outfit Color</label>
+                                <input type="text" 
+                                    class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                    v-model="editingOutfit.outfit_color" placeholder="Outfit Color" required>
+                            </div>
+                            <div class="w-full">
+                                <label class="text-xs text-gray-600 mb-2 block">Rent Price</label>
+                                <input type="number" step="0.01" class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                    v-model="editingOutfit.rent_price" placeholder="Rent Price" required>
+                            </div>
                 </div>
 
-                <!-- Size -->
-                <div class="flex flex-row mt-5">
-                    <select class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.size" required>
-                        <option value="" disabled selected>Size</option>
+                        <!-- Size and Weight -->
+                        <div class="flex flex-row mt-5 gap-2">
+                            <div class="w-full">
+                                <label class="text-xs text-gray-600 mb-2 block">Size</label>
+                                <select class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                    v-model="editingOutfit.size" required>
+                                    <option value="" disabled selected>Select Size</option>
                         <option value="XS">XS</option>
                         <option value="S">S</option>
                         <option value="M">M</option>
@@ -832,13 +1068,17 @@
                         <option value="4XL">4XL</option>
                         <option value="5XL">5XL</option>
                     </select>
-                    <!-- Weight -->
-                    <input type="number" step="0.01" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.weight" placeholder="Weight" required>
+                            </div>
+                            <div class="w-full">
+                                <label class="text-xs text-gray-600 mb-2 block">Weight (kg)</label>
+                                <input type="number" step="0.01" class="p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                    v-model="editingOutfit.weight" placeholder="Weight" required>
+                            </div>
                 </div>
 
                 <!-- Status Toggle -->
                 <div class="flex flex-row mt-5 items-center">
-                    <label class="relative inline-flex items-center cursor-pointer ml-2">
+                            <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" 
                                v-model="editingOutfit.status" 
                                :true-value="'Available'" 
@@ -856,30 +1096,40 @@
                     </label>
                 </div>
                 
-                <!-- Outfit Description -->
+                        <!-- Description -->
                 <div class="flex flex-col mt-5">
-                    <label class="text-xs text-gray-600 ml-2 text-start">Outfit Description</label>
-                    <textarea class="mt-2 ml-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="editingOutfit.outfit_desc" placeholder="Description" required></textarea>
+                            <label class="text-xs text-gray-600 mb-2">Outfit Description</label>
+                            <textarea class="p-2 w-full rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" 
+                                v-model="editingOutfit.outfit_desc" placeholder="Description" rows="4" required></textarea>
+                        </div>
                 </div>
 
-                <!-- Image Upload -->
-                <div class="flex flex-col mt-5">
-                    <label class="text-xs text-gray-600 ml-2 text-start">Outfit Image</label>
-                    <div class="mt-2 ml-2 flex items-center">
-                        <label class="relative cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
-                            <span>Choose File</span>
+                    <!-- Right Column - Image Upload -->
+                    <div class="w-2/5">
+                        <div class="flex flex-col">
+                            <label class="text-xs text-gray-600 mb-2">Outfit Image</label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                <!-- Image Preview -->
+                                <div v-if="editImagePreview" class="mb-4">
+                                    <img :src="editImagePreview" alt="Outfit Preview" class="max-w-full h-auto rounded-lg mx-auto mb-4">
+                                </div>
+                                <!-- Upload Button -->
+                                <label class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 inline-block">
+                                    <span>{{ editImagePreview ? 'Change Image' : 'Choose Image' }}</span>
                             <input type="file" class="hidden" @change="onEditFileSelected" accept="image/*" ref="editFileInput">
                         </label>
-                        <span class="ml-3 text-sm text-gray-600">{{ editingSelectedFileName || 'No file chosen' }}</span>
+                                <p class="mt-2 text-sm text-gray-500">{{ editingSelectedFileName || 'No file chosen' }}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Confirm and Cancel Buttons -->
+                <!-- Buttons -->
                 <div class="flex justify-end items-center mt-5 space-x-2">
-                    <button class="w-20 h-10 bg-gray-300 text-white px-3 py-1 rounded transform transition duration-300 transform hover:scale-105 hover:bg-gray-400" @click="closeEditOutfitForm">
+                    <button class="w-20 h-10 bg-gray-300 text-white px-3 py-1 rounded transform transition duration-300 hover:scale-105 hover:bg-gray-400" @click="closeEditOutfitForm">
                         Cancel
                     </button>
-                    <button type="submit" class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform transition duration-300 transform hover:scale-105">
+                    <button type="submit" class="w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md transform transition duration-300 hover:scale-105">
                         Save
                     </button>
                 </div>
@@ -1010,6 +1260,11 @@
             // Image upload properties
             selectedFile: null,
             editingSelectedFile: null,
+            showAlert: false,
+            alertType: 'success',
+            alertMessage: '',
+            imagePreview: null,
+            editImagePreview: null,
         };
     },
 
@@ -1211,31 +1466,26 @@
                 try {
                     const token = localStorage.getItem('access_token');
                     if (!token) {
-                        alert('You are not logged in. Please log in to add a package.');
+                        this.showAlertMessage('You are not logged in. Please log in to add a package.', 'error');
                         return;
                     }
 
-                    // Check if package has a name
                     if (!this.packageDetails.name) {
-                        this.errorMessage = "Please enter a package name";
+                        this.showAlertMessage('Please enter a package name', 'error');
                         return;
                     }
 
-                    // Check if at least one outfit is included
                     if (this.packageInclusions.length === 0) {
-                        this.errorMessage = "Please add at least one outfit to the package";
+                        this.showAlertMessage('Please add at least one outfit to the package', 'error');
                         return;
                     }
 
-                    // Prepare the package data
                     const packageData = {
                         gown_package_name: this.packageDetails.name,
                         description: this.packageDetails.description || '',
-                        outfits: this.packageInclusions.map(item => item.outfit_id),  // Changed from item.id
+                        outfits: this.packageInclusions.map(item => item.outfit_id),
                         discount: this.packageDetails.discount || 0
                     };
-
-                    console.log('Sending data:', packageData);
 
                     const response = await axios.post('http://127.0.0.1:5000/add-gown-package', packageData, {
                         headers: {
@@ -1245,7 +1495,7 @@
                         withCredentials: true,
                     });
 
-                    alert('Package added successfully');
+                    this.showAlertMessage('Package added successfully');
                     
                     // Reset form
                     this.packageDetails = {
@@ -1253,19 +1503,16 @@
                         description: '',
                         discount: 0
                     };
-                    this.packageInclusions = [];  // Changed from inclusions
-                    this.selectedOutfits = [];    // Added this to clear selected outfits
+                    this.packageInclusions = [];
+                    this.selectedOutfits = [];
                     this.showOutfitPackageForm = false;
-                    this.errorMessage = '';
-                    
-                    await this.fetchGownPackages();
                 } catch (error) {
                     console.error('Error details:', {
                         message: error.message,
                         response: error.response?.data,
                         status: error.response?.status
                     });
-                    this.errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
+                    this.showAlertMessage(error.response?.data?.message || 'An error occurred. Please try again.', 'error');
                 }
             },
         updateFileName(event) {
@@ -1429,19 +1676,19 @@
                 if (file) {
                     this.selectedFile = file;
                     this.selectedFileName = file.name;
+                    // Create preview URL
+                    this.imagePreview = URL.createObjectURL(file);
                 }
             },
 
             async handleSubmit() {
                 try {
                     this.isLoading = true;
-                    this.errorMessage = '';
                     const token = localStorage.getItem('access_token');
 
-                    // Check if all required fields are filled
                     if (!this.newOutfit.outfit_name || !this.newOutfit.outfit_type || !this.newOutfit.outfit_color || 
                         !this.newOutfit.rent_price || !this.newOutfit.size || !this.newOutfit.weight) {
-                      this.errorMessage = 'Please fill in all required fields';
+                        this.showAlertMessage('Please fill in all required fields', 'error');
                       this.isLoading = false;
                       return;
                     }
@@ -1480,7 +1727,7 @@
                       
                       this.selectedFileName = null;
                       
-                      this.$emit('outfit-added', response.data);
+                      this.showAlertMessage('Outfit added successfully');
                       this.addOutfitForm = false;
                         this.resetForm();
                     } else {
@@ -1508,23 +1755,24 @@
                         }
                       });
                       
-                      this.$emit('outfit-added', response.data);
+                      this.showAlertMessage('Outfit added successfully');
                       this.addOutfitForm = false;
                       this.resetForm();
                     }
                 } catch (error) {
                     console.error('Error adding outfit:', error);
                     if (error.response) {
-                      this.errorMessage = error.response.data.message || 'Error adding outfit. Please try again.';
                       if (error.response.status === 413) {
-                        this.errorMessage = 'File size is too large. Please choose a smaller file.';
+                            this.showAlertMessage('File size is too large. Please choose a smaller file.', 'error');
                       } else if (error.response.status === 401) {
-                        this.errorMessage = 'Unauthorized. Please log in again.';
+                            this.showAlertMessage('Unauthorized. Please log in again.', 'error');
+                        } else {
+                            this.showAlertMessage(error.response.data.message || 'Error adding outfit. Please try again.', 'error');
                       }
                     } else if (error.request) {
-                      this.errorMessage = 'No response from server. Please try again later.';
+                        this.showAlertMessage('No response from server. Please try again later.', 'error');
                     } else {
-                      this.errorMessage = 'Error adding outfit. Please try again.';
+                        this.showAlertMessage('Error adding outfit. Please try again.', 'error');
                     }
                   } finally {
                     this.isLoading = false;
@@ -1549,6 +1797,7 @@
                 this.selectedFileName = null;
                 this.errorMessage = '';
                 this.isLoading = false;
+                this.imagePreview = null;
             },
 
             openOutfitSelection(type) {
@@ -1736,7 +1985,7 @@
                     const token = localStorage.getItem('access_token');
                     
                     if (!this.selectedGownPackage.gown_package_name) {
-                        this.errorMessage = "Please enter a package name";
+                        this.showAlertMessage('Please enter a package name', 'error');
                         return;
                     }
                     
@@ -1768,13 +2017,13 @@
                     );
                     
                     if (response.status === 200) {
-                        alert('Package updated successfully');
+                        this.showAlertMessage('Package updated successfully');
                         this.closeEditGownPackageForm();
                         this.fetchGownPackages(); // Refresh the packages list
                     }
                 } catch (error) {
                     console.error('Error updating package:', error);
-                    this.errorMessage = error.response?.data?.message || 'Failed to update package';
+                    this.showAlertMessage(error.response?.data?.message || 'Failed to update package', 'error');
                 }
             },
 
@@ -1821,6 +2070,11 @@
             this.isEditingOutfit = true;
             this.editingOutfit = { ...outfit };
             this.errorMessage = '';
+            
+            // Set the image preview if outfit has an image
+            if (outfit.outfit_img) {
+                this.editImagePreview = this.getOutfitImageUrl(outfit.outfit_img);
+            }
             
             // Fetch the outfit archive data
             const token = localStorage.getItem('access_token');
@@ -1875,34 +2129,23 @@
         },
 
         onEditFileSelected(event) {
-            console.log("File selection event:", event);
-            const files = event.target.files;
-            console.log("Files array:", files);
-            
-            if (files && files.length > 0) {
-                const file = files[0];
-                console.log("Selected file details:", {
-                    name: file.name,
-                    type: file.type,
-                    size: file.size
-                });
+            const file = event.target.files[0];
+            if (file) {
                 this.editingSelectedFile = file;
                 this.editingSelectedFileName = file.name;
-            } else {
-                console.log("No file selected");
+                // Create preview URL
+                this.editImagePreview = URL.createObjectURL(file);
             }
         },
 
         async handleEditSubmit() {
             try {
                 this.isLoading = true;
-                this.errorMessage = '';
                 const token = localStorage.getItem('access_token');
 
-                // Check if all required fields are filled
                 if (!this.editingOutfit.outfit_name || !this.editingOutfit.outfit_type || !this.editingOutfit.outfit_color || 
                     !this.editingOutfit.rent_price || !this.editingOutfit.size || !this.editingOutfit.weight) {
-                  this.errorMessage = 'Please fill in all required fields';
+                    this.showAlertMessage('Please fill in all required fields', 'error');
                   this.isLoading = false;
                   return;
                 }
@@ -1946,7 +2189,7 @@
                   
                   this.editingSelectedFileName = null;
                   
-                  this.$emit('outfit-updated', response.data);
+                  this.showAlertMessage('Outfit updated successfully');
                   this.isEditingOutfit = false;
                   this.resetEditForm();
                   await this.fetchOutfits(); // Refresh the outfits list
@@ -1978,7 +2221,7 @@
                     }
                   });
                   
-                  this.$emit('outfit-updated', response.data);
+                  this.showAlertMessage('Outfit updated successfully');
                   this.isEditingOutfit = false;
                   this.resetEditForm();
                   await this.fetchOutfits(); // Refresh the outfits list
@@ -1986,20 +2229,17 @@
               } catch (error) {
                 console.error('Error updating outfit:', error);
                 if (error.response) {
-                  // The request was made and the server responded with a status code
-                  // that falls out of the range of 2xx
-                  this.errorMessage = error.response.data.message || 'Error updating outfit. Please try again.';
                   if (error.response.status === 413) {
-                    this.errorMessage = 'File size is too large. Please choose a smaller file.';
+                        this.showAlertMessage('File size is too large. Please choose a smaller file.', 'error');
                   } else if (error.response.status === 401) {
-                    this.errorMessage = 'Unauthorized. Please log in again.';
+                        this.showAlertMessage('Unauthorized. Please log in again.', 'error');
+                    } else {
+                        this.showAlertMessage(error.response.data.message || 'Error updating outfit. Please try again.', 'error');
                   }
                 } else if (error.request) {
-                  // The request was made but no response was received
-                  this.errorMessage = 'No response from server. Please try again later.';
+                    this.showAlertMessage('No response from server. Please try again later.', 'error');
                 } else {
-                  // Something happened in setting up the request that triggered an Error
-                  this.errorMessage = 'Error updating outfit. Please try again.';
+                    this.showAlertMessage('Error updating outfit. Please try again.', 'error');
                 }
               } finally {
                 this.isLoading = false;
@@ -2027,6 +2267,21 @@
           this.editingSelectedFileName = null;
           this.errorMessage = '';
           this.isLoading = false;
+          this.editImagePreview = null;
+        },
+        showAlertMessage(message, type = 'success') {
+            this.alertMessage = message;
+            this.alertType = type;
+            this.showAlert = true;
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                this.closeAlert();
+            }, 3000);
+        },
+
+        closeAlert() {
+            this.showAlert = false;
+            this.alertMessage = '';
         },
     },
     

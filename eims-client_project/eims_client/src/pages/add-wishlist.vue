@@ -680,7 +680,7 @@
                   
                    <div class = "flex justify-center mb-5">
                     <button type = "button" @click="submitWishlist" class="mt-5 py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-105">
-                    Add to Wishlist
+                    Create Wishlist
                   </button>
                  </div>
           
@@ -705,7 +705,29 @@
     </div>
   </div>
 
-
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="fixed inset-0 bg-black opacity-50"></div>
+      <div class="relative bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <div class="text-center">
+          <div class="mb-4">
+            <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Wishlist Created Successfully!</h3>
+          <p class="text-sm text-gray-500 mb-6">Your wishlist has been created and saved. You can view it in your booked services.</p>
+          <div class="flex justify-center space-x-4">
+            <button @click="goToBookedServices" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500">
+              View Booked Services
+            </button>
+            <button @click="createAnother" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500">
+              Create Another
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -792,6 +814,7 @@ export default {
         bookedDates: [],
         isDateBooked: false,
         scheduleError: '',
+        showSuccessModal: false,
     };
   },
   methods: {
@@ -992,16 +1015,21 @@ export default {
               this.selectedPackage = {
                 ...this.selectedPackage,
                 ...details,
-                detailsFetched: true
+                detailsFetched: true,
+                venue_id: pkg.venue_id || details.venue_id, // Ensure venue_id is set
+                venue_price: details.venue_price || 0,
+                gown_package_id: pkg.gown_package_id || details.gown_package_id, // Ensure gown_package_id is set
+                gown_package_price: details.gown_package_price || 0
               };
 
               // Add venue if it exists with complete data
-              if (details.venue_name) {
+              if (pkg.venue_id || details.venue_id) {
                 const venueData = {
-                  venue_id: pkg.venue_id,
-                  venue_name: details.venue_name,
-                  location: details.venue_location,
-                  price: details.venue_price || 0,
+                  venue_id: pkg.venue_id || details.venue_id,
+                  venue_name: pkg.venue_name || details.venue_name,
+                  location: details.venue_location || details.location,
+                  venue_price: details.venue_price || pkg.venue_price || 0,
+                  price: details.venue_price || pkg.venue_price || 0,
                   remarks: '',
                   status: 'Pending',
                   has_been_updated: false
@@ -1014,11 +1042,15 @@ export default {
               }
 
               // Add gown package if it exists with complete data
-              if (details.gown_package_name) {
+              if (pkg.gown_package_id || details.gown_package_id) {
                 const gownData = {
-                  gown_package_id: pkg.gown_package_id,
-                  gown_package_name: details.gown_package_name,
-                  gown_package_price: details.gown_package_price
+                  gown_package_id: pkg.gown_package_id || details.gown_package_id,
+                  gown_package_name: pkg.gown_package_name || details.gown_package_name,
+                  gown_package_price: details.gown_package_price || pkg.gown_package_price || 0,
+                  price: details.gown_package_price || pkg.gown_package_price || 0,
+                  remarks: '',
+                  status: 'Pending',
+                  has_been_updated: false
                 };
                 console.log('Adding gown package:', gownData);
                 this.inclusions.push({
@@ -1459,10 +1491,11 @@ export default {
               const outfits = this.inclusions
                   .filter(inclusion => inclusion.type === 'outfit')
                   .map(inclusion => ({
-                      outfit_id: inclusion.data.outfit_id,
                       gown_package_id: inclusion.data.gown_package_id,
-                      price: inclusion.data.price,
-                      remarks: inclusion.data.remarks || ''
+                      price: inclusion.data.gown_package_price || inclusion.data.price || 0,
+                      remarks: inclusion.data.remarks || '',
+                      status: 'Pending',
+                      has_been_updated: false
                   }));
 
               // Transform services into the new format
@@ -1478,9 +1511,9 @@ export default {
               const venueInclusion = this.inclusions.find(inclusion => inclusion.type === 'venue');
               const venueData = venueInclusion ? {
                   venue_id: venueInclusion.data.venue_id,
-                  price: parseFloat(venueInclusion.data.venue_price || 0),
+                  price: parseFloat(venueInclusion.data.venue_price || venueInclusion.data.price || 0),
                   remarks: venueInclusion.data.remarks || '',
-                  status: 'Pending',  // Set initial status as Pending
+                  status: 'Pending',
                   has_been_updated: false
               } : null;
 
@@ -1490,11 +1523,10 @@ export default {
                   event_type: this.event_type,
                   event_theme: this.event_theme,
                   event_color: this.event_color,
-                  booking_type: 'Online', // Add the booking_type field
+                  booking_type: 'Online',
                   schedule: this.eventSchedule.date,
                   start_time: this.eventSchedule.start_time,
                   end_time: this.eventSchedule.end_time,
-
                   status: 'Wishlist'
               };
 
@@ -1517,7 +1549,7 @@ export default {
                   package_name: this.selectedPackage.package_name,
                   capacity: this.selectedPackage.capacity,
                   description: this.selectedPackage.description,
-                  venue_id: venueData ? venueData.venue_id : this.selectedPackage.venue_id,
+                  venue_id: venueData ? venueData.venue_id : null,
                   gown_package_id: this.selectedPackage.gown_package_id,
                   additional_capacity_charges: this.selectedPackage.additional_capacity_charges,
                   charge_unit: this.selectedPackage.charge_unit,
@@ -1526,8 +1558,8 @@ export default {
                   suppliers: suppliers,
                   outfits: outfits,
                   services: services,
-                  venue: venueData,  // Add the venue data
-                  inclusions: this.inclusions  // Include the full inclusions array
+                  venue: venueData,
+                  inclusions: this.inclusions
               };
                   
               console.log('Submitting wishlist data:', wishlistData);
@@ -1542,8 +1574,7 @@ export default {
               });
 
               if (response.data.success) {
-                  alert('Wishlist submitted successfully!');
-                  this.$router.push('/booked-services');
+                  this.showSuccessModal = true; // Show success modal instead of alert
               } else {
                   // If wishlist creation fails, delete the event we just created
                   await axios.delete(`http://127.0.0.1:5000/events/${eventResponse.data.events_id}`, {
@@ -1556,7 +1587,7 @@ export default {
               }
           } catch (error) {
               console.error('Error submitting wishlist:', error);
-              alert('Failed to create wishlist: ' + (error.response?.data?.message || error.message));
+              this.$toast.error('Failed to create wishlist: ' + (error.response?.data?.message || error.message));
           }
       },
 
@@ -2191,6 +2222,34 @@ addSelectedService() {
             }
             return false;
         });
+    },
+
+    goToBookedServices() {
+      this.showSuccessModal = false;
+      this.$router.push('/booked-services');
+    },
+
+    createAnother() {
+      this.showSuccessModal = false;
+      // Reset form data
+      this.resetForm();
+    },
+
+    resetForm() {
+      // Reset all form fields to their initial state
+      this.event_name = '';
+      this.event_type = '';
+      this.event_theme = '';
+      this.event_color = '';
+      this.eventSchedule = {
+        date: '',
+        start_time: '',
+        end_time: ''
+      };
+      this.selectedPackage = null;
+      this.inclusions = [];
+      this.packagesForm = true;
+      this.packagesDetailsForm = false;
     },
   },
 

@@ -80,19 +80,22 @@ def get_user_wishlist(userid):
                     wo.wishlist_id,
                     ARRAY_AGG(
                         ARRAY[
-                            o.outfit_id::text,
-                            o.outfit_name,
-                            o.outfit_type,
-                            o.outfit_color,
-                            o.outfit_desc,
-                            wo.price::text,
-                            o.outfit_img,
-                            wo.status,
+                            COALESCE(o.outfit_id::text, gpo.outfit_id::text),
+                            COALESCE(o.outfit_name, gpo_outfit.outfit_name),
+                            COALESCE(o.outfit_type, gpo_outfit.outfit_type),
+                            COALESCE(o.outfit_color, gpo_outfit.outfit_color),
+                            COALESCE(o.outfit_desc, gpo_outfit.outfit_desc),
+                            COALESCE(wo.price::text, gpo_outfit.rent_price::text),
+                            COALESCE(o.outfit_img, gpo_outfit.outfit_img),
+                            COALESCE(wo.status, 'Pending'),
                             COALESCE(wo.remarks, '')
                         ]
                     ) as outfit_details
                 FROM wishlist_outfits wo
-                JOIN outfits o ON wo.outfit_id = o.outfit_id
+                LEFT JOIN outfits o ON wo.outfit_id = o.outfit_id
+                LEFT JOIN gown_package gp ON wo.gown_package_id = gp.gown_package_id
+                LEFT JOIN gown_package_outfits gpo ON gp.gown_package_id = gpo.gown_package_id
+                LEFT JOIN outfits gpo_outfit ON gpo.outfit_id = gpo_outfit.outfit_id
                 GROUP BY wo.wishlist_id
             ),
             supplier_details AS (
@@ -121,13 +124,28 @@ def get_user_wishlist(userid):
                 FROM wishlist_additional_services was
                 JOIN additional_services ads ON was.add_service_id = ads.add_service_id
                 GROUP BY was.wishlist_id
+            ),
+            venue_details AS (
+                SELECT 
+                    wv.wishlist_id,
+                    v.venue_id,
+                    v.venue_name,
+                    v.location,
+                    wv.price as venue_price,
+                    v.description as venue_description,
+                    v.venue_capacity,
+                    wv.status as venue_status,
+                    wv.remarks as venue_remarks
+                FROM wishlist_venues wv
+                JOIN venues v ON wv.venue_id = v.venue_id
             )
             SELECT 
                 e.events_id, e.event_name, e.event_type, e.event_theme, e.event_color, 
                 e.schedule, e.start_time, e.end_time, e.status as event_status,
                 wp.wishlist_id, wp.package_name, wp.capacity, wp.description as package_description,
                 wp.total_price, wp.additional_capacity_charges, wp.charge_unit, wp.status as package_status,
-                v.venue_name, v.location, v.venue_price,
+                vd.venue_id, vd.venue_name, vd.location, vd.venue_price, vd.venue_description,
+                vd.venue_capacity, vd.venue_status, vd.venue_remarks,
                 gp.gown_package_name, gp.gown_package_price,
                 od.outfit_details,
                 sd.supplier_ids, sd.supplier_names, sd.services, sd.prices as supplier_prices,
@@ -136,7 +154,7 @@ def get_user_wishlist(userid):
                 asd.service_prices, asd.service_statuses, asd.service_remarks
             FROM events e
             JOIN wishlist_packages wp ON e.events_id = wp.events_id
-            LEFT JOIN venues v ON wp.venue_id = v.venue_id
+            LEFT JOIN venue_details vd ON wp.wishlist_id = vd.wishlist_id
             LEFT JOIN gown_package gp ON wp.gown_package_id = gp.gown_package_id
             LEFT JOIN outfit_details od ON wp.wishlist_id = od.wishlist_id
             LEFT JOIN supplier_details sd ON wp.wishlist_id = sd.wishlist_id
@@ -158,10 +176,25 @@ def get_user_wishlist(userid):
             if isinstance(item_dict['end_time'], time):
                 item_dict['end_time'] = item_dict['end_time'].strftime("%H:%M:%S")
             
+            # Format venue data
+            if item_dict.get('venue_id'):
+                item_dict['venue'] = {
+                    'venue_id': item_dict['venue_id'],
+                    'venue_name': item_dict['venue_name'],
+                    'location': item_dict['location'],
+                    'venue_price': float(item_dict['venue_price']) if item_dict['venue_price'] else 0,
+                    'description': item_dict['venue_description'],
+                    'venue_capacity': item_dict['venue_capacity'],
+                    'status': item_dict['venue_status'],
+                    'remarks': item_dict['venue_remarks']
+                }
+            else:
+                item_dict['venue'] = None
+            
             # Format outfit details
             if item_dict.get('outfit_details'):
                 try:
-                    logger.info(f"Processing outfits for wishlist. Raw outfit data: {item_dict['outfit_details']}")
+                    logger.info(f"Processing outfits for event {item_dict.get('event_name')}. Raw outfit data: {item_dict['outfit_details']}")
                     # Check if outfit_details is not None and is a list
                     if isinstance(item_dict['outfit_details'], list):
                         item_dict['outfits'] = [
@@ -180,14 +213,12 @@ def get_user_wishlist(userid):
                             if details is not None
                         ]
                     else:
-                        logger.warning(f"outfit_details is not a list: {type(item_dict['outfit_details'])}")
+                        logger.warning(f"outfit_details is not a list for event {item_dict.get('event_name')}: {type(item_dict['outfit_details'])}")
                         item_dict['outfits'] = []
                 except Exception as e:
-                    logger.error(f"Error processing outfit details: {str(e)}")
+                    logger.error(f"Error processing outfit details for event {item_dict.get('event_name')}: {str(e)}")
                     item_dict['outfits'] = []
-                logger.info(f"Processed outfits: {item_dict['outfits']}")
             else:
-                logger.info("No outfit_details found in item_dict")
                 item_dict['outfits'] = []
 
             # Format supplier details
@@ -242,7 +273,9 @@ def get_user_wishlist(userid):
                 'supplier_ids', 'supplier_names', 'services', 'supplier_prices',
                 'supplier_statuses', 'supplier_remarks',
                 'service_ids', 'service_names', 'service_descriptions',
-                'service_prices', 'service_statuses', 'service_remarks'
+                'service_prices', 'service_statuses', 'service_remarks',
+                'venue_id', 'venue_name', 'location', 'venue_price', 'venue_description',
+                'venue_capacity', 'venue_status', 'venue_remarks'
             ]
             for field in fields_to_remove:
                 item_dict.pop(field, None)
@@ -252,7 +285,7 @@ def get_user_wishlist(userid):
         return result
 
     except Exception as e:
-        print(f"Error in get_user_wishlist: {str(e)}")
+        logger.error(f"Error in get_user_wishlist: {str(e)}")
         raise e
     finally:
         cursor.close()
@@ -655,7 +688,7 @@ def get_package_details_by_id(package_id):
         cursor.execute("""
             SELECT ep.package_id, ep.package_name, et.event_type_name, ep.capacity, ep.description, ep.total_price,
                    ep.additional_capacity_charges, ep.charge_unit,
-                   v.venue_name, v.location, v.venue_price,
+                   v.venue_id, v.venue_name, v.location, v.venue_price,
                    gp.gown_package_name, gp.gown_package_price,
                    array_agg(ps.package_service_id) AS package_service_ids,
                    array_agg(ps.supplier_id) AS supplier_ids,
@@ -677,7 +710,7 @@ def get_package_details_by_id(package_id):
             LEFT JOIN suppliers s ON ps.supplier_id = s.supplier_id
             LEFT JOIN users u ON s.userid = u.userid
             WHERE ep.package_id = %s
-            GROUP BY ep.package_id, et.event_type_name, v.venue_name, v.location, v.venue_price, 
+            GROUP BY ep.package_id, et.event_type_name, v.venue_id, v.venue_name, v.location, v.venue_price, 
                      gp.gown_package_name, gp.gown_package_price
         """, (package_id,))
         
@@ -692,22 +725,23 @@ def get_package_details_by_id(package_id):
                 'total_price': float(row[5]) if row[5] else 0,
                 'additional_capacity_charges': float(row[6]) if row[6] else 0,
                 'charge_unit': row[7],
-                'venue_name': row[8],
-                'venue_location': row[9],
-                'venue_price': float(row[10]) if row[10] else 0,
-                'gown_package_name': row[11],
-                'gown_package_price': float(row[12]) if row[12] else 0,
-                'package_service_ids': row[13] if row[13] and row[13][0] is not None else [],
-                'supplier_ids': row[14] if row[14] and row[14][0] is not None else [],
-                'services': row[15] if row[15] and row[15][0] is not None else [],
-                'service_prices': [float(p) if p else 0 for p in row[16]] if row[16] and row[16][0] is not None else [],
-                'supplier_firstnames': row[17] if row[17] and row[17][0] is not None else [],
-                'supplier_lastnames': row[18] if row[18] and row[18][0] is not None else [],
-                'supplier_emails': row[19] if row[19] and row[19][0] is not None else [],
-                'external_supplier_names': row[20] if row[20] and row[20][0] is not None else [],
-                'external_supplier_contacts': row[21] if row[21] and row[21][0] is not None else [],
-                'external_supplier_prices': [float(p) if p else 0 for p in row[22]] if row[22] and row[22][0] is not None else [],
-                'remarks': row[23] if row[23] and row[23][0] is not None else []
+                'venue_id': row[8],
+                'venue_name': row[9],
+                'venue_location': row[10],
+                'venue_price': float(row[11]) if row[11] else 0,
+                'gown_package_name': row[12],
+                'gown_package_price': float(row[13]) if row[13] else 0,
+                'package_service_ids': row[14] if row[14] and row[14][0] is not None else [],
+                'supplier_ids': row[15] if row[15] and row[15][0] is not None else [],
+                'services': row[16] if row[16] and row[16][0] is not None else [],
+                'service_prices': [float(p) if p else 0 for p in row[17]] if row[17] and row[17][0] is not None else [],
+                'supplier_firstnames': row[18] if row[18] and row[18][0] is not None else [],
+                'supplier_lastnames': row[19] if row[19] and row[19][0] is not None else [],
+                'supplier_emails': row[20] if row[20] and row[20][0] is not None else [],
+                'external_supplier_names': row[21] if row[21] and row[21][0] is not None else [],
+                'external_supplier_contacts': row[22] if row[22] and row[22][0] is not None else [],
+                'external_supplier_prices': [float(p) if p else 0 for p in row[23]] if row[23] and row[23][0] is not None else [],
+                'remarks': row[24] if row[24] and row[24][0] is not None else []
             }
         return None
     finally:
@@ -1244,11 +1278,20 @@ def create_wishlist_package(events_id, package_data):
         # Get venue_id from inclusions if available
         venue_id = None
         venue_data = None
+        logger.info(f"Processing package data: {package_data}")
         if 'inclusions' in package_data:
+            logger.info(f"Found inclusions in package data: {package_data['inclusions']}")
             venue_inclusion = next((item for item in package_data['inclusions'] if item['type'] == 'venue'), None)
+            logger.info(f"Venue inclusion found: {venue_inclusion}")
             if venue_inclusion and 'data' in venue_inclusion:
                 venue_data = venue_inclusion['data']
                 venue_id = venue_data.get('venue_id')
+                logger.info(f"Extracted venue data: {venue_data}")
+                logger.info(f"Extracted venue_id: {venue_id}")
+        elif package_data.get('venue'):
+            venue_data = package_data['venue']
+            venue_id = venue_data.get('venue_id')
+            logger.info(f"Using venue data from package: {venue_data}")
         
         # Insert the main wishlist package
         cursor.execute("""
@@ -1275,12 +1318,19 @@ def create_wishlist_package(events_id, package_data):
         ))
         
         wishlist_id = cursor.fetchone()[0]
+        logger.info(f"Created wishlist package with ID: {wishlist_id}")
         
         # Add venue to wishlist_venues table if venue data is available
         if venue_data:
-            venue_price = float(venue_data.get('price') or venue_data.get('venue_price') or 0)
+            # Try to get the price from various possible fields
+            venue_price = float(
+                venue_data.get('venue_price') or  # Try venue_price first
+                venue_data.get('price') or        # Then try price
+                0                                 # Default to 0 if neither exists
+            )
             venue_remarks = venue_data.get('remarks', '')
             
+            logger.info(f"Inserting venue data: id={venue_id}, price={venue_price}, remarks={venue_remarks}")
             cursor.execute("""
                 INSERT INTO wishlist_venues (
                     wishlist_id, venue_id, price, remarks, status, has_been_updated
@@ -1371,22 +1421,6 @@ def create_wishlist_package(events_id, package_data):
                         supplier['supplier_id'],
                         supplier.get('price', 0),
                         supplier.get('remarks', '')
-                    ))
-        
-        # Add outfits if provided
-        if package_data.get('outfits'):
-            for outfit in package_data['outfits']:
-                # Check if outfit has required fields (either outfit_id or gown_package_id)
-                if outfit and (outfit.get('outfit_id') or outfit.get('gown_package_id')):
-                    cursor.execute("""
-                        INSERT INTO wishlist_outfits (wishlist_id, outfit_id, gown_package_id, price, remarks)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (
-                        wishlist_id,
-                        outfit.get('outfit_id'),
-                        outfit.get('gown_package_id'),
-                        outfit.get('price', 0),
-                        outfit.get('remarks', '')
                     ))
         
         conn.commit()
@@ -1813,3 +1847,103 @@ def get_supplier_booked_events(user_email):
         import traceback
         traceback.print_exc()
         return []
+
+def get_gown_package_outfits(gown_package_id):
+    """Get all outfits that belong to a specific gown package"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT o.outfit_id, o.outfit_name, o.outfit_type, o.outfit_color, 
+                   o.outfit_desc, o.rent_price, o.status, o.outfit_img, o.size
+            FROM gown_package_outfits gpo
+            JOIN outfits o ON gpo.outfit_id = o.outfit_id
+            WHERE gpo.gown_package_id = %s
+            ORDER BY o.outfit_name
+        """, (gown_package_id,))
+        outfits = cursor.fetchall()
+        
+        return [
+            {
+                'outfit_id': outfit[0],
+                'outfit_name': outfit[1],
+                'outfit_type': outfit[2],
+                'outfit_color': outfit[3],
+                'outfit_desc': outfit[4],
+                'rent_price': float(outfit[5]) if outfit[5] else 0,
+                'status': outfit[6],
+                'outfit_img': outfit[7],
+                'size': outfit[8]
+            }
+            for outfit in outfits
+        ]
+    finally:
+        cursor.close()
+        conn.close()
+
+def add_event_feedback(events_id, userid, rating, feedback_text=None):
+    """Add a new feedback for an event"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if user has already submitted feedback for this event
+        cursor.execute("""
+            SELECT feedback_id FROM event_feedbacks 
+            WHERE events_id = %s AND userid = %s
+        """, (events_id, userid))
+        
+        if cursor.fetchone():
+            return False, "You have already submitted feedback for this event"
+            
+        # Insert new feedback
+        cursor.execute("""
+            INSERT INTO event_feedbacks (events_id, userid, rating, feedback_text)
+            VALUES (%s, %s, %s, %s)
+            RETURNING feedback_id
+        """, (events_id, userid, rating, feedback_text))
+        
+        feedback_id = cursor.fetchone()[0]
+        conn.commit()
+        return True, feedback_id
+        
+    except Exception as e:
+        logger.error(f"Error adding event feedback: {e}")
+        conn.rollback()
+        return False, str(e)
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_event_feedback(events_id):
+    """Get all feedback for a specific event"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT f.feedback_id, f.userid, f.rating, f.feedback_text, 
+                   f.created_at, u.firstname, u.lastname
+            FROM event_feedbacks f
+            JOIN users u ON f.userid = u.userid
+            WHERE f.events_id = %s
+            ORDER BY f.created_at DESC
+        """, (events_id,))
+        
+        feedbacks = cursor.fetchall()
+        return [{
+            'feedback_id': f[0],
+            'userid': f[1],
+            'rating': f[2],
+            'feedback_text': f[3],
+            'created_at': f[4].strftime('%Y-%m-%d %H:%M:%S'),
+            'user_firstname': f[5],
+            'user_lastname': f[6]
+        } for f in feedbacks]
+        
+    except Exception as e:
+        logger.error(f"Error getting event feedback: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()

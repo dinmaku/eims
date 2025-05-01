@@ -5,6 +5,7 @@ import logging
 from datetime import date, time
 import json
 import psycopg2
+from psycopg2.extras import RealDictCursor
 
 # Configure logging
 logging.basicConfig(level=logging.ERROR)
@@ -287,7 +288,7 @@ def update_suppliers_and_user(
 
 
 
-def update_staff(userid, first_name, last_name, email, contact_number, user_type):
+def update_staff(userid, firstname, lastname, email, contactnumber, user_type):
     if not userid:
         logger.error("Invalid userid provided")
         return False
@@ -298,10 +299,10 @@ def update_staff(userid, first_name, last_name, email, contact_number, user_type
         cursor.execute(
             """
             UPDATE users 
-            SET first_name = %s, last_name = %s, email = %s, contact_number = %s, user_type = %s 
+            SET firstname = %s, lastname = %s, email = %s, contactnumber = %s, user_type = %s 
             WHERE userid = %s
             """,
-            (first_name, last_name, email, contact_number, user_type, userid),
+            (firstname, lastname, email, contactnumber, user_type, userid),
         )
         if cursor.rowcount == 0:
             logger.warning(f"No user found with userid {userid}")
@@ -2199,36 +2200,236 @@ def get_all_events():
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT e.events_id, e.event_name, e.event_type, e.schedule, 
-                   e.start_time, e.end_time, e.status, e.package_id,
-                   e.onsite_firstname, e.onsite_lastname, e.onsite_contact,
-                   e.total_price, e.booking_type, p.package_name,
-                   v.venue_name, v.location as venue_location
+            SELECT 
+                e.events_id, e.event_name, e.event_type, e.event_theme, e.event_color,
+                e.schedule, e.start_time, e.end_time, e.status, e.booking_type,
+                e.onsite_firstname, e.onsite_lastname, e.onsite_contact, e.onsite_address,
+                e.total_price, e.userid,
+                wp.wishlist_id, wp.package_name, wp.capacity, wp.description as package_description,
+                wp.additional_capacity_charges, wp.charge_unit, wp.venue_status,
+                v.venue_id, v.venue_name, v.location, v.description as venue_description,
+                v.venue_price, v.venue_capacity,
+                gp.gown_package_id, gp.gown_package_name, gp.gown_package_price,
+                et.event_type_id, et.event_type_name,
+                u.firstname, u.lastname, u.email, u.contactnumber
             FROM events e
-            LEFT JOIN event_packages p ON e.package_id = p.package_id
-            LEFT JOIN event_venues ev ON e.events_id = ev.events_id
-            LEFT JOIN venues v ON ev.venue_id = v.venue_id
+            LEFT JOIN wishlist_packages wp ON e.events_id = wp.events_id
+            LEFT JOIN venues v ON wp.venue_id = v.venue_id
+            LEFT JOIN gown_package gp ON wp.gown_package_id = gp.gown_package_id
+            LEFT JOIN event_types et ON wp.event_type_id = et.event_type_id
+            LEFT JOIN users u ON e.userid = u.userid
+            WHERE LOWER(e.status) IN ('finished', 'cancelled')
             ORDER BY e.schedule DESC
         """)
-        events = cursor.fetchall()
-        return [{
-            'events_id': event[0],
-            'event_name': event[1],
-            'event_type': event[2],
-            'schedule': event[3],
-            'start_time': event[4],
-            'end_time': event[5],
-            'status': event[6],
-            'package_id': event[7],
-            'onsite_firstname': event[8],
-            'onsite_lastname': event[9],
-            'onsite_contact': event[10],
-            'total_price': float(event[11]) if event[11] else 0,
-            'booking_type': event[12],
-            'package_name': event[13],
-            'venue_name': event[14],
-            'venue_location': event[15]
-        } for event in events]
+        
+        events = []
+        
+        for row in cursor.fetchall():
+            event = {
+                'events_id': row[0],
+                'event_name': row[1],
+                'event_type': row[2],
+                'event_theme': row[3],
+                'event_color': row[4],
+                'schedule': row[5].strftime('%Y-%m-%d') if row[5] else None,
+                'start_time': row[6].strftime('%H:%M') if row[6] else None,
+                'end_time': row[7].strftime('%H:%M') if row[7] else None,
+                'status': row[8],
+                'booking_type': row[9],
+                'onsite_firstname': row[10],
+                'onsite_lastname': row[11],
+                'onsite_contact': row[12],
+                'onsite_address': row[13],
+                'total_price': float(row[14]) if row[14] else 0,
+                'userid': row[15],
+                'wishlist_id': row[16],
+                'package_name': row[17],
+                'capacity': row[18],
+                'package_description': row[19],
+                'additional_capacity_charges': float(row[20]) if row[20] else 0,
+                'charge_unit': row[21],
+                'venue_status': row[22] if row[22] else 'Pending',
+                'venue_id': row[23],
+                'venue_name': row[24],
+                'venue_location': row[25],
+                'venue_description': row[26],
+                'venue_price': float(row[27]) if row[27] else 0,
+                'venue_capacity': row[28],
+                'gown_package_id': row[29],
+                'gown_package_name': row[30],
+                'gown_package_price': float(row[31]) if row[31] else 0,
+                'event_type_id': row[32],
+                'event_type_name': row[33],
+                'firstname': row[34],
+                'lastname': row[35],
+                'email': row[36],
+                'contactnumber': row[37],
+                'bookedBy': f"{row[34] or ''} {row[35] or ''}".strip(),
+                'suppliers': [],
+                'services': [],
+                'venues': [],
+                'outfits': [],
+                'wishlist_venues': []
+            }
+
+            # Get wishlist venues for this event
+            if event['wishlist_id']:
+                cursor.execute("""
+                    SELECT 
+                        wv.wishlist_venue_id, wv.venue_id, wv.price, wv.status,
+                        v.venue_name, v.location, v.description, v.venue_capacity
+                    FROM wishlist_venues wv
+                    JOIN venues v ON wv.venue_id = v.venue_id
+                    WHERE wv.wishlist_id = %s
+                """, (event['wishlist_id'],))
+
+                wishlist_venues = cursor.fetchall()
+                event['wishlist_venues'] = []
+                for wv in wishlist_venues:
+                    venue_data = {
+                        'wishlist_venue_id': wv[0],
+                        'venue_id': wv[1],
+                        'price': float(wv[2]) if wv[2] else 0,
+                        'status': wv[3],
+                        'venue_name': wv[4],
+                        'location': wv[5],
+                        'description': wv[6],
+                        'venue_capacity': wv[7]
+                    }
+                    event['wishlist_venues'].append(venue_data)
+
+                    # Also add to the main venues array with wishlist_venue_id
+                    event['venues'].append({
+                        'wishlist_venue_id': wv[0],
+                        'venue_id': wv[1],
+                        'venue_name': wv[4],
+                        'location': wv[5],
+                        'description': wv[6],
+                        'venue_price': float(wv[2]) if wv[2] else 0,
+                        'venue_capacity': wv[7],
+                        'status': wv[3] if wv[3] else 'Pending'
+                    })
+            
+            # If no wishlist venues but we have a direct venue from the main query
+            elif event['venue_id']:
+                event['venues'].append({
+                    'venue_id': event['venue_id'],
+                    'venue_name': event['venue_name'],
+                    'location': event['venue_location'],
+                    'description': event['venue_description'],
+                    'venue_price': event['venue_price'],
+                    'venue_capacity': event['venue_capacity'],
+                    'status': event['venue_status']
+                })
+
+            # Get suppliers for this event
+            if event['wishlist_id']:
+                cursor.execute("""
+                    SELECT 
+                        ws.wishlist_supplier_id, ws.supplier_id, ws.status,
+                        s.service, u.firstname, u.lastname, ws.price
+                    FROM wishlist_suppliers ws
+                    JOIN suppliers s ON ws.supplier_id = s.supplier_id
+                    JOIN users u ON s.userid = u.userid
+                    WHERE ws.wishlist_id = %s
+                """, (event['wishlist_id'],))
+
+                suppliers = cursor.fetchall()
+                event['suppliers'] = [{
+                    'wishlist_supplier_id': s[0],
+                    'supplier_id': s[1],
+                    'status': s[2],
+                    'service': s[3],
+                    'firstname': s[4],
+                    'lastname': s[5],
+                    'price': float(s[6]) if s[6] else 0
+                } for s in suppliers]
+
+            # Get services for this event
+            if event['wishlist_id']:
+                cursor.execute("""
+                    SELECT 
+                        was.id, was.wishlist_id, was.add_service_id, was.price, was.remarks, was.status,
+                        a.add_service_name, a.add_service_description, a.add_service_price
+                    FROM wishlist_additional_services was
+                    JOIN additional_services a ON was.add_service_id = a.add_service_id
+                    WHERE was.wishlist_id = %s
+                """, (event['wishlist_id'],))
+
+                services = cursor.fetchall()
+                event['services'] = [{
+                    'id': s[0],
+                    'wishlist_id': s[1],
+                    'add_service_id': s[2],
+                    'price': float(s[3]) if s[3] is not None else float(s[8]) if s[8] is not None else 0,
+                    'remarks': s[4] if s[4] else '',
+                    'status': s[5] if s[5] else 'Pending',
+                    'add_service_name': s[6],
+                    'add_service_description': s[7],
+                    'add_service_price': float(s[8]) if s[8] is not None else 0,
+                    'total': float(s[3]) if s[3] is not None else float(s[8]) if s[8] is not None else 0
+                } for s in services]
+
+            # Get outfits for this event
+            if event['wishlist_id']:
+                # Query to get individual outfits
+                cursor.execute("""
+                    SELECT 
+                        wo.wishlist_outfit_id, wo.outfit_id, wo.gown_package_id, wo.price, wo.remarks, wo.status,
+                        o.outfit_name, o.outfit_type, o.rent_price, o.size
+                    FROM wishlist_outfits wo
+                    LEFT JOIN outfits o ON wo.outfit_id = o.outfit_id
+                    WHERE wo.wishlist_id = %s AND wo.outfit_id IS NOT NULL
+                """, (event['wishlist_id'],))
+
+                individual_outfits = cursor.fetchall()
+
+                # Query to get gown packages
+                cursor.execute("""
+                    SELECT 
+                        wo.wishlist_outfit_id, wo.outfit_id, wo.gown_package_id, wo.price, wo.remarks, wo.status,
+                        gp.gown_package_name, gp.gown_package_price
+                    FROM wishlist_outfits wo
+                    LEFT JOIN gown_package gp ON wo.gown_package_id = gp.gown_package_id
+                    WHERE wo.wishlist_id = %s AND wo.gown_package_id IS NOT NULL
+                """, (event['wishlist_id'],))
+
+                package_outfits = cursor.fetchall()
+
+                # Process individual outfits
+                for outfit in individual_outfits:
+                    outfit_data = {
+                        'wishlist_outfit_id': outfit[0],
+                        'outfit_id': outfit[1],
+                        'price': float(outfit[3]) if outfit[3] is not None else 0,
+                        'remarks': outfit[4] if outfit[4] else '',
+                        'status': outfit[5] if outfit[5] else 'Pending',
+                        'outfit_name': outfit[6],
+                        'outfit_type': outfit[7],
+                        'rent_price': float(outfit[8]) if outfit[8] is not None else 0,
+                        'size': outfit[9],
+                        'type': 'individual'
+                    }
+                    event['outfits'].append(outfit_data)
+
+                # Process package outfits
+                for outfit in package_outfits:
+                    outfit_data = {
+                        'wishlist_outfit_id': outfit[0],
+                        'gown_package_id': outfit[2],
+                        'price': float(outfit[3]) if outfit[3] is not None else 0,
+                        'remarks': outfit[4] if outfit[4] else '',
+                        'status': outfit[5] if outfit[5] else 'Pending',
+                        'gown_package_name': outfit[6],
+                        'gown_package_price': float(outfit[7]) if outfit[7] is not None else 0,
+                        'type': 'outfit_package'
+                    }
+                    event['outfits'].append(outfit_data)
+            
+            events.append(event)
+        
+        logger.info(f"Found {len(events)} upcoming events")
+        return events
     except Exception as e:
         logger.error(f"Error in get_all_events: {str(e)}")
         raise
@@ -4985,7 +5186,7 @@ def change_password(user_id, current_password, new_password):
 
 def get_user_by_email(email):
     """Get user by email."""
-    conn = get_db_connection()
+    conn = db.get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -5011,7 +5212,7 @@ def get_user_by_email(email):
 
 def get_user_by_username(username):
     """Get user by username."""
-    conn = get_db_connection()
+    conn = db.get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -5034,3 +5235,26 @@ def get_user_by_username(username):
     finally:
         cursor.close()
         conn.close()
+
+def get_event_feedback(events_id):
+    """Get feedback for a specific event."""
+    try:
+        conn = db.get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("""
+            SELECT f.*, u.firstname, u.lastname
+            FROM event_feedbacks f
+            JOIN users u ON f.userid = u.userid
+            WHERE f.events_id = %s
+        """, (events_id,))
+        
+        feedback = cur.fetchone()
+        
+        cur.close()
+        conn.close()
+        
+        return feedback
+    except Exception as e:
+        print(f"Error getting event feedback: {e}")
+        return None

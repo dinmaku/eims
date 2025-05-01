@@ -1,7 +1,7 @@
 <template>
   <div class= "ml-10 mt-5 text-start">
-    <h1 class="font-amaticBold font-bold text-4xl pb-1">Welcome, {{ userFullName }}</h1>
-    <p class="font-amaticRegular font-bold text-gray-400">Check your latest updates</p>
+    <h1 class="font-inter font-bold text-4xl pb-1">Welcome, {{ userFullName }}</h1>
+    <p class="font-inter font-bold text-gray-400">Check your latest updates</p>
     <hr class="w-[1100px] mt-2">
   </div>
   

@@ -247,7 +247,6 @@ export default {
       allowedFileTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
       maxFileSize: 5 * 1024 * 1024, // 5MB
       apiBaseUrl: 'http://127.0.0.1:5000',
-      savedImagesPath: 'E:/eims/saved/users_profile',
       passwordForm: {
         currentPassword: '',
         newPassword: '',

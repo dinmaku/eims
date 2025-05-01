@@ -1,8 +1,27 @@
 <template>
+   <!-- Alert Modal -->
+    <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+      <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+        <div class="flex justify-between items-center mb-4">
+          <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+            {{ alertType === 'success' ? 'Success' : 'Error' }}
+          </h3>
+          <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+            <span class="text-2xl">&times;</span>
+          </button>
+        </div>
+        <p class="text-gray-700">{{ alertMessage }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   <!--Events Header-->
-  <div class="bg-gray-200 w-full h-full">
+  <div class="bg-gray-200 w-full h-full font-inter">
     <div class="w-full h-[65px] bg-gray-100 mt-2 flex items-center justify-between px-5 shadow-lg">
-  <h1 class="font-amaticBold font-extraLight text-3xl">
+  <h1 class="font-inter font-extraLight text-3xl">
     Events
   </h1>
   <div class="flex items-center">
@@ -17,16 +36,16 @@
 <!--Information Cards-->
  <div class = "flex justify-start space-x-5">
     <div class ="w-60 h-[80px] bg-white py-2 px-3 ml-5 mt-10 border-l-2 border-green-400 shadow-md flex items-center justify-between ">
-    <h1 class ="font-amaticBold font-regular text-3xl ml-3 text-blue-900">{{ totalWishlist }}</h1>
-     <p class = "font-amaticBold font-regular text-lg text-gray-700 mr-5">Total Wishlist</p>
+    <h1 class ="font-inter font-regular text-3xl ml-3 text-blue-900">{{ totalWishlist }}</h1>
+     <p class = "font-inter font-regular text-lg text-gray-700 mr-5">Total Wishlist</p>
     </div>
     <div class ="w-60 h-[80px] bg-white py-2 px-3 ml-5 mt-10 border-l-2 border-red-400 shadow-md flex items-center justify-between ">
-    <h1 class ="font-amaticBold font-regular text-3xl ml-3 text-blue-900">12</h1>
-     <p class = "font-amaticBold font-regular text-lg text-gray-700 mr-5">In Progress</p>
+    <h1 class ="font-inter font-regular text-3xl ml-3 text-blue-900">12</h1>
+     <p class = "font-inter font-regular text-lg text-gray-700 mr-5">In Progress</p>
     </div>
     <div class ="w-60 h-[80px] bg-white py-2 px-3 ml-5 mt-10 border-l-2 border-yellow-400 shadow-md flex items-center justify-between ">
-    <h1 class ="font-amaticBold font-regular text-3xl ml-3 text-blue-900">98</h1>
-     <p class = "font-amaticBold font-regular text-lg text-gray-700 mr-5">Completed</p>
+    <h1 class ="font-inter font-regular text-3xl ml-3 text-blue-900">98</h1>
+     <p class = "font-inter font-regular text-lg text-gray-700 mr-5">Completed</p>
     </div>
   </div>
 
@@ -40,7 +59,7 @@
       ]"
       @click="showTable = 'wishlist'"
     >
-      <h1 class="font-amaticBold font-medium">Wishlist</h1>
+      <h1 class="font-inter font-medium">Wishlist</h1>
     </button>
     <button
       :class="[
@@ -49,7 +68,7 @@
       ]"
       @click="showTable = 'events'"
     >
-      <h1 class="font-amaticBold font-medium">Upcoming Events</h1>
+      <h1 class="font-inter font-medium">Upcoming Events</h1>
     </button>
     <button
       :class="[
@@ -58,7 +77,7 @@
       ]"
       @click="showTable = 'ongoing-events'"
     >
-      <h1 class="font-amaticBold font-medium">Ongoing</h1>
+      <h1 class="font-inter font-medium">Ongoing</h1>
     </button>
     <button
       :class="[
@@ -67,7 +86,7 @@
       ]"
       @click="showTable = 'finished-events'"
     >
-      <h1 class="font-amaticBold font-medium">Completed</h1>
+      <h1 class="font-inter font-medium">Completed</h1>
     </button>
     <button
       :class="[
@@ -76,7 +95,7 @@
       ]"
       @click="showTable = 'cancelled-events'"
     >
-      <h1 class="font-amaticBold font-medium">Cancelled</h1>
+      <h1 class="font-inter font-medium">Cancelled</h1>
     </button>
   </div>
 </div>
@@ -84,7 +103,7 @@
     
 
     <!-- Tables -->
-    <div v-if="showTable === 'wishlist'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+    <div v-if="showTable === 'wishlist'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-inter mb-10">
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 table-fixed">
           <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -169,8 +188,30 @@
       </div>
     </div>
 
+    <!-- Invoice Creation Confirmation Modal -->
+    <div v-if="showInvoiceConfirmationModal" @click.self="closeInvoiceConfirmationModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+      <div class="bg-white p-5 rounded-lg shadow-lg w-[400px]">
+        <div class="flex flex-col items-center">
+          <h2 class="text-xl font-semibold mb-4">Create Invoice</h2>
+          <p class="mb-6 text-center">Would you like to create an invoice for "{{ selectedEventForInvoice?.event_name }}"?</p>
+          <div class="flex space-x-4">
+            <button 
+              @click="closeInvoiceConfirmationModal" 
+              class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-opacity-90">
+              Cancel
+            </button>
+            <button 
+              @click="confirmCreateInvoice" 
+              class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-opacity-90">
+              Create Invoice
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!--Upcoming Events Table-->
-    <div v-if="showTable === 'events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+    <div v-if="showTable === 'events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-inter mb-10">
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30">
           <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -240,7 +281,7 @@
     </div>
 
         <!-- Ongoing Events Section -->
-        <div v-if="showTable === 'ongoing-events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+        <div v-if="showTable === 'ongoing-events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-inter mb-10">
       <div class="overflow-x-auto">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30">
           <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -325,42 +366,56 @@
     </div>
 
     <!--Completed Events-->
-    <div v-if="showTable === 'finished-events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+    <div v-if="showTable === 'finished-events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-inter mb-10">
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30">
           <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
               <th scope="col" class="px-2 py-3">#</th>
-              <th scope="col" class="px-2 py-3">Event</th>
+              <th scope="col" class="px-2 py-3">Event Type</th>
               <th scope="col" class="px-2 py-3">Event Name</th>
               <th scope="col" class="px-2 py-3">Package Deal</th>
               <th scope="col" class="px-2 py-3">Venue</th>
               <th scope="col" class="px-2 py-3">Schedule</th>
               <th scope="col" class="px-2 py-3">Total Charges</th>
-              <th scope="col" class="px-2 py-3">Invoice</th>
+              <th scope="col" class="px-2 py-3">Action</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="paginatedFinishedEvents.length === 0" class="border-b dark:border-gray-700">
-              <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+              <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                 <p>No completed events found.</p>
                 <p class="text-xs mt-2">Events marked as 'Finished' will appear here.</p>
               </td>
             </tr>
             <tr v-for="(event, index) in paginatedFinishedEvents" :key="event.events_id" class="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700">
               <th scope="row" class="px-2 py-3 font-medium text-gray-900 dark:text-white">{{ (currentFinishedPage - 1) * rowsPerFinishedPage + index + 1 }}</th>
-              <td class="px-1 py-3">{{ event.event }}</td>
-              <td class="px-1 py-3">{{ event.eventName }}</td>
-              <td class="px-1 py-3">{{ event.packageDeal }}</td>
-              <td class="px-1 py-3">{{ event.venue }}</td>
-              <td class="px-1 py-3">{{ event.schedule }}</td>
-              <td class="px-1 py-3">{{ event.totalCharges }}</td>
+              <td class="px-1 py-3">{{ event.event_type }}</td>
+              <td class="px-1 py-3">{{ event.event_name }}</td>
+              <td class="px-1 py-3">{{ event.package_name }}</td>
               <td class="px-1 py-3">
-                <button
-                  @click="confirmAndCreateInvoice(event)"
-                  class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200">
-                  <img src="/img/invoice.png" alt="Invoice" class="w-5 h-5" title="View Invoice">
-                </button>
+                <div class="space-y-1">
+                  <div class="font-medium">{{ event.venue_name }}</div>
+                  <div class="text-xs text-gray-500">{{ event.location }}</div>
+                </div>
+              </td>
+              <td class="px-1 py-3">{{ formatDate(event.schedule) }}</td>
+              <td class="px-1 py-3 font-medium">₱{{ formatPrice(event.total_price) }}</td>
+              <td class="px-1 py-3">
+                <div class="flex items-center">
+                  
+                  <button
+                    @click="confirmAndCreateInvoice(event)"
+                    class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200">
+                    <img src="/img/invoice.png" alt="Invoice" class="w-5 h-5" title="View Invoice">
+                  </button>
+                  <button
+                    @click="viewFeedback(event)"
+                    class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
+                    :title="event.feedback ? `Rating: ${event.feedback.rating}/5` : 'Not yet Rated'">
+                    <img src="/img/feedback.png" alt="Feedback" class="w-5 h-5">
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -382,7 +437,7 @@
     </div>
 
     <!-- Cancelled Events -->
-    <div v-if="showTable === 'cancelled-events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+    <div v-if="showTable === 'cancelled-events'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-inter mb-10">
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30">
           <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -441,10 +496,10 @@
     <div v-if="showWishlistModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center" @click.self="closeWishlistModal()">
       <div class="bg-white w-[1100px] p-6 rounded-lg shadow-lg overflow-y-auto max-h-[97vh]">
         <!-- Header -->
-        <div class="flex justify-between mb-4">
-          <h2 class="text-xl font-bold">Wishlist Details</h2>
+        <d class="flex justify-between mb-4">
+          <h2 class="text-xl font-bold">Events Details</h2>
           <button @click="closeWishlistModal" class="text-red-500 text-3xl">×</button>
-        </div>
+        </d>
 
         <!-- Basic Info -->
         <div class="grid grid-cols-2 gap-4 mb-6 font-amaticSC">
@@ -484,7 +539,7 @@
           </div>
 
         <div class = "mb-4">
-            <p class = "text-md font-medium font-poppins text-gray-500">(* Click the buttons to Add items to the list )</p>
+            <p class = "text-md font-medium font-inter text-gray-500">(* Click the buttons to Add items to the list )</p>
           </div>
 
 
@@ -527,7 +582,7 @@
         <div class="mb-6 space-y-6">
           <!-- Venue Table -->
           <div>
-            <h3 class="font-semibold text-blue-900 mb-3 font-raleway text-start ml-3 text-lg">Venue</h3>
+            <h3 class="font-semibold text-blue-900 mb-3 font-inter text-start ml-3 text-lg">Venue</h3>
             <table class="table-auto w-full text-left text-base">
                 <thead class="bg-gray-200">
                   <tr>
@@ -625,7 +680,7 @@
 
           <!-- Suppliers Table -->
           <div>
-            <h3 class="font-semibold text-blue-900 mb-3 font-raleway text-start ml-3 text-lg">Suppliers</h3>
+            <h3 class="font-semibold text-blue-900 mb-3 font-inter text-start ml-3 text-lg">Suppliers</h3>
             <table class="table-auto w-full text-left text-base">
               <thead class="bg-gray-200">
                 <tr>
@@ -685,7 +740,7 @@
 
           <!-- Outfit Package Table -->
           <div>
-            <h3 class="font-semibold text-blue-900 mb-3 font-raleway text-start ml-3 text-lg">Outfits</h3>
+            <h3 class="font-semibold text-blue-900 mb-3 font-inter text-start ml-3 text-lg">Outfits</h3>
             <table class="table-auto w-full text-left text-base">
               <thead class="bg-gray-200">
                 <tr>
@@ -745,7 +800,7 @@
 
           <!-- Additional Services Table -->
           <div>
-            <h3 class="font-semibold text-blue-900 mb-3 font-raleway text-start ml-3 text-lg">
+            <h3 class="font-semibold text-blue-900 mb-3 font-inter text-start ml-3 text-lg">
               Other Inclusions 
               <!-- Removing the debug button -->
             </h3>
@@ -809,7 +864,7 @@
         </div>
 
       <div class ="mt-5 mb-5">
-            <h3 class ="font-semibold text-blue-900 mb-2 font-raleway text-start ml-3">Capacity Pax</h3>
+            <h3 class ="font-semibold text-blue-900 mb-2 font-inter text-start ml-3">Capacity Pax</h3>
           <div class ="w-full p-2 border rounded bg-gray-100 flex flex-col justify-center items-center">
             <p class = "text-md font-medium">Package Pax: <span class = "font-semibold">{{ selectedEvent.capacity }} persons</span></p>
             <p class = "text-md ">Additional Charges: <span class = "font-medium">₱{{ selectedEvent.additional_capacity_charges }} per {{ selectedEvent.charge_unit }} person/s</span></p>
@@ -918,7 +973,7 @@
 <div v-if="upcomingEventDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
   <div class="bg-white w-[900px] h-full p-5 rounded-lg shadow-lg  overflow-y-auto overflow-x-hidden">
     <div class = "flex justify-between m-2 items-center ">
-    <h2 class="text-lg mt-2 font-bold font-raleway text-gray-600">Event Details</h2>
+    <h2 class="text-lg mt-2 font-bold font-inter text-gray-600">Event Details</h2>
   
     <button class="mt-2 bg-red-500 text-white px-3 py-1 rounded transform-transition duration-300 transform hover:scale-105" @click="closeUpcomingEventsModal">
       Close
@@ -929,13 +984,13 @@
     <div class = "flex m-1 mt-4">
             <button
             @click="viewInvoice(selectedEvent)"
-                class="h-8 w-24 bg-blue-900 font-amaticBold font-medium text-sm rounded-full text-white hover:bg-blue-600 transform-transition duration-300 transform hover:scale-105">
+                class="h-8 w-24 bg-blue-900 font-inter font-medium text-sm rounded-full text-white hover:bg-blue-600 transform-transition duration-300 transform hover:scale-105">
                 View Invoice 
               </button>
 
             <button
             @click="viewTestInvoice()"
-                class="h-8 w-32 ml-2 bg-green-900 font-amaticBold font-medium text-sm rounded-full text-white hover:bg-green-600 transform-transition duration-300 transform hover:scale-105">
+                class="h-8 w-32 ml-2 bg-green-900 font-inter font-medium text-sm rounded-full text-white hover:bg-green-600 transform-transition duration-300 transform hover:scale-105">
                 Test Invoice 
               </button>
     </div>
@@ -945,7 +1000,7 @@
     
 
     <!--------------->
-    <div class="flex flex-col space-y-7 font-raleway mx-10 m-3">
+    <div class="flex flex-col space-y-7 font-inter mx-10 m-3">
       <div class = "flex justify-end">
         <label
   class="relative inline-block h-5 w-11 cursor-pointer rounded-full bg-gray-300 transition
@@ -998,7 +1053,7 @@
     <label class="text-sm font-semibold text-gray-600" for="eventName">Schedule Date:</label>
     <input 
       type="text" 
-      class="ml-2 h-9 w-80 text-center font-gothic rounded-lg text-sm font-bold bg-[#fefff6]" 
+      class="ml-2 h-9 w-80 text-center font-inter rounded-lg text-sm font-bold bg-[#fefff6]" 
       v-model="selectedEvent.schedule"
       :disabled="!enableEditDetails"
     />
@@ -1007,14 +1062,14 @@
     <label class="text-sm font-semibold text-gray-600 mt-4" for="eventName">Theme</label>
     <input 
       type="text" 
-      class="ml-2 h-9 w-36 text-center font-gothic rounded-lg text-sm font-bold bg-[#fefff6]" 
+      class="ml-2 h-9 w-36 text-center font-inter rounded-lg text-sm font-bold bg-[#fefff6]" 
       v-model="selectedEvent.theme"
       :disabled="!enableEditDetails"
     />
     <label class="text-sm font-semibold text-gray-600" for="eventName">Color</label>
     <input 
       type="text" 
-      class="ml-2 h-9 w-36 text-center font-gothic rounded-lg text-sm font-bold bg-[#fefff6]" 
+      class="ml-2 h-9 w-36 text-center font-inter rounded-lg text-sm font-bold bg-[#fefff6]" 
       v-model="selectedEvent.color"
       :disabled="!enableEditDetails"
     />
@@ -1024,22 +1079,22 @@
     <label class="text-sm font-semibold text-gray-600 mt-4" for="eventName">Start Time:</label>
     <input 
       type="text" 
-      class="ml-2 h-9 w-36 text-center font-gothic rounded-lg text-sm font-bold bg-[#fefff6]" 
+      class="ml-2 h-9 w-36 text-center font-inter rounded-lg text-sm font-bold bg-[#fefff6]" 
       v-model="selectedEvent.startTime"
       :disabled="!enableEditDetails"
     />
     <label class="text-sm font-semibold text-gray-600" for="eventName">End Time:</label>
     <input 
       type="text" 
-      class="ml-2 h-9 w-36 text-center font-gothic rounded-lg text-sm font-bold bg-[#fefff6]" 
+      class="ml-2 h-9 w-36 text-center font-inter rounded-lg text-sm font-bold bg-[#fefff6]" 
       v-model="selectedEvent.endTime"
       :disabled="!enableEditDetails"
     />
-    <label for="vendor-name" class="block text-sm font-semibold font-raleway text-gray-700 mt-2">
+    <label for="vendor-name" class="block text-sm font-semibold font-inter text-gray-700 mt-2">
       Capacity:
     </label>
     <div class="flex grid-col ml-2">
-      <select v-model="selectedCapacity" class="w-38 h-9 text-sm font-semibold rounded-lg font-amaticRegular bg-[#fefff6]"
+      <select v-model="selectedCapacity" class="w-38 h-9 text-sm font-semibold rounded-lg font-inter bg-[#fefff6]"
         :disabled="!enableEditDetails">
         <option v-for="(option, index) in capacities" :key="index" :value="option.value">
         {{ option.label }}
@@ -1053,7 +1108,7 @@
 
 <!------Vendor Details------------->
   <div div class = "flex justify-between m-2 items-center ">
-    <h2 class="text-md mt-2 font-bold font-raleway text-gray-700">Vendor Details</h2>
+    <h2 class="text-md mt-2 font-bold font-inter text-gray-700">Vendor Details</h2>
 
     <div class = "flex justify-end">
         <label
@@ -1074,25 +1129,25 @@
 
   <div class="flex mx-5 mt-10">
     <div class="row text-start">
-      <label for="catering-service" class="text-sm font-semibold font-raleway text-gray-600">Catering Service. *</label>
+      <label for="catering-service" class="text-sm font-semibold font-inter text-gray-600">Catering Service. *</label>
       <select v-model="selectedCatering" id="catering-service" class="w-80 h-9 m-3 ml-[115px] rounded-lg text-sm font-bold bg-[#fefff6]" :disabled="!editVendorDetails">
         <option value="catering1">Savory Spread Catering</option>
         <option value="catering2">Delightful Bites Catering</option>
         <option value="catering3">Elegant Eats Events</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700"> ( {{ getCateringPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700"> ( {{ getCateringPrice() }} )</span>
     </div>
   </div>
 
   <div class="flex mx-5 mt-3">
     <div class="row text-start">
-      <label for="catering-service" class="text-sm font-semibold font-raleway text-gray-600">Photographer and Videographer. *</label>
+      <label for="catering-service" class="text-sm font-semibold font-inter text-gray-600">Photographer and Videographer. *</label>
       <select v-model="selectedMultimedia" id="catering-service" class="w-80 h-9 m-3 rounded-lg text-sm font-bold bg-[#fefff6]" :disabled="!editVendorDetails">
         <option value = "multimedia1">Crystal Clear Imagery</option>
         <option value = "multimedia2">Vivid Memories Media</option>
         <option value = "multimedia3">Shutter & Frame Creations</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getMultimediaPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getMultimediaPrice() }} )</span>
     </div>
   </div>
   
@@ -1104,7 +1159,7 @@
         <option value="glam2">Radiant Luxe Studio</option>
         <option value ="glam3">Elegant Essence</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getGlamPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getGlamPrice() }} )</span>
     </div>
   </div>
 
@@ -1116,7 +1171,7 @@
         <option value = "host2">Edward Backward</option>
         <option value=  "host3">Ray Castillo</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getHostPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getHostPrice() }} )</span>
     </div>
   </div>
 
@@ -1128,7 +1183,7 @@
         <option value = "audiovisual2">Korbyn Norton</option>
         <option value = "audiovisual3">Nico Shepherd</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getAudioVisualPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getAudioVisualPrice() }} )</span>
     </div>
   </div>
 
@@ -1140,7 +1195,7 @@
         <option value = "entertainment2">November Revenue</option>
         <option value = "entertainment3">Lani Misaluy-a</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getEntertainmentPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getEntertainmentPrice() }} )</span>
     </div>
   </div>
 
@@ -1152,7 +1207,7 @@
         <option value="transportation2">Vintage Car Rentals</option>
         <option value="transportation3">Kalesa Services</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getTransportationPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getTransportationPrice() }} )</span>
     </div>
   </div>
 
@@ -1164,7 +1219,7 @@
         <option value="invitations2">Digital Invitations Co.</option>
         <option value="invitations3">Elegant Stationery Creations</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getInvitationsPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getInvitationsPrice() }} )</span>
     </div>
   </div>
 
@@ -1176,7 +1231,7 @@
         <option value="gifts2">Edible Favors Bakery</option>
         <option value="gifts3">Themed Gift Suppliers</option>
       </select>
-      <span class="ml-5 text-sm font-semibold font-amaticRegular text-blue-700">( {{ getGiftsPrice() }} )</span>
+      <span class="ml-5 text-sm font-semibold font-inter text-blue-700">( {{ getGiftsPrice() }} )</span>
     </div>
   </div>
 
@@ -1184,7 +1239,7 @@
 
   <!-------Service Details----------->
   <div div class = "flex justify-between m-2 items-center ">
-    <h2 class="text-md mt-2 font-bold font-raleway text-gray-700">Service Details</h2>
+    <h2 class="text-md mt-2 font-bold font-inter text-gray-700">Service Details</h2>
 
     <div class = "flex justify-end">
         <label
@@ -1204,7 +1259,7 @@
   </div>
   
   <div class = "mt-9">
-    <h1 class = "flex ml-5 text-sm mt-2 font-bold font-raleway text-blue-700">Packages</h1>
+    <h1 class = "flex ml-5 text-sm mt-2 font-bold font-inter text-blue-700">Packages</h1>
   <table class="min-w-full m-5 mt-5 border-collapse">
     <thead>
         <tr>
@@ -1243,7 +1298,7 @@
 </table>
 
     <div class = "mt-9">
-      <h1 class = "flex ml-5 text-sm mt-2 font-bold font-raleway text-blue-700">Outfits</h1>
+      <h1 class = "flex ml-5 text-sm mt-2 font-bold font-inter text-blue-700">Outfits</h1>
       <table class="min-w-full m-5 mt-5 border-collapse">
     <thead>
         <tr>
@@ -1628,6 +1683,50 @@
       </div>
     </div>
   </div>
+
+   <!-- Status Update Cancelled Confirmation Modal -->
+  <div v-if="showStatusCancelledModal" @click.self="closeStatusCancelledModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+    <div class="bg-white p-5 rounded-lg shadow-lg w-[400px]">
+      <div class="flex flex-col items-center">
+        <h2 class="text-xl font-semibold mb-4">Confirm Status Change</h2>
+        <p class="mb-6 text-center">Are you sure you want to Cancel this Event?</p>
+        <div class="flex space-x-4">
+          <button 
+            @click="closeStatusCancelledModal" 
+            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-opacity-90">
+            Cancel
+          </button>
+          <button 
+            @click="cancelEventStatus" 
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-opacity-90">
+            Yes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+   <!-- Status Update Completed Confirmation Modal -->
+  <div v-if="showCompleteConfirmationModal" @click.self="closeCompleteConfirmationModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+    <div class="bg-white p-5 rounded-lg shadow-lg w-[400px]">
+      <div class="flex flex-col items-center">
+        <h2 class="text-xl font-semibold mb-4">Confirm Status Change</h2>
+        <p class="mb-6 text-center">Are you sure you want to mark this event as completed?</p>
+        <div class="flex space-x-4">
+          <button 
+            @click="closeCompleteConfirmationModal" 
+            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-opacity-90">
+            Cancel
+          </button>
+          <button 
+            @click="completeEventStatus" 
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-opacity-90">
+            Yes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
   
   <!-- Status Approval Modal -->
   <div v-if="showStatusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1663,7 +1762,7 @@
       <div class="grid grid-cols-2 gap-4">
         <!-- Event Details Section -->
         <div class="col-span-2">
-          <h3 class="text-md font-bold font-raleway text-gray-700 mb-4">Event Details</h3>
+          <h3 class="text-md font-bold font-inter text-gray-700 mb-4">Event Details</h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">Event Name</label>
@@ -1687,7 +1786,7 @@
         <!-- Venue Section -->
         <div class="col-span-2">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-md font-bold font-raleway text-gray-700">Venue</h3>
+            <h3 class="text-md font-bold font-inter text-gray-700">Venue</h3>
             <button @click="editVenue" class="text-blue-500 hover:text-blue-700">Change Venue</button>
           </div>
           <div v-if="selectedEvent.venue" class="bg-gray-50 p-4 rounded-md">
@@ -1727,7 +1826,7 @@
         <!-- Services Section -->
         <div class="col-span-2">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-md font-bold font-raleway text-gray-700">Services</h3>
+            <h3 class="text-md font-bold font-inter text-gray-700">Services</h3>
             <button @click="openInclusionModal('service')" class="text-blue-500 hover:text-blue-700">Add Service</button>
           </div>
           <div class="space-y-2">
@@ -1747,7 +1846,7 @@
         <!-- Outfits Section -->
         <div class="col-span-2">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-md font-bold font-raleway text-gray-700">Outfits</h3>
+            <h3 class="text-md font-bold font-inter text-gray-700">Outfits</h3>
             <button @click="openInclusionModal('outfit')" class="text-blue-500 hover:text-blue-700">Add Outfit</button>
           </div>
           <div class="space-y-2">
@@ -1904,6 +2003,38 @@
             Update
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Modal -->
+  <div v-if="showFeedbackModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50" @click.self="closeFeedbackModal">
+    <div class="bg-white w-[500px] p-6 rounded-lg shadow-lg">
+      <div class="flex justify-between mb-4">
+        <h2 class="text-xl font-bold">Event Feedback</h2>
+        <button @click="closeFeedbackModal" class="text-red-500 text-3xl">&times;</button>
+      </div>
+      <div v-if="currentFeedback">
+        <div class="mb-4">
+          <div class="flex items-center mb-2">
+            <span class="text-lg font-semibold mr-2">Rating:</span>
+            <div class="flex">
+              <span 
+                v-for="star in 5" 
+                :key="star"
+                class="text-2xl"
+                :class="star <= currentFeedback.rating ? 'text-yellow-400' : 'text-gray-300'"
+              >★</span>
+            </div>
+          </div>
+          <div class="mt-4">
+            <span class="text-lg font-semibold">Feedback:</span>
+            <p class="mt-2 text-gray-700">{{ currentFeedback.feedback_text || 'No written feedback provided.' }}</p>
+          </div>
+        </div>
+      </div>
+      <div v-else class="text-center py-4">
+        <p class="text-lg text-gray-700">No feedback available for this event.</p>
       </div>
     </div>
   </div>
@@ -2064,7 +2195,11 @@
       },
   
 
-     
+      showStatusCancelledModal: false,
+      eventToCancel: null,
+
+      showCompleteConfirmationModal: false,
+      eventToComplete: null,
       
       showStatusModal: false,
       inclusionToUpdate: null,
@@ -2083,6 +2218,13 @@
       currentCancelledPage: 1,
       rowsPerCancelledPage: 5,
       finishedEvents: [], // Add this line
+      // Add these alert-related properties
+      showAlert: false,
+      alertType: 'success',
+      alertMessage: '',
+      showInvoiceConfirmationModal: false,
+      showFeedbackModal: false,
+      currentFeedback: null,
     };
   },
   watch: {
@@ -2156,8 +2298,14 @@
           await Promise.all(promises);
         }
       }
-    }
-},
+    },
+    paginatedFinishedEvents: {
+      immediate: true,
+      handler() {
+        this.fetchEventFeedback();
+      },
+    },
+  },
 
   computed: {
     paginatedUpcomingEvents() {
@@ -2181,7 +2329,9 @@
     paginatedWishlist() {
       const start = (this.currentWishlistPage - 1) * this.rowsPerWishlistPage;
       const end = start + this.rowsPerWishlistPage;
-      return this.wishlist.slice(start, end);
+      // Sort wishlist by events_id in descending order before pagination
+      const sortedWishlist = [...this.wishlist].sort((a, b) => b.events_id - a.events_id);
+      return sortedWishlist.slice(start, end);
     },
 
     totalWishlistPages() {
@@ -2608,12 +2758,12 @@
     async addSelectedVenue() {
       try {
         if (!this.selectedVenue) {
-          alert('Please select a venue first');
+          this.showAlertMessage('Please select a venue first');
           return;
         }
 
         if (!this.selectedEvent) {
-          alert('No event selected for venue addition');
+          this.showAlertMessage('No event selected for venue addition');
           return;
         }
 
@@ -2811,7 +2961,15 @@
       this.showEventModal = false;
       this.selectedEvent = {};
     },
+     
+     openStatusCancelledModal() {
+      this.showStatusCancelledModal = true;
+    },
 
+    closeStatusCancelledModal() {
+      this.showStatusCancelledModal = false;
+      this.eventToCancel = null;
+    },
   
 
     viewEvent(event) {
@@ -2823,7 +2981,7 @@
     try {
       if (!event || !event.events_id) {
         console.error('Cannot view invoice: Invalid event data', event);
-        alert('Error: Cannot view invoice for this event - missing event ID');
+        this.showAlertMessage('Error: Cannot view invoice for this event - missing event ID');
         return;
       }
       
@@ -2866,7 +3024,7 @@
       }
     } catch (error) {
       console.error('Error navigating to invoice:', error);
-      alert('Error: Unable to view invoice - ' + error.message);
+      this.showAlertMessage('Error: Unable to view invoice - ' + error.message);
     }
   },
 
@@ -2917,7 +3075,7 @@
     } catch (error) {
       this.showNotificationModal = false;
       console.error('Error checking invoice status:', error);
-      alert(`Error: ${error.message}`);
+      this.showAlertMessage(`Error: ${error.message}`);
     }
   },
 
@@ -2948,7 +3106,7 @@
     },
     addCapacity() {
       if (!this.additionalCapacity || this.additionalCapacity <= 0) {
-        alert('Please enter a valid additional capacity greater than 0.');
+        this.showAlertMessage('Please enter a valid additional capacity greater than 0.');
         return;
       }
         
@@ -2988,7 +3146,7 @@
             if (saved) {
               this.showCapacityModal = false;
               this.additionalCapacity = 0; // Reset input
-              alert('Additional capacity added successfully!');
+              this.showAlertMessage('Additional capacity added successfully!');
             } else {
               // Revert on failure
               this.selectedEvent.capacity = originalCapacity;
@@ -2998,16 +3156,16 @@
               }
               this.selectedEvent.additional_capacity = 0;
               this.selectedEvent.additional_capacity_total_price = 0;
-              alert('Failed to save additional capacity. Please try again.');
+              this.showAlertMessage('Failed to save additional capacity. Please try again.');
             }
           })
           .catch(error => {
             console.error('Error saving capacity:', error);
-            alert('Error saving capacity: ' + error.message);
+            this.showAlertMessage('Error saving capacity: ' + error.message);
           });
       } catch (error) {
         console.error('Error in addCapacity:', error);
-        alert('An error occurred while adding capacity: ' + error.message);
+        this.showAlertMessage('An error occurred while adding capacity: ' + error.message);
       }
     },
 
@@ -3023,7 +3181,7 @@
       },
     async addSelectedIndividualOutfit() {
       if (!this.selectedOutfit) {
-        alert('No Outfit Selected: Please select an outfit to add to your wishlist.');
+        this.showAlertMessage('No Outfit Selected: Please select an outfit to add to your wishlist.');
         return;
       }
 
@@ -3033,7 +3191,7 @@
       );
 
       if (outfitExists) {
-        alert('Outfit Already Added: This outfit is already in your wishlist.');
+        this.showAlertMessage('Outfit Already Added: This outfit is already in your wishlist.');
         return;
       }
 
@@ -3062,15 +3220,15 @@
 
       // Show appropriate message based on save result
       if (saved) {
-        alert('Success: The outfit has been added to your wishlist.');
+        this.showAlertMessage('Success: The outfit has been added to your wishlist.');
       } else {
-        alert('Save Failed: The outfit was added to your list but could not be saved to the database.');
+        this.showAlertMessage('Save Failed: The outfit was added to your list but could not be saved to the database.');
       }
     },
 
     async addSelectedOutfitPackage() {
       if (!this.selectedOutfit) {
-        alert('No Package Selected: Please select a gown package to add to your wishlist.');
+        this.showAlertMessage('No Package Selected: Please select a gown package to add to your wishlist.');
         return;
       }
 
@@ -3080,7 +3238,7 @@
       );
 
       if (packageExists) {
-        alert('Package Already Added: This gown package is already in your wishlist.');
+        this.showAlertMessage('Package Already Added: This gown package is already in your wishlist.');
         return;
       }
 
@@ -3107,9 +3265,9 @@
 
       // Show appropriate message based on save result
       if (saved) {
-        alert('Success: The gown package has been added to your wishlist.');
+        this.showAlertMessage('Success: The gown package has been added to your wishlist.');
       } else {
-        alert('Save Failed: The gown package was added to your list but could not be saved to the database.');
+        this.showAlertMessage('Save Failed: The gown package was added to your list but could not be saved to the database.');
       }
     },
 
@@ -3280,7 +3438,7 @@
         
         // Don't allow removal of initialized outfits
         if (type === 'outfits' && item.is_initialized) {
-          alert('Cannot remove initialized outfits');
+          this.showAlertMessage('Cannot remove initialized outfits');
           return;
         }
 
@@ -3317,7 +3475,7 @@
               if (!item.wishlist_outfit_id) {
                 // For outfits without IDs, just remove from local state
                 this.selectedEvent.outfits.splice(index, 1);
-                alert('Outfit removed successfully');
+                this.showAlertMessage('Outfit removed successfully');
                 return;
               } else {
                 // Use direct DELETE for wishlist outfit
@@ -3330,7 +3488,7 @@
               if (!item.id) {
                 // For services without IDs, just remove from local state
                 this.selectedEvent.services.splice(index, 1);
-                alert('Service removed successfully');
+                this.showAlertMessage('Service removed successfully');
                 return;
               } else {
                 // Use direct DELETE for wishlist service
@@ -3343,7 +3501,7 @@
               if (!item.wishlist_supplier_id) {
                 // For suppliers without IDs, just remove from local state
                 this.selectedEvent.suppliers.splice(index, 1);
-                alert('Supplier removed successfully');
+                this.showAlertMessage('Supplier removed successfully');
                 return;
               } else {
                 // Use direct DELETE for wishlist supplier
@@ -3356,7 +3514,7 @@
               if (!item.wishlist_venue_id) {
                 // For venues without IDs, just remove from local state
                 this.selectedEvent.venues.splice(index, 1);
-                alert('Venue removed successfully');
+                this.showAlertMessage('Venue removed successfully');
                 return;
               } else {
                 // Use direct DELETE for wishlist venue
@@ -3387,7 +3545,7 @@
 
             // Remove from local state only after successful API call
         this.selectedEvent[type].splice(index, 1);
-            alert(`${type.slice(0, -1)} removed successfully`);
+            this.showAlertMessage(`${type.slice(0, -1)} removed successfully`);
           } catch (directDeleteError) {
             console.error('Direct DELETE failed, falling back to status update:', directDeleteError);
             
@@ -3425,11 +3583,11 @@
             
             // Remove from local state after successful fallback
             this.selectedEvent[type].splice(index, 1);
-            alert(`${type.slice(0, -1)} marked as deleted successfully`);
+            this.showAlertMessage(`${type.slice(0, -1)} marked as deleted successfully`);
           }
         } catch (error) {
           console.error('Error in confirmRemoveInclusion:', error);
-          alert(`Error removing item: ${error.message}`);
+          this.showAlertMessage(`Error removing item: ${error.message}`);
         } finally {
         // Close the confirmation modal
         this.showRemoveConfirmationModal = false;
@@ -3566,10 +3724,10 @@
           
           // Close the modal
         this.closeEditInclusionModal();
-          alert('Inclusion updated successfully');
+          this.showAlertMessage('Inclusion updated successfully');
         } catch (error) {
           console.error('Error saving edited inclusion:', error);
-          alert(`Error updating inclusion: ${error.message}`);
+          this.showAlertMessage(`Error updating inclusion: ${error.message}`);
         }
       },
 
@@ -3637,7 +3795,7 @@
               if (!item.wishlist_outfit_id) {
                 // For outfits without IDs, just update locally
                 this.selectedEvent.outfits[index].status = newStatus;
-                alert(`Outfit ${statusVerb} successfully`);
+                this.showAlertMessage(`Outfit ${statusVerb} successfully`);
                 return;
               } else {
                 // Update existing wishlist outfit
@@ -3654,7 +3812,7 @@
               if (!item.id) {
                 // For services without IDs, just update locally
                 this.selectedEvent.services[index].status = newStatus;
-                alert(`Service ${statusVerb} successfully`);
+                this.showAlertMessage(`Service ${statusVerb} successfully`);
                 return;
               } else {
                 // Update existing wishlist service
@@ -3671,7 +3829,7 @@
               if (!item.wishlist_supplier_id) {
                 // For suppliers without IDs, just update locally
                 this.selectedEvent.suppliers[index].status = newStatus;
-                alert(`Supplier ${statusVerb} successfully`);
+                this.showAlertMessage(`Supplier ${statusVerb} successfully`);
                 return;
               } else {
                 // Update existing wishlist supplier
@@ -3688,7 +3846,7 @@
               if (!item.wishlist_venue_id) {
                 // For venues without IDs, just update locally
                 this.selectedEvent.venues[index].status = newStatus;
-                alert(`Venue ${statusVerb} successfully`);
+                this.showAlertMessage(`Venue ${statusVerb} successfully`);
                 return;
               } else {
                 // Update existing wishlist venue
@@ -3725,10 +3883,10 @@
           // Update local state
           this.selectedEvent[type][index].status = newStatus;
           
-          alert(`Item ${statusVerb} successfully`);
+          this.showAlertMessage(`Item ${statusVerb} successfully`);
         } catch (error) {
           console.error('Error in approveInclusion:', error);
-          alert(`Error updating item status: ${error.message}`);
+          this.showAlertMessage(`Error updating item status: ${error.message}`);
         }
       },
 
@@ -3776,7 +3934,7 @@
             this.upcomingEvents.push(updatedEvent);
             
             // Show success message
-            alert('Event status updated to Upcoming');
+            this.showAlertMessage('Event status updated to Upcoming');
             
             // Close the confirmation modal
             this.closeStatusConfirmationModal();
@@ -3788,7 +3946,7 @@
           }
         } catch (error) {
           console.error('Error updating event status:', error);
-          alert(`Error updating event status: ${error.message}`);
+          this.showAlertMessage(`Error updating event status: ${error.message}`);
         }
       },
 
@@ -3852,67 +4010,72 @@
           return this.upcomingEvents;
         } catch (error) {
           console.error('Error fetching upcoming events:', error);
-          alert(`Error fetching upcoming events: ${error.message}`);
+          this.showAlertMessage(`Error fetching upcoming events: ${error.message}`);
           // Return empty array on error for consistent promise handling
           return [];
         }
       },
-
-      async markAsCompleted(event) {
-        try {
-          const token = localStorage.getItem('access_token');
-          if (!token) {
-            throw new Error('No authentication token found');
-          }
-
-          if (!confirm(`Are you sure you want to mark "${event.event_name}" as completed?`)) {
-            return;
-          }
-
-          const response = await fetch(`http://127.0.0.1:5000/events/${event.events_id}/status`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              status: 'Finished'
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const result = await response.json();
-          
-          if (result.success) {
-            // Update the event status in upcomingEvents
-            const eventIndex = this.upcomingEvents.findIndex(e => e.events_id === event.events_id);
-            if (eventIndex !== -1) {
-              this.upcomingEvents[eventIndex].status = 'Finished';
-              
-              // Add to finished events if that array exists
-              if (this.finishedEvents) {
-                this.finishedEvents.push({...this.upcomingEvents[eventIndex]});
-              }
-            }
-            
-            // Show success message
-            this.notificationTitle = 'Success';
-            this.notificationMessage = 'Event marked as completed successfully';
-            this.showNotificationModal = true;
-          } else {
-            throw new Error(result.message || 'Failed to update event status');
-          }
-        } catch (error) {
-          console.error('Error marking event as completed:', error);
-          this.notificationTitle = 'Error';
-          this.notificationMessage = `Error marking event as completed: ${error.message}`;
-          this.showNotificationModal = true;
-        }
+      openCompleteConfirmationModal(event) {
+        this.eventToComplete = event;
+        this.showCompleteConfirmationModal = true;
       },
+
+      closeCompleteConfirmationModal() {
+        this.showCompleteConfirmationModal = false;
+        this.eventToComplete = null;
+      },
+
+      markAsCompleted(event) {
+        this.eventToComplete = event;
+        this.showCompleteConfirmationModal = true;
+      },
+
+      async completeEventStatus() {
+          if (!this.eventToComplete) return;
+
+          try {
+            const token = localStorage.getItem('access_token');
+            if (!token) throw new Error('No authentication token found');
+
+            const response = await fetch(`http://127.0.0.1:5000/events/${this.eventToComplete.events_id}/status`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include',
+              body: JSON.stringify({ status: 'Finished' })
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const result = await response.json();
+
+            if (result.success) {
+              const eventIndex = this.upcomingEvents.findIndex(e => e.events_id === this.eventToComplete.events_id);
+              if (eventIndex !== -1) {
+                this.upcomingEvents[eventIndex].status = 'Finished';
+
+                if (this.finishedEvents) {
+                  this.finishedEvents.push({ ...this.upcomingEvents[eventIndex] });
+                }
+              }
+
+              this.notificationTitle = 'Success';
+              this.notificationMessage = 'Event marked as completed successfully';
+              this.showNotificationModal = true;
+            } else {
+              throw new Error(result.message || 'Failed to update event status');
+            }
+          } catch (error) {
+            console.error('Error marking event as completed:', error);
+            this.notificationTitle = 'Error';
+            this.notificationMessage = `Error marking event as completed: ${error.message}`;
+            this.showNotificationModal = true;
+          } finally {
+            this.closeCompleteConfirmationModal();
+          }
+        },
 
       debugServices() {
         console.log('Debug Services:');
@@ -3935,7 +4098,7 @@
           this.addTestService();
         }
         
-        alert(`Services count: ${this.selectedEvent.services.length}\nCheck console for details`);
+        this.showAlertMessage(`Services count: ${this.selectedEvent.services.length}\nCheck console for details`);
       },
       
       addTestService() {
@@ -4029,7 +4192,7 @@
           // Handle API response
           if (response.data && response.data.success) {
             if (showAlert) {
-              alert('Wishlist updated successfully');
+              this.showAlertMessage('Wishlist updated successfully');
               this.closeWishlistModal();
             }
             // Refresh data
@@ -4042,7 +4205,7 @@
           }
         } catch (error) {
           console.error('Error in saveUpdatedWishlist:', error);
-            alert(`Error updating wishlist: ${error.message}`);
+            this.showAlertMessage(`Error updating wishlist: ${error.message}`);
           return false;
         }
       },
@@ -4188,17 +4351,17 @@
           );
           console.log('Events with any casing of "Upcoming":', upcomingVariations);
           
-          alert(`Found ${data.length} events total, ${upcomingVariations.length} with 'Upcoming' status (any casing). Check console for details.`);
+          this.showAlertMessage(`Found ${data.length} events total, ${upcomingVariations.length} with 'Upcoming' status (any casing). Check console for details.`);
         } catch (error) {
           console.error('Error checking events status:', error);
-          alert(`Error checking events status: ${error.message}`);
+          this.showAlertMessage(`Error checking events status: ${error.message}`);
         }
       },
       
       async fixEventStatus(event) {
         try {
           if (!event || !event.events_id) {
-            alert('No valid event provided');
+            this.showAlertMessage('No valid event provided');
             return;
           }
           
@@ -4226,7 +4389,7 @@
 
           const result = await response.json();
           if (result.success) {
-            alert(`Event status updated to 'Upcoming'. Refreshing data...`);
+            this.showAlertMessage(`Event status updated to 'Upcoming'. Refreshing data...`);
             // Refresh the data
             await this.fetchUpcomingEvents();
           } else {
@@ -4234,7 +4397,7 @@
           }
         } catch (error) {
           console.error('Error fixing event status:', error);
-          alert(`Error fixing event status: ${error.message}`);
+          this.showAlertMessage(`Error fixing event status: ${error.message}`);
         }
       },
 
@@ -4252,7 +4415,7 @@
           this.closeEditEventModal();
         } catch (error) {
           console.error('Error saving event changes:', error);
-          alert(`Error saving changes: ${error.message}`);
+          this.showAlertMessage(`Error saving changes: ${error.message}`);
         }
       },
       closeNotificationModal() {
@@ -4319,21 +4482,18 @@
         
         return 'Check console for details';
       },
-      formatDate(dateStr) {
-        if (!dateStr) return 'Unscheduled';
-        
-        // Try to parse the date
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) {
-          return 'Invalid Date Format';
+      formatDate(date) {
+        if (!date) return 'N/A';
+        try {
+          return new Date(date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        } catch (error) {
+          console.error('Error formatting date:', error);
+          return 'Invalid Date';
         }
-        
-        // Format the date
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
       },
       // Add this new method after fetchUpcomingEvents
       async fetchOngoingEvents() {
@@ -4484,7 +4644,7 @@
           window.location.href = '/invoice/' + testEventId;
         } catch (error) {
           console.error('❌ Error in viewTestInvoice:', error);
-          alert('Error: ' + error.message);
+          this.showAlertMessage('Error: ' + error.message);
         }
       },
       cancelInvoiceCreation() {
@@ -4514,172 +4674,68 @@
         try {
           if (!event || !event.events_id) {
             console.error('Cannot create invoice: Invalid event data', event);
-            alert('Error: Cannot create invoice for this event - missing event ID');
+            this.showAlertMessage('Error: Cannot create invoice for this event - missing event ID');
             return;
           }
-          
-          // Ensure event_id is a string
-          const eventId = String(event.events_id);
-          console.log('Working with event ID:', eventId, 'Type:', typeof eventId);
-          
-          // Store event ID in localStorage for the invoice page
-          localStorage.setItem('current_invoice_event_id', eventId);
-          
-          // Check if an invoice exists in the database
-          try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-              throw new Error('No authentication token found');
-            }
-            
-            // Show loading notification
-            this.notificationTitle = 'Please wait';
-            this.notificationMessage = 'Checking for existing invoice...';
-            this.showNotificationModal = true;
-            
-            // Check for existing invoice by event ID
-            const checkResponse = await fetch(`http://127.0.0.1:5000/api/invoices/event/${eventId}`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              },
-              credentials: 'include'
-            });
-            
-            if (checkResponse.ok) {
-              // Invoice exists, navigate to it
-              console.log('Found existing invoice for event ID:', eventId);
-              this.showNotificationModal = false;
-              this.$router.push(`/invoice/${eventId}`);
-              return;
-            } else if (checkResponse.status !== 404) {
-              // Only treat 404 as "invoice doesn't exist" - any other error should be reported
-              console.error('Error checking for invoice:', checkResponse.status, checkResponse.statusText);
-            }
-            
-            // If we get here, either the invoice doesn't exist (404) or we couldn't check effectively
-            // Ask user if they want to create an invoice
-            this.showNotificationModal = false;
-            const confirmed = confirm(`No invoice exists for "${event.event_name}". Would you like to create one now?`);
-            console.log('User confirmed invoice creation:', confirmed);
-            
-            if (confirmed) {
-              // User confirmed, fetch the auth token
-              if (!token) {
-                throw new Error('No authentication token found');
-              }
-              
-              // Show loading notification
-              this.notificationTitle = 'Please wait';
-              this.notificationMessage = 'Creating invoice...';
-              this.showNotificationModal = true;
-              
-              try {
-                // Initialize invoice tables first
-                console.log('Initializing invoice tables...');
-                const initResponse = await fetch('http://127.0.0.1:5000/api/initialize-invoice-tables', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  },
-                  credentials: 'include'
-                });
-                
-                if (!initResponse.ok) {
-                  console.warn('Table initialization response not OK, but continuing anyway:', 
-                    initResponse.status, initResponse.statusText);
-                } else {
-                  const initResult = await initResponse.json();
-                  console.log('Table initialization result:', initResult);
-                }
-                
-                // Create a reasonable invoice estimate based on event data
-                const totalAmount = this.estimateEventTotal(event) || 100000; // Fallback to 100,000 if estimation fails
-                
-                // Create a unique invoice number
-                const invoiceNumber = `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-                
-                // Prepare invoice data - ensure events_id is a number
-                const eventIdNumber = parseInt(eventId);
-                if (isNaN(eventIdNumber)) {
-                  throw new Error(`Invalid event ID format: ${eventId} cannot be parsed as a number`);
-                }
-                
-                const invoiceData = {
-                  events_id: eventIdNumber,
-                  invoice_number: invoiceNumber,
-                  invoice_date: new Date().toISOString().split('T')[0],
-                  total_amount: totalAmount,
-                  discount_amount: 0,
-                  final_amount: totalAmount,
-                  status: 'Unpaid',
-                  notes: `Invoice for ${event.event_name || 'event'}`
-                };
-                
-                console.log('Creating invoice with data:', JSON.stringify(invoiceData, null, 2));
-                
-                // Make the API call to create the invoice
-                const response = await fetch('http://127.0.0.1:5000/api/invoices', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(invoiceData),
-                  credentials: 'include'
-                });
-                
-                // Hide notification after response
-                this.showNotificationModal = false;
-                
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  console.error('API error response:', response.status, response.statusText, errorText);
-                  throw new Error(`HTTP error creating invoice! status: ${response.status}, details: ${errorText}`);
-                }
-                
-                // Parse the JSON response
-                let result;
-                try {
-                  result = await response.json();
-                } catch (jsonError) {
-                  console.error('Error parsing JSON response:', jsonError);
-                  const responseText = await response.text();
-                  throw new Error(`Invalid response from server: ${responseText.substring(0, 100)}...`);
-                }
-                
-                console.log('Invoice created successfully:', result);
-                
-                // Store the invoice data in localStorage for backup
-                localStorage.setItem(`invoice_${eventId}`, JSON.stringify(result));
-                
-                // Navigate to invoice view
-                this.$router.push(`/invoice/${eventId}`);
-              } catch (apiError) {
-                this.showNotificationModal = false;
-                console.error('API call failed, falling back to flag-based creation:', apiError);
-                
-                // Set a flag in localStorage to indicate we're creating a new invoice
-                localStorage.setItem('create_new_invoice', 'true');
-                
-                // Navigate to invoice to create a new one
-                this.$router.push(`/invoice/${eventId}`);
-              }
-            }
-          } catch (error) {
-            this.showNotificationModal = false;
-            console.error('Error checking for existing invoice:', error);
-            
-            // Set a flag in localStorage to indicate we're creating a new invoice
-            if (confirm(`Error checking for invoice: ${error.message}. Would you like to create a new invoice anyway?`)) {
-              localStorage.setItem('create_new_invoice', 'true');
-              this.$router.push(`/invoice/${eventId}`);
-            }
+
+          // Debug logging to track the event ID
+          console.log('Raw event data:', {
+            id: event.events_id,
+            type: typeof event.events_id,
+            name: event.event_name,
+            raw_event: JSON.stringify(event)
+          });
+
+          // Ensure event_id is a number
+          const eventId = parseInt(event.events_id);
+          if (isNaN(eventId)) {
+            throw new Error(`Invalid event ID: ${event.events_id}`);
           }
+
+          console.log('Converted event ID:', eventId);
+
+          // Store event ID in localStorage for the invoice page
+          localStorage.setItem('current_invoice_event_id', eventId.toString());
+
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+
+          // Show loading notification
+          this.notificationTitle = 'Please wait';
+          this.notificationMessage = 'Checking for existing invoice...';
+          this.showNotificationModal = true;
+
+          // Check for existing invoice
+          const checkResponse = await fetch(`http://127.0.0.1:5000/api/invoices/event/${eventId}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          });
+
+          if (checkResponse.ok) {
+            // Invoice exists, navigate to it
+            console.log('Found existing invoice for event ID:', eventId);
+            this.showNotificationModal = false;
+            this.$router.push(`/invoice/${eventId}`);
+            return;
+          }
+
+          // Hide notification
+          this.showNotificationModal = false;
+
+          // If no invoice exists, show confirmation modal
+          this.selectedEventForInvoice = {...event, events_id: eventId};
+          this.showInvoiceConfirmationModal = true;
+
         } catch (error) {
           this.showNotificationModal = false;
           console.error('Error handling invoice:', error);
-          alert('Error: ' + error.message);
+          this.showAlertMessage('Error: ' + error.message);
         }
       },
       
@@ -4933,10 +4989,10 @@
         }
       },
       showSuccessMessage(message) {
-        alert(message);
+        this.showAlertMessage(message);
       },
       showErrorMessage(message) {
-        alert(message);
+        this.showAlertMessage(message);
       },
       prevCancelledPage() {
         if (this.currentCancelledPage > 1) {
@@ -4951,17 +5007,20 @@
       changeCancelledPage(page) {
         this.currentCancelledPage = page;
       },
-      async cancelEvent(event) {
-        // Show confirmation dialog
-        if (confirm(`Are you sure you want to cancel the event "${event.event_name || 'Unnamed Event'}"?`)) {
+      cancelEvent(event) {
+        this.eventToCancel = event;
+        this.showStatusCancelledModal = true;
+      },
+      async cancelEventStatus() {
+          if (!this.eventToCancel) return;
+
           try {
             const token = localStorage.getItem('access_token');
             if (!token) {
               throw new Error('No authentication token found');
             }
 
-            // Make API call to update event status
-            const response = await fetch(`http://127.0.0.1:5000/events/${event.events_id}/status`, {
+            const response = await fetch(`http://127.0.0.1:5000/events/${this.eventToCancel.events_id}/status`, {
               method: 'PUT',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -4978,47 +5037,41 @@
             }
 
             const result = await response.json();
-            
+
             if (result.success) {
-              // Update local state
-              // Remove from upcoming events array if it exists there
-              const upcomingIndex = this.upcomingEvents.findIndex(e => e.events_id === event.events_id);
+              const upcomingIndex = this.upcomingEvents.findIndex(e => e.events_id === this.eventToCancel.events_id);
               if (upcomingIndex !== -1) {
                 this.upcomingEvents.splice(upcomingIndex, 1);
               }
 
-              // Create cancelled event object with current data
               const updatedEvent = {
-                ...event,
+                ...this.eventToCancel,
                 cancelledDate: new Date().toISOString().split('T')[0],
                 status: 'Cancelled'
               };
-              
-              // Add to cancelled events array
+
               if (this.cancelledEvents) {
                 this.cancelledEvents.push(updatedEvent);
               }
-              
-              // Show success notification
+
               this.notificationTitle = 'Success';
-              this.notificationMessage = `Event "${event.event_name || 'Unnamed Event'}" has been cancelled.`;
+              this.notificationMessage = `Event "${this.eventToCancel.event_name || 'Unnamed Event'}" has been cancelled.`;
               this.showNotificationModal = true;
 
-              // Refresh the events data
               await this.fetchUpcomingEvents();
             } else {
               throw new Error(result.message || 'Failed to cancel event');
             }
           } catch (error) {
             console.error('Error cancelling event:', error);
-            
-            // Show error notification
             this.notificationTitle = 'Error';
             this.notificationMessage = `Failed to cancel event: ${error.message}`;
             this.showNotificationModal = true;
+          } finally {
+            this.closeStatusCancelledModal();
           }
-        }
-      },
+        },
+  
       async fetchCancelledEvents() {
         try {
           console.log('Starting to fetch cancelled events...');
@@ -5055,7 +5108,6 @@
       },
       async fetchFinishedEvents() {
         try {
-          console.log('Starting to fetch finished events...');
           const token = localStorage.getItem('access_token');
           if (!token) {
             throw new Error('No authentication token found');
@@ -5075,20 +5127,44 @@
           }
 
           const data = await response.json();
+          
           // Filter events with 'Finished' status
-          this.finishedEvents = data.filter(event => event.status === 'Finished').map(event => ({
-            ...event,
-            event: event.event_type || 'N/A',
-            eventName: event.event_name || 'N/A',
-            packageDeal: event.package_name || 'N/A',
-            venue: event.venue?.venue_name || 'N/A',
-            schedule: event.schedule ? new Date(event.schedule).toLocaleDateString() : 'N/A',
-            totalCharges: event.total_price ? `₱${parseFloat(event.total_price).toLocaleString()}` : '₱0'
-          }));
+          this.finishedEvents = data
+            .filter(event => event.status === 'Finished')
+            .map(event => {
+              // Get venue information from either wishlist_venues or direct venue
+              let venueInfo = {
+                venue_name: 'No Venue',
+                location: 'No Location'
+              };
+
+              if (event.wishlist_venues && event.wishlist_venues.length > 0) {
+                venueInfo = {
+                  venue_name: event.wishlist_venues[0].venue_name,
+                  location: event.wishlist_venues[0].location
+                };
+              } else if (event.venue) {
+                venueInfo = {
+                  venue_name: event.venue.venue_name,
+                  location: event.venue.location
+                };
+              }
+
+              return {
+                ...event,
+                event_type: event.event_type || 'N/A',
+                event_name: event.event_name || 'N/A',
+                package_name: event.package_name || 'No Package',
+                venue_name: venueInfo.venue_name,
+                location: venueInfo.location,
+                schedule: event.schedule || 'N/A',
+                total_price: event.total_price || 0
+              };
+            });
         } catch (error) {
           console.error('Error fetching finished events:', error);
           this.notificationTitle = 'Error';
-          this.notificationMessage = `Failed to fetch finished events: ${error.message}`;
+          this.notificationMessage = `Error fetching finished events: ${error.message}`;
           this.showNotificationModal = true;
         }
       },
@@ -5300,6 +5376,197 @@
             title: 'Save Failed',
             text: 'The supplier was added to your list but could not be saved to the database.'
           });
+        }
+      },
+      // Add these alert-related methods
+      showAlertMessage(message, type = 'success') {
+          this.alertType = type;
+          this.alertMessage = message;
+          this.showAlert = true;
+      },
+      
+      closeAlert() {
+          this.showAlert = false;
+          this.alertMessage = '';
+      },
+      
+      // Update your existing methods to use the alert
+      // Example:
+      async someExistingMethod() {
+          try {
+              // Your existing code
+              this.showAlertMessage('Operation successful!', 'success');
+          } catch (error) {
+              this.showAlertMessage(error.message || 'An error occurred', 'error');
+          }
+      },
+      closeInvoiceConfirmationModal() {
+        this.showInvoiceConfirmationModal = false;
+        this.selectedEventForInvoice = null;
+      },
+
+      async confirmCreateInvoice() {
+        if (!this.selectedEventForInvoice || !this.selectedEventForInvoice.events_id) {
+          this.showAlertMessage('Error: Invalid event data');
+          return;
+        }
+
+        const eventId = this.selectedEventForInvoice.events_id;
+        const token = localStorage.getItem('access_token');
+
+        if (!token) {
+          this.showAlertMessage('Error: No authentication token found');
+          return;
+        }
+
+        // Show loading notification
+        this.notificationTitle = 'Please wait';
+        this.notificationMessage = 'Creating invoice...';
+        this.showNotificationModal = true;
+
+        try {
+          // Initialize invoice tables
+          console.log('Initializing invoice tables...');
+          const initResponse = await fetch('http://127.0.0.1:5000/api/initialize-invoice-tables', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
+          });
+
+          if (!initResponse.ok) {
+            console.warn('Table initialization response not OK, but continuing anyway:', 
+              initResponse.status, initResponse.statusText);
+          }
+
+          // Create invoice data
+          const totalAmount = this.estimateEventTotal(this.selectedEventForInvoice) || 100000;
+          const invoiceNumber = `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+          
+          const invoiceData = {
+            events_id: parseInt(eventId),
+            invoice_number: invoiceNumber,
+            invoice_date: new Date().toISOString().split('T')[0],
+            total_amount: totalAmount,
+            discount_amount: 0,
+            final_amount: totalAmount,
+            status: 'Unpaid',
+            notes: `Invoice for ${this.selectedEventForInvoice.event_name || 'event'}`
+          };
+
+          // Create the invoice
+          const response = await fetch('http://127.0.0.1:5000/api/invoices', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(invoiceData),
+            credentials: 'include'
+          });
+
+          this.showNotificationModal = false;
+          this.closeInvoiceConfirmationModal();
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error creating invoice! status: ${response.status}, details: ${errorText}`);
+          }
+
+          // Navigate to invoice view
+          this.$router.push(`/invoice/${eventId}`);
+        } catch (error) {
+          this.showNotificationModal = false;
+          this.closeInvoiceConfirmationModal();
+          console.error('Error creating invoice:', error);
+          this.showAlertMessage(`Error creating invoice: ${error.message}`);
+        }
+      },
+      viewFeedback(event) {
+        // Implement the logic to view feedback for a completed event
+        console.log('Viewing feedback for event:', event);
+        // Add your feedback viewing logic here
+      },
+      async viewFeedback(event) {
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+
+          const response = await fetch(`http://127.0.0.1:5000/api/events/${event.events_id}/feedback`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            if (response.status === 404) {
+              this.currentFeedback = null;
+              this.showFeedbackModal = true;
+              return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          this.currentFeedback = data;
+          this.showFeedbackModal = true;
+        } catch (error) {
+          console.error('Error fetching feedback:', error);
+          this.showAlertMessage(`Error fetching feedback: ${error.message}`, 'error');
+          this.currentFeedback = null;
+        }
+      },
+
+      closeFeedbackModal() {
+        this.showFeedbackModal = false;
+        this.currentFeedback = null;
+      },
+
+      async fetchEventFeedback() {
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+
+          const promises = this.paginatedFinishedEvents.map(async (event) => {
+            try {
+              const response = await fetch(`http://127.0.0.1:5000/api/events/${event.events_id}/feedback`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                mode: 'cors',
+                credentials: 'include'
+              });
+
+              if (response.ok) {
+                const feedback = await response.json();
+                event.feedback = feedback;
+              } else if (response.status === 404) {
+                event.feedback = null;
+              }
+            } catch (error) {
+              console.error(`Error fetching feedback for event ${event.events_id}:`, error);
+              event.feedback = null;
+            }
+            return event;
+          });
+
+          await Promise.all(promises);
+        } catch (error) {
+          console.error('Error fetching feedback:', error);
+          this.showAlertMessage(`Error fetching feedback: ${error.message}`, 'error');
         }
       },
     },

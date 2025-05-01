@@ -1,5 +1,5 @@
 <template>
-    <div class = "w-screen h-screen flex overflow-hidden font-amaticBold">
+    <div class = "w-screen h-screen flex overflow-hidden font-inter">
       <!-- Side bar -->
       <div class="w-[250px] h-full bg-gray-200 text-center text-white top-0 left-0 overflow-y-auto">
        <div class ="h-[50px] bg-gray-200 flex justify-start items-center">
@@ -11,7 +11,7 @@
        <div class="h-[calc(100vh-50px)] bg-[#B22222] py-[20px]">
         <div class="flex flex-col justify-between h-full px-[20px] space-y-[10px]">
           <div class="flex flex-col justify-between space-y-[10px]">
-            <router-link to="/dashboard" class="inline-flex relative items-center py-[20px] px-[10px] w-full text-sm font-amaticBold font-semibold rounded-md border-gray-200 hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+            <router-link to="/dashboard" class="inline-flex relative items-center py-[20px] px-[10px] w-full text-sm font-interBold font-semibold rounded-md border-gray-200 hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
               <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/stats.png">
               Dashboard
             </router-link>
@@ -21,27 +21,27 @@
               <router-link 
                 v-if="userType !== 'staff'" 
                 to="/manage-users" 
-                class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+                class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/manage-user.png">
                 Accounts
               </router-link>
-              <router-link to="/add-venue" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link to="/add-venue" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/venue.png">
                 Venues
               </router-link>
-              <router-link to="/additional-services" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link to="/additional-services" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/birthday-cake.png">
                 Inclusions
               </router-link>
-              <router-link to="/add-discounts" class="inline-flex items-center py-[15px] px-[6.3px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link to="/add-discounts" class="inline-flex items-center py-[15px] px-[6.3px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/discounts.png">
                 Discounts
               </router-link>
-              <router-link to="/add-outfitPackage" class="inline-flex items-center py-[15px] px-[6.3px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link to="/add-outfitPackage" class="inline-flex items-center py-[15px] px-[6.3px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/add-wardrobe.png">
                 Outfit Packages
               </router-link>
-              <router-link to="/add-services" class="inline-flex items-center py-[15px] px-[6.3px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link to="/add-services" class="inline-flex items-center py-[15px] px-[6.3px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/events-ticket.png">
                 Event Packages
               </router-link>
@@ -50,7 +50,7 @@
 
             <p @click="toggleSection('management')" class="ml-2 text-left text-lg font-bold text-[#FFE4C4] cursor-pointer">Management</p>
             <div v-if="visibleSections.management" class="ml-4 border-l-2 border-gray-50">
-              <router-link to="/manage-events" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-amaticBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link to="/manage-events" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/events-booked.png">
                 Events
               </router-link>
@@ -59,7 +59,7 @@
 
           <div class="h-[50px]">
             <div class="relative">
-              <div @click="toggleDrop" ref="settingsButton" class="flex items-center py-[10px] px-[10px] w-full text-md font-amaticBold font-semibold rounded-md border-gray-200 hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group cursor-pointer whitespace-nowrap select-none">
+              <div @click="toggleDrop" ref="settingsButton" class="flex items-center py-[10px] px-[10px] w-full text-md font-interBold font-semibold rounded-md border-gray-200 hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group cursor-pointer whitespace-nowrap select-none">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/settings2.png">
                <p class ="text-center items-center">Action</p>
               </div>

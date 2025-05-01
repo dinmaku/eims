@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex items-center justify-center">
+  <div class="h-full flex items-center justify-center font-inter">
     <form class="bg-gray-200 w-full h-full flex flex-col items-center overflow-y-auto mb-20">
       <div class="mt-20 flex flex-col items-center text-center space-y-2">
         <h1 class="text-5xl font-merriweatherBoldItalic font-semibold text-gray-800">On-Site Booking</h1>
@@ -9,7 +9,7 @@
       <div class="bg-gray-100 min-h-[110vh] max-w-4xl w-full flex flex-col justify-start mb-10 rounded-lg shadow-xl px-4 sm:px-6 lg:px-8 overflow-y-auto">
         <!-- Phase 1: Personal Information -->
         <div v-if="personalInfoForm" class="m-5 items-center">
-              <h1 class="mt-5 font-bold font-amaticBold text-lg text-blue-800">ⓘ Personal Information (For Onsite Bookings)</h1>
+              <h1 class="mt-5 font-bold font-inter text-lg text-blue-800">ⓘ Personal Information (For Onsite Bookings)</h1>
               <div class="ml-3 mt-6 space-y-3">
                 <label for="onsiteFirstname" class="text-md font-semibold text-gray-700">First Name *</label>
                 <p class="text-md text-gray-500">Enter the first name of the onsite contact person.</p>
@@ -68,7 +68,7 @@
 
 
         <div v-if="wishlistDetailsForm" class="m-5 items-center justify-center">
-          <h1 class="mt-5 font-bold font-amaticBold text-lg text-blue-800">ⓘ Event Details</h1>
+          <h1 class="mt-5 font-bold font-inter text-lg text-blue-800">ⓘ Event Details</h1>
           <div class="ml-3 mt-10 space-y-3">
             <label for="eventType" class="text-md font-semibold text-gray-700">Choose a type of event. *</label>
             <p class="text-md text-gray-500">Select the category that best describes your event.</p>
@@ -133,7 +133,7 @@
 
         <div v-if="packagesForm" class="m-5 items-center">
            <div class = "flex justify-between items-center">
-          <h1 class="mt-5 font-bold font-amaticBold text-lg text-blue-800">ⓘ Package Deals</h1>
+          <h1 class="mt-5 font-bold font-inter text-lg text-blue-800">ⓘ Package Deals</h1>
            <button type = "button" @click="prevEventDetails" class="mt-5 py-1 px-5 bg-gray-200 hover:bg-red-400 font-semibold text-gray-900 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-110">
             Back</button>
         </div>
@@ -155,7 +155,7 @@
               <h2 class="text-lg font-medium tracking-tighter text-gray-600 lg:text-2xl">
                 {{ pkg.package_name }}
               </h2>
-              <p class="mt-2 text-xs text-gray-500 font-raleway">
+              <p class="mt-2 text-xs text-gray-500 font-inter">
                 {{ pkg.description }}
               
                 
@@ -184,7 +184,7 @@
       <!-- Package Details Form -->
       <div v-if="packagesDetailsForm" class="m-5 items-center">
             <div class="flex justify-between items-center">
-              <h1 class="mt-5 font-bold font-amaticBold text-lg text-blue-800">ⓘ Package Details</h1>
+              <h1 class="mt-5 font-bold font-inter text-lg text-blue-800">ⓘ Package Details</h1>
               <button type = "button" @click="prevPackageDeals" class="mt-5 py-1 px-5 bg-gray-200 hover:bg-red-400 font-semibold text-gray-900 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-110">
                 Back
               </button>
@@ -195,7 +195,7 @@
           <h2 class="text-xl font-bold mb-3">{{ formatPrice(calculatedTotalPrice) }} php</h2>
 
           <div class = "mb-4">
-            <p class = "text-md font-medium font-poppins text-gray-500">(* Click the buttons to Add items to the list )</p>
+            <p class = "text-md font-medium font-inter text-gray-500">(* Click the buttons to Add items to the list )</p>
           </div>
 
            <!-- Inclusion Buttons -->
@@ -817,7 +817,7 @@
         &check;
       </div>
       <div>
-        <div class = "flex flex-col ml-5">
+        <div class = "flex flex-col ml-5"> 
         <strong class="font-bold">Success!</strong>
         <span class="block sm:inline">Event successfully added to your wishlist!</span>
       </div>
@@ -2156,9 +2156,13 @@ addSelectedOutfit() {
             price = parseFloat(inclusion.data.venue_price || 0);
             console.log(`Adding venue price: ${price}`);
         } 
-        else if (inclusion.type === 'outfit_package' || inclusion.type === 'outfit') {
-            price = parseFloat(inclusion.data.price || inclusion.data.gown_package_price || 0);
-            console.log(`Adding outfit price: ${price}`);
+        else if (inclusion.type === 'outfit_package') {
+            price = parseFloat(inclusion.data.gown_package_price || 0);
+            console.log(`Adding outfit package price: ${price}`);
+        }
+        else if (inclusion.type === 'individual_outfit') {
+            price = parseFloat(inclusion.data.rent_price || 0);
+            console.log(`Adding individual outfit price: ${price}`);
         }
         else if (inclusion.type === 'supplier') {
             price = parseFloat(inclusion.data.price || inclusion.data.external_supplier_price || 0);
@@ -2175,7 +2179,7 @@ addSelectedOutfit() {
         }
 
         totalPrice += price;
-        console.log(`Current total after adding ${inclusion.type}: ${totalPrice}`);
+        console.log(`Current total after adding ${inclusion.type}: ${price}, Total: ${totalPrice}`);
     });
 
     // Add additional capacity charges if any
@@ -2316,6 +2320,9 @@ addSelectedOutfit() {
             case 'outfit':
                 price = parseFloat(inclusion.data.price || inclusion.data.gown_package_price || 0);
                 break;
+            case 'individual_outfit':
+                price = parseFloat(inclusion.data.rent_price || 0);
+                break;
             case 'supplier':
                 price = parseFloat(inclusion.data.price || inclusion.data.external_supplier_price || 0);
                 break;
@@ -2339,7 +2346,7 @@ addSelectedOutfit() {
         total += additionalCharges;
     }
 
-    return total.toFixed(2);
+    return total;
 },
 
    nextPhase() {

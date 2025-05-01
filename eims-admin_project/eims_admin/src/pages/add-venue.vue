@@ -1,7 +1,27 @@
 <template>
-    <div class="bg-gray-200 w-full h-full overflow-y-auto">
+    <div class="bg-gray-200 w-full h-full overflow-y-auto font-inter">
+       <!-- Alert Modal -->
+        <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+          <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+            <div class="flex justify-between items-center mb-4">
+              <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+                {{ alertType === 'success' ? 'Success' : 'Error' }}
+              </h3>
+              <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+                <span class="text-2xl">&times;</span>
+              </button>
+            </div>
+            <p class="text-gray-700">{{ alertMessage }}</p>
+            <div class="flex justify-end mt-4">
+              <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+        
         <div class="w-full h-[65px] bg-gray-100 mt-2 flex items-center justify-between px-5 shadow-lg">
-        <h1 class="font-amaticBold font-extraLight text-3xl">
+        <h1 class="font-interBold font-extraLight text-3xl">
             Venues
         </h1>
         <button class="bg-[#9B111E] text-white px-3 py-2 rounded shadow-lg 
@@ -13,7 +33,7 @@
 
         <div class="flex flex-row items-center m-5 space-x-5">
         <div class="flex justify-start w-52 h-20 bg-white rounded-lg shadow-lg px-2 items-center border-l-2 border-green-400 space-x-5">
-            <h2 class="font-amaticRegular text-4xl font-bold mb-0"> {{ totalVenues }} <span class = "text-sm antialiased text-gray-600">venues</span></h2>
+            <h2 class="font-inter text-4xl font-bold mb-0"> {{ totalVenues }} <span class = "text-sm antialiased text-gray-600">venues</span></h2>
         </div>
   
     </div>
@@ -34,7 +54,7 @@
                 </router-link>
               </div>
         </form>
-                <button class = "mr-2 w-28 h-10 bg-[#9B111E] font-semibold text-gray-100 font-quicksand rounded-md shadow-lg 
+                <button class = "mr-2 w-28 h-10 bg-[#9B111E] font-semibold text-gray-100 font-inter rounded-md shadow-lg 
                 transition-transform duration-300 transform hover:scale-105" @click="addVenueBtn">
                 Add Venue
                 </button>
@@ -42,7 +62,7 @@
 
         <!--- Venues Table --->
 
-        <div v-if="showTable === 'Venues'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-amaticBold mb-10">
+        <div v-if="showTable === 'Venues'" class="relative shadow-md sm:rounded-xl w-full max-w-[1170px] h-[200] ml-5 mt-2 font-interBold mb-10">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 mb-4 max-h-30 table-fixed">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -74,12 +94,7 @@
                                         title="Update Venue Info">
                                         <img src="/img/update3.png" alt="Update" class="w-5 h-5">
                                     </button>
-                                    <button
-                                        class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
-                                        @click="showRateModal = true; selectedVenue = venue"
-                                        title="Set Rate">
-                                        <img src="/img/rate2.png" alt="Set Rate" class="w-5 h-5">
-                                    </button>
+                                  
                                     <button
                                         class="p-2 hover:opacity-80 transform hover:scale-110 transition-transform duration-200"
                                         @click="toggleVenueStatus(venue)"
@@ -178,48 +193,60 @@
 
         <!-- Add Venue Form -->
             <form v-if="addVenueForm" @submit.prevent="handleSubmit" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto" @click.self="closeAddVenueForm">
-            <div class="bg-white w-[500px] p-5 rounded-lg shadow-lg overflow-y-auto">
+            <div class="bg-white w-[800px] p-5 rounded-lg shadow-lg overflow-y-auto">
                 <div class="flex justify-between items-center m-3">
-                <h1 class="font-semibold text-xl font-raleway text-gray-800">Add Venue</h1>
+                <h1 class="font-semibold text-xl font-inter text-gray-800">Add Venue</h1>
                 </div>
                 <div class="border border-gray-500 mt-5 items-center"></div>
                 <div class="m-5">
                 <span class = "text-red-500">{{ errorMessage }}</span>
-                <!-- First Name and Last Name -->
                 
-                <!-- Venue Name -->
-                <div class="flex flex-col mt-5">
-                    <label class="text-xs text-gray-600 ml-2 text-start">Venue Name</label>
-                    <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="venue_name" placeholder="Venue Name" required>
-                </div>
+                <!-- Split into two columns -->
+                <div class="flex gap-8">
+                    <!-- Left column - Input Fields -->
+                    <div class="w-3/5 space-y-5">
+                        <!-- Venue Name -->
+                        <div class="flex flex-col">
+                            <label class="text-xs text-gray-600 ml-2 text-start">Venue Name</label>
+                            <input type="text" class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="venue_name" placeholder="Venue Name" required>
+                        </div>
 
-                <!-- Location -->
-                <div class="flex flex-col mt-5">
-                    <label class="text-xs text-gray-600 ml-2 text-start">Location</label>
-                    <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="location" placeholder="Location" required>
-                </div>
+                        <!-- Location -->
+                        <div class="flex flex-col">
+                            <label class="text-xs text-gray-600 ml-2 text-start">Location</label>
+                            <input type="text" class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="location" placeholder="Location" required>
+                        </div>
 
-                <!-- Description -->
-                <div class="flex flex-col mt-5">
-                    <label class="text-xs text-gray-600 ml-2 text-start">Description</label>
-                    <textarea class="mt-2 ml-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="description" placeholder="Description" required></textarea>
-                </div>
+                        <!-- Description -->
+                        <div class="flex flex-col">
+                            <label class="text-xs text-gray-600 ml-2 text-start">Description</label>
+                            <textarea class="mt-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="description" placeholder="Description" required></textarea>
+                        </div>
 
-                <!-- Capacity -->
-                <div class="flex flex-col mt-5">
-                    <label class="text-xs text-gray-600 ml-2 text-start">Capacity</label>
-                    <input type="number" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="venue_capacity" placeholder="Capacity" required>
-                </div>
+                        <!-- Capacity -->
+                        <div class="flex flex-col">
+                            <label class="text-xs text-gray-600 ml-2 text-start">Capacity</label>
+                            <input type="number" class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="venue_capacity" placeholder="Capacity" required>
+                        </div>
+                    </div>
 
-                <!-- Image Upload -->
-                <div class="flex flex-col mt-5">
-                    <label class="text-xs text-gray-600 ml-2 text-start">Venue Image</label>
-                    <div class="mt-2 ml-2 flex items-center">
-                        <label class="relative cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
-                            <span>Choose File</span>
-                            <input type="file" class="hidden" @change="onFileSelected" accept="image/*" ref="fileInput">
-                        </label>
-                        <span class="ml-3 text-sm text-gray-600">{{ selectedFileName || 'No file chosen' }}</span>
+                    <!-- Right column - Image Upload and Preview -->
+                    <div class="w-2/5">
+                        <div class="flex flex-col">
+                            <label class="text-xs text-gray-600 mb-2">Venue Image</label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                <!-- Image Preview -->
+                                <div v-if="imagePreview" class="mb-4">
+                                    <img :src="imagePreview" alt="Venue Preview" class="max-w-full h-auto rounded-lg mx-auto mb-4">
+                                </div>
+                                <!-- Upload Button -->
+                                <label class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 inline-block">
+                                    <span>{{ imagePreview ? 'Change Image' : 'Choose Image' }}</span>
+                                    <input type="file" class="hidden" @change="onFileSelected" accept="image/*" ref="fileInput">
+                                </label>
+                                <p class="mt-2 text-sm text-gray-500">{{ selectedFileName || 'No file chosen' }}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -237,49 +264,74 @@
         </form>
 
         <!-- Edit Venue Form -->
-        <form v-if="editVenueForm" @submit.prevent="updateVenue" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto" @click.self="closeEditVenueForm">
-        <div class="bg-white w-[500px] p-5 rounded-lg shadow-lg overflow-y-auto">
+        <form v-if="editVenueForm" @submit.prevent="updateVenue" class="flex justify-center items-center fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto z-40" @click.self="closeEditVenueForm">
+        <div class="bg-white w-[800px] p-5 rounded-lg shadow-lg overflow-y-auto relative">
             <div class="flex justify-between items-center m-3">
-            <h1 class="font-semibold text-xl font-raleway text-gray-800">Update Venue</h1>
+            <h1 class="font-semibold text-xl font-inter text-gray-800">Update Venue</h1>
             </div>
 
             <div class="border border-gray-500 mt-5 items-center"></div>
             <div class="m-5">
             <span>{{ errorMessage }}</span>
 
-            <!-- Venue Name -->
-            <div class="flex flex-col mt-5">
-              <label class="text-xs text-gray-600 ml-2 text-start">Venue Name</label>
-                <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.venue_name" placeholder="Venue Name" required>
-            </div>
+            <!-- Split into two columns -->
+            <div class="flex gap-8">
+                <!-- Left column - Input Fields -->
+                <div class="w-3/5 space-y-5">
+                    <!-- Venue Name -->
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 ml-2 text-start">Venue Name</label>
+                        <input type="text" class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.venue_name" placeholder="Venue Name" required>
+                    </div>
 
-            <!-- Location -->
-            <div class="flex flex-col mt-5">
-              <label class="text-xs text-gray-600 ml-2 text-start">Location</label>
-                <input type="text" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.location" placeholder="Location" required>
-            </div>
+                    <!-- Location -->
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 ml-2 text-start">Location</label>
+                        <input type="text" class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.location" placeholder="Location" required>
+                    </div>
 
-            <!-- Description -->
-            <div class="flex flex-col mt-5">
-              <label class="text-xs text-gray-600 ml-2 text-start">Description</label>
-                <textarea class="mt-2 ml-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.description" placeholder="Description" required></textarea>
-            </div>
+                    <!-- Description -->
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 ml-2 text-start">Description</label>
+                        <textarea class="mt-2 p-2 w-full h-20 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.description" placeholder="Description" required></textarea>
+                    </div>
 
-            <!-- Capacity -->
-            <div class="flex flex-col mt-5">
-              <label class="text-xs text-gray-600 ml-2 text-start">Capacity</label>
-                <input type="number" class="mt-2 ml-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.venue_capacity" placeholder="Capacity" required>
-            </div>
+                    <!-- Capacity -->
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 ml-2 text-start">Capacity</label>
+                        <input type="number" class="mt-2 p-2 w-full h-10 rounded-lg shadow-md border border-gray-500 focus:outline-none focus:border-blue-700" v-model="selectedVenue.venue_capacity" placeholder="Capacity" required>
+                    </div>
+                </div>
 
-            <!-- Image Upload -->
-            <div class="flex flex-col mt-5">
-                <label class="text-xs text-gray-600 ml-2 text-start">Update Venue Image</label>
-                <div class="mt-2 ml-2 flex items-center">
-                    <label class="relative cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
-                        <span>Choose File</span>
-                        <input type="file" class="hidden" @change="onEditFileSelected" accept="image/*" ref="editFileInput">
-                    </label>
-                    <span class="ml-3 text-sm text-gray-600">{{ editSelectedFileName || 'No file chosen' }}</span>
+                <!-- Right column - Image Upload and Preview -->
+                <div class="w-2/5">
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-2">Venue Image</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                            <!-- Current/Preview Image -->
+                            <div class="mb-4">
+                                <img :src="editImagePreview || `${apiBaseUrl}/api/venue-image/${selectedVenue.venue_image || 'grandballroom.png'}`" 
+                                     alt="Venue Preview" 
+                                     class="max-w-full h-auto rounded-lg mx-auto mb-4"
+                                     @error="handleImageError"
+                                     style="max-height: 300px; object-fit: contain;">
+                            </div>
+                            <!-- Upload Button -->
+                            <label class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 inline-block">
+                                <span>Change Image</span>
+                                <input type="file" class="hidden" @change="onEditFileSelected" accept="image/*" ref="editFileInput">
+                            </label>
+                            <p class="mt-2 text-sm text-gray-500">{{ editSelectedFileName || 'No new file chosen' }}</p>
+                        </div>
+                        <!-- Set Rate Button -->
+                        <div class="mt-4 flex justify-center">
+                            <button 
+                                @click.prevent.stop="openRateModalFromEdit"
+                                class="w-full h-10 bg-[#9B111E] text-gray-100 font-semibold rounded-lg shadow-md transform-transition duration-300 transform hover:scale-105">
+                                Set Rate
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -297,8 +349,8 @@
         </form>
 
         <!-- Rate Modal -->
-        <div v-if="showRateModal" @click.self="closeRateModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center">
-          <div class="bg-white p-5 rounded-lg shadow-lg w-[400px]">
+        <div v-if="showRateModal" @click.self="closeRateModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-50">
+          <div class="bg-white p-5 rounded-lg shadow-lg w-[400px] relative">
             <div class="flex flex-col">
               <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold">Set Venue Rate</h2>
@@ -310,10 +362,9 @@
                 <input type="number" v-model="venueRate" class="w-full p-2 border rounded" placeholder="Enter rate">
               </div>
               <div class="mt-4 flex justify-end space-x-2">
-               
                 <button @click="closeRateModal" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-opacity-90">Cancel</button>
-                <button @click="saveVenueRate" class = "w-20 h-10 bg-blue-500 text-gray-100 font-semibold rounded-lg shadow-md  transform-transition duration-300 transform hover:scale-105">Save</button>
-            </div>
+                <button @click="saveVenueRate" class="w-20 h-10 bg-[#9B111E] text-gray-100 font-semibold rounded-lg shadow-md transform-transition duration-300 transform hover:scale-105">Save</button>
+              </div>
             </div>
           </div>
         </div>
@@ -353,10 +404,13 @@ export default {
         errorMessage: '',
 
         selectedVenue: {
+                venue_id: null,
                 venue_name: '',
                 location: '',
                 description: '',
                 venue_capacity: '',
+                venue_price: 0,
+                venue_image: null
             },
 
         showInactiveVenuesModal: false,
@@ -373,6 +427,12 @@ export default {
         apiBaseUrl: 'http://127.0.0.1:5000',
 
         editSelectedFileName: null,
+        editImagePreview: null,
+
+        // Add new alert modal properties
+        showAlert: false,
+        alertType: 'success',
+        alertMessage: '',
     }
 
 
@@ -421,6 +481,8 @@ methods: {
                 }
             });
 
+            console.log('Raw venue data:', response.data); // Debug log
+
             this.venues = response.data.map((venue, index) => ({
                 venue_id: venue.venue_id,
                 venue_name: venue.venue_name,
@@ -428,8 +490,11 @@ methods: {
                 venue_price: venue.venue_price,
                 venue_capacity: venue.venue_capacity,
                 description: venue.description,
+                venue_image: venue.image || 'grandballroom.png', // Use the image field from backend, fallback to default
                 dummyIndex: index + 1,
             }));
+
+            console.log('Processed venues:', this.venues); // Debug log
 
         } catch (error) {
             console.error('Error fetching venues:', error);
@@ -466,7 +531,7 @@ methods: {
             });
 
             if (response.status === 201) {
-                alert('Venue added successfully!');
+                this.showSuccessAlert('Venue added successfully!');
                 await this.fetchVenues();
                 this.closeAddVenueForm();
                 this.resetForm();
@@ -519,7 +584,7 @@ methods: {
             });
 
             if (response.status === 200) {
-                alert('Venue updated successfully!');
+                this.showSuccessAlert('Venue updated successfully!');
                 await this.fetchVenues();
                 this.closeEditVenueForm();
             }
@@ -532,13 +597,20 @@ methods: {
     closeEditVenueForm() {
         this.editVenueForm = false;
         this.selectedVenue = {
+            venue_id: null,
             venue_name: '',
             location: '',
             description: '',
             venue_capacity: '',
+            venue_price: 0,
+            venue_image: null
         }; // Reset the form fields
         this.errorMessage = '';
         this.editSelectedFileName = null;
+        this.editImagePreview = null;
+        if (this.$refs.editFileInput) {
+            this.$refs.editFileInput.value = '';
+        }
     },
 
     prevVenuesPage() {
@@ -555,8 +627,24 @@ methods: {
         this.currentPage = page;
     },
     editVenueBtn(index) {
-        // Handle edit action for venue
-        console.log(`Edit venue at index: ${index}`);
+        this.editVenueForm = true;
+        const selectedVenue = this.paginatedVenues[index];
+        if (selectedVenue) {
+            console.log('Selected venue data:', selectedVenue); // Debug log
+            this.selectedVenue = { 
+                ...selectedVenue,
+                venue_image: selectedVenue.venue_image || null,
+                venue_price: selectedVenue.venue_price || 0
+            };
+            console.log('Image URL:', `${this.apiBaseUrl}/api/venue-image/${this.selectedVenue.venue_image}`); // Debug log
+            this.editImagePreview = null;
+            this.editSelectedFileName = null;
+            if (this.$refs.editFileInput) {
+                this.$refs.editFileInput.value = '';
+            }
+        } else {
+            console.error('Invalid venue selected:', index);
+        }
     },
 
     addVenueBtn()
@@ -564,186 +652,215 @@ methods: {
         this.addVenueForm = true;
     },
 
-    editVenueBtn(index) {
-            this.editVenueForm = true;
-            const selectedVenue = this.venues[index];
-            if (selectedVenue) {
-                this.selectedVenue = { ...selectedVenue }; // Ensure selectedVenue is deeply copied
-            } else {
-                console.error('Invalid venue selected:', index);
-            }
-        },
-
-        formatPrice(price) {
-            if (price === null || price === undefined || typeof price === 'object' || isNaN(price)) {
-                return 'N/A'; // Return a fallback if price is invalid
-            }
-            // Ensure price is treated as a number, round to 2 decimal places, and format with commas
-            return parseFloat(price).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-        },
+    formatPrice(price) {
+        if (price === null || price === undefined || typeof price === 'object' || isNaN(price)) {
+            return 'N/A'; // Return a fallback if price is invalid
+        }
+        // Ensure price is treated as a number, round to 2 decimal places, and format with commas
+        return parseFloat(price).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    },
 
 
-        async showInactiveVenues() {
-          try {
-            const token = localStorage.getItem('access_token');
-            const response = await axios.get('http://127.0.0.1:5000/inactive-venues', {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
+    async showInactiveVenues() {
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await axios.get('http://127.0.0.1:5000/inactive-venues', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-            this.inactiveVenues = response.data;
-            this.showInactiveVenuesModal = true;
-          } catch (error) {
-            console.error("Error fetching inactive venues:", error);
-            alert("Error fetching inactive venues. Please try again.");
+        this.inactiveVenues = response.data;
+        this.showInactiveVenuesModal = true;
+      } catch (error) {
+        console.error("Error fetching inactive venues:", error);
+        this.showErrorAlert("Error fetching inactive venues. Please try again.");
+      }
+    },
+
+    closeInactiveVenuesModal() {
+      this.showInactiveVenuesModal = false;
+      this.inactiveVenues = [];
+    },
+
+    toggleVenueStatus(venue) {
+      this.pendingVenue = venue;
+      this.pendingStatus = venue.status === 'Active' ? 'Inactive' : 'Active';
+      this.showStatusConfirmModal = true;
+    },
+
+    closeStatusConfirmModal() {
+      this.showStatusConfirmModal = false;
+      this.pendingVenue = null;
+      this.pendingStatus = '';
+    },
+
+    async confirmStatusChange() {
+      try {
+        const token = localStorage.getItem('access_token');
+        
+        const response = await axios.put(
+          `http://127.0.0.1:5000/toggle-venue-status/${this.pendingVenue.venue_id}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        },
+        );
 
-        closeInactiveVenuesModal() {
-          this.showInactiveVenuesModal = false;
-          this.inactiveVenues = [];
-        },
+        if (response.status === 200) {
+          if (response.data.new_status === 'Inactive') {
+            const index = this.venues.findIndex(v => v.venue_id === this.pendingVenue.venue_id);
+            if (index !== -1) {
+              this.venues.splice(index, 1);
+            }
+            this.showSuccessAlert('Venue has been set to Inactive');
+          } else {
+            const index = this.inactiveVenues.findIndex(v => v.venue_id === this.pendingVenue.venue_id);
+            if (index !== -1) {
+              this.inactiveVenues.splice(index, 1);
+            }
+            await this.fetchVenues();
+            this.showSuccessAlert('Venue has been set to Active');
+          }
+          this.closeStatusConfirmModal();
+        }
+      } catch (error) {
+        console.error("Error toggling venue status:", error);
+        if (error.response) {
+          this.showErrorAlert(error.response.data.message);
+        } else {
+          this.showErrorAlert("Error updating venue status. Please try again.");
+        }
+        this.closeStatusConfirmModal();
+      }
+    },
 
-        toggleVenueStatus(venue) {
-          this.pendingVenue = venue;
-          this.pendingStatus = venue.status === 'Active' ? 'Inactive' : 'Active';
-          this.showStatusConfirmModal = true;
-        },
 
-        closeStatusConfirmModal() {
-          this.showStatusConfirmModal = false;
-          this.pendingVenue = null;
-          this.pendingStatus = '';
-        },
+    closeRateModal() {
+        this.showRateModal = false;
+        this.venueRate = '';
+    },
 
-        async confirmStatusChange() {
-          try {
+    openRateModalFromEdit() {
+        // Ensure we're using the current venue being edited
+        if (this.selectedVenue) {
+            this.venueRate = this.selectedVenue.venue_price;
+            this.showRateModal = true;
+        }
+    },
+
+    async saveVenueRate() {
+        try {
             const token = localStorage.getItem('access_token');
             
+            if (!this.selectedVenue || !this.selectedVenue.venue_id) {
+                this.showErrorAlert("Venue ID is missing or invalid.");
+                return;
+            }
+
             const response = await axios.put(
-              `http://127.0.0.1:5000/toggle-venue-status/${this.pendingVenue.venue_id}`,
-              {},
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
+                `${this.apiBaseUrl}/update-venue-price/${this.selectedVenue.venue_id}`,
+                {
+                    price: this.venueRate
                 },
-              }
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
             );
 
             if (response.status === 200) {
-              if (response.data.new_status === 'Inactive') {
-                const index = this.venues.findIndex(v => v.venue_id === this.pendingVenue.venue_id);
-                if (index !== -1) {
-                  this.venues.splice(index, 1);
-                }
-                alert('Venue has been set to Inactive');
-              } else {
-                const index = this.inactiveVenues.findIndex(v => v.venue_id === this.pendingVenue.venue_id);
-                if (index !== -1) {
-                  this.inactiveVenues.splice(index, 1);
-                }
-                await this.fetchVenues();
-                alert('Venue has been set to Active');
-              }
-              this.closeStatusConfirmModal();
-            }
-          } catch (error) {
-            console.error("Error toggling venue status:", error);
-            if (error.response) {
-              alert(error.response.data.message);
-            } else {
-              alert("Error updating venue status. Please try again.");
-            }
-            this.closeStatusConfirmModal();
-          }
-        },
-
-
-        closeRateModal() {
-            this.showRateModal = false;
-            this.venueRate = '';
-            this.selectedVenue = null;
-        },
-
-        async saveVenueRate() {
-            try {
-                const token = localStorage.getItem('access_token');
+                this.showSuccessAlert("Venue rate updated successfully!");
                 
-                if (!this.selectedVenue || !this.selectedVenue.venue_id) {
-                    alert("Venue ID is missing or invalid.");
-                    return;
-                }
-
-                const response = await axios.put(
-                    `http://127.0.0.1:5000/update-venue-price/${this.selectedVenue.venue_id}`,
-                    {
-                        price: this.venueRate
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
+                // Update both the venues list and the selected venue with new price
+                const index = this.venues.findIndex(
+                    (venue) => venue.venue_id === this.selectedVenue.venue_id
                 );
-
-                if (response.status === 200) {
-                    alert("Venue rate updated successfully!");
-                    
-                    // Update the venues list with new price
-                    const index = this.venues.findIndex(
-                        (venue) => venue.venue_id === this.selectedVenue.venue_id
-                    );
-                    if (index !== -1) {
-                        this.venues[index].venue_price = this.venueRate;
-                    }
-                    
-                    this.closeRateModal();
+                if (index !== -1) {
+                    this.venues[index].venue_price = this.venueRate;
+                    this.selectedVenue.venue_price = this.venueRate;
                 }
-            } catch (error) {
-                console.error("Error updating venue rate:", error);
-                if (error.response) {
-                    alert(error.response.data.message);
-                } else {
-                    alert("Error updating venue rate. Please try again.");
-                }
+                
+                this.closeRateModal();
             }
-        },
-
-        onFileSelected(event) {
-            const file = event.target.files[0];
-            if (file) {
-                this.selectedFileName = file.name;
-            }
-        },
-
-        onEditFileSelected(event) {
-            const file = event.target.files[0];
-            if (file) {
-                this.editSelectedFileName = file.name;
-            }
-        },
-
-        getVenueImageUrl(imageFileName) {
-          // If the venue has an image
-          if (imageFileName) {
-            // Check if it's a full URL or just a path
-            if (imageFileName.startsWith('http')) {
-              return imageFileName;
+        } catch (error) {
+            console.error("Error updating venue rate:", error);
+            if (error.response) {
+                this.showErrorAlert(error.response.data.message);
             } else {
-              // Use the API endpoint to serve the image
-              return `${this.apiBaseUrl}/api/venue-image/${imageFileName}`;
+                this.showErrorAlert("Error updating venue rate. Please try again.");
             }
-          }
-          
-          // Default fallback for venues without images
-          return `${this.apiBaseUrl}/api/venue-image/venue_placeholder.jpg`;
-        },
-        
-        handleImageError(e) {
-          console.error('Image failed to load:', e.target.src);
-          e.target.src = `${this.apiBaseUrl}/api/venue-image/venue_placeholder.jpg`;
-        },
+        }
+    },
+
+    onFileSelected(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.selectedFileName = file.name;
+            // Create image preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.imagePreview = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    },
+
+    onEditFileSelected(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.editSelectedFileName = file.name;
+            // Create image preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.editImagePreview = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    },
+
+    getVenueImageUrl(imageFileName) {
+      // If the venue has an image
+      if (imageFileName) {
+        // Check if it's a full URL or just a path
+        if (imageFileName.startsWith('http')) {
+          return imageFileName;
+        } else {
+          // Use the API endpoint to serve the image
+          return `${this.apiBaseUrl}/api/venue-image/${imageFileName}`;
+        }
+      }
+      
+      // Default fallback for venues without images
+      return `${this.apiBaseUrl}/api/venue-image/venue_placeholder.jpg`;
+    },
+    
+    handleImageError(e) {
+        console.error('Image failed to load:', e.target.src);
+        // Set fallback to the API endpoint's default image
+        e.target.src = `${this.apiBaseUrl}/api/venue-image/grandballroom.png`;
+    },
+
+// Add alert modal methods
+showSuccessAlert(message) {
+    this.alertType = 'success';
+    this.alertMessage = message;
+    this.showAlert = true;
+},
+
+showErrorAlert(message) {
+    this.alertType = 'error';
+    this.alertMessage = message;
+    this.showAlert = true;
+},
+
+closeAlert() {
+    this.showAlert = false;
+    this.alertMessage = '';
+},
 
 },
 

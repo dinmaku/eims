@@ -47,7 +47,7 @@ from .models import (
     update_wishlist_venue_status, get_wishlist_venues, get_venues,
     get_inactive_event_packages, toggle_event_package_status,
     get_user_profile_by_id, update_user_profile, update_user_profile_picture,
-    change_password
+    change_password, get_event_feedback
 )
 from werkzeug.utils import secure_filename
 import json
@@ -58,6 +58,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv('eims', 'fallback_jwt_secret')
+
+def get_project_root():
+    """Get the absolute path to the project root directory"""
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+def get_saved_dir(subdir):
+    """Get the absolute path to a subdirectory in the saved directory"""
+    root_dir = get_project_root()
+    saved_dir = os.path.join(root_dir, 'saved', subdir)
+    os.makedirs(saved_dir, exist_ok=True)
+    return saved_dir
 
 def init_routes(app):
     # Initialize CORS with proper configuration - single source of CORS headers
@@ -301,12 +312,25 @@ def init_routes(app):
                 )
             else:
                 # Handle full supplier update
-                if 'service' not in data or 'price' not in data:
-                    return jsonify({"message": "Supplier-specific fields 'service' and 'price' are required"}), 400
-
+                service = data.get('service', existing_service)  # Use existing service if not provided
+                price = data.get('price')  # Price can be None if not provided
+                
+                update_fields = []
+                update_values = []
+                
+                if service is not None:
+                    update_fields.append("service = %s")
+                    update_values.append(service)
+                    
+                if price is not None:
+                    update_fields.append("price = %s")
+                    update_values.append(price)
+                    
+                if update_fields:  # Only update if there are fields to update
+                    update_values.append(supplier_id)  # Add supplier_id for WHERE clause
                 cursor.execute(
-                    "UPDATE suppliers SET service = %s, price = %s WHERE supplier_id = %s",
-                    (data['service'], data['price'], supplier_id)
+                        f"UPDATE suppliers SET {', '.join(update_fields)} WHERE supplier_id = %s",
+                        tuple(update_values)
                 )
 
             conn.commit()
@@ -602,11 +626,15 @@ def init_routes(app):
                     filename = secure_filename(file.filename)
                     image_filename = f"venue_{timestamp}_{filename}"
                     
+                    # Get the absolute path to the project root directory
+                    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                    venue_img_dir = os.path.join(root_dir, 'saved', 'venue_img')
+                    
                     # Ensure the directory exists
-                    os.makedirs('E:/eims/saved/venue_img', exist_ok=True)
+                    os.makedirs(venue_img_dir, exist_ok=True)
                     
                     # Save the file
-                    file_path = os.path.join('E:/eims/saved/venue_img', image_filename)
+                    file_path = os.path.join(venue_img_dir, image_filename)
                     file.save(file_path)
                     
                     logger.info(f"Saved venue image to {file_path}")
@@ -652,11 +680,15 @@ def init_routes(app):
                     filename = secure_filename(file.filename)
                     image_filename = f"venue_{timestamp}_{filename}"
                     
+                    # Get the absolute path to the project root directory
+                    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                    venue_img_dir = os.path.join(root_dir, 'saved', 'venue_img')
+                    
                     # Ensure the directory exists
-                    os.makedirs('E:/eims/saved/venue_img', exist_ok=True)
+                    os.makedirs(venue_img_dir, exist_ok=True)
                     
                     # Save the file
-                    file_path = os.path.join('E:/eims/saved/venue_img', image_filename)
+                    file_path = os.path.join(venue_img_dir, image_filename)
                     file.save(file_path)
                     
                     logger.info(f"Saved venue image to {file_path}")
@@ -871,11 +903,11 @@ def init_routes(app):
                         filename = secure_filename(file.filename)
                         image_filename = f"outfit_{timestamp}_{filename}"
                         
-                        # Ensure the directory exists
-                        os.makedirs('E:/eims/saved/outfits_img', exist_ok=True)
+                        # Ensure the directory exists and get the path
+                        outfits_dir = get_saved_dir('outfits_img')
                         
                         # Save the file
-                        file_path = os.path.join('E:/eims/saved/outfits_img', image_filename)
+                        file_path = os.path.join(outfits_dir, image_filename)
                         file.save(file_path)
                         
                         logger.info(f"Saved outfit image to {file_path}")
@@ -909,22 +941,10 @@ def init_routes(app):
     def serve_outfit_image(filename):
         """Serve outfit images from the outfits_img directory"""
         try:
-            # First check if the requested file exists in the main location
-            image_path = os.path.join('E:/eims/saved/outfits_img', filename)
-            if os.path.exists(image_path):
-                logger.info(f"Serving outfit image from saved/outfits_img: {filename}")
-                return send_from_directory('E:/eims/saved/outfits_img', filename)
-                
-            # If not found, serve a default placeholder image
-            logger.warning(f"Outfit image not found: {filename}, serving fallback image")
-            return send_from_directory('E:/eims/eims-client_project/eims_client/public/img', 'dummy_profile.png')
-            
-        except Exception as e:
-            logger.error(f"Error serving outfit image: {e}")
-            return jsonify({
-                'status': 'error',
-                'message': 'Image not found'
-            }), 404
+            outfits_dir = get_saved_dir('outfits_img')
+            return send_from_directory(outfits_dir, filename)
+        except FileNotFoundError:
+            return send_from_directory(outfits_dir, 'default_outfit.png')
 
     @app.route('/add-gown-package', methods=['POST'])
     @jwt_required()
@@ -1209,15 +1229,7 @@ def init_routes(app):
 
         try:
             events = get_all_events()
-            # Convert dates to ISO format for JSON serialization
-            for event in events:
-                if event['schedule']:
-                    event['schedule'] = event['schedule'].isoformat()
-                if event['start_time']:
-                    event['start_time'] = event['start_time'].isoformat()
-                if event['end_time']:
-                    event['end_time'] = event['end_time'].isoformat()
-            
+            # The dates are already formatted in the model, no need to convert here
             response = jsonify(events)
             response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -3091,54 +3103,17 @@ def init_routes(app):
     def serve_venue_image(filename):
         """Serve venue images from the venue_img directory"""
         try:
-            # Parse the filename to extract venue name if it follows the pattern venue_TIMESTAMP_NAME.ext
-            venue_name = None
-            if filename.startswith('venue_') and '_' in filename:
-                parts = filename.split('_')
-                if len(parts) >= 3:
-                    # Extract the base venue name (without extension)
-                    venue_name = '_'.join(parts[2:]).split('.')[0].lower()
-                    logger.info(f"Extracted venue name: {venue_name}")
-                    
-                    # Check if we have a matching static image
-                    static_files = {
-                        'grandballroom': 'grandballroom.png',
-                        'hogwarts': 'hogwarts.png',
-                        'oceanview': 'oceanview.png',
-                        'paseo': 'paseo.png',
-                        'sealavie': 'sealavie.png'
-                    }
-                    
-                    # Check for partial matches (e.g., if venue_name is 'paseo' or contains 'paseo')
-                    for key, static_file in static_files.items():
-                        if key in venue_name or venue_name in key:
-                            logger.info(f"Serving from static file match: {key} -> {static_file}")
-                            return send_from_directory('E:/eims/eims-client_project/eims_client/public/img/venues-img', static_file)
-            
-            # First check if the requested file exists in the new location
-            image_path = os.path.join('E:/eims/saved/venue_img', filename)
-            if os.path.exists(image_path):
-                logger.info(f"Serving venue image from saved/venue_img: {filename}")
-                return send_from_directory('E:/eims/saved/venue_img', filename)
+            # Get the absolute path to the project root directory
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            venue_img_dir = os.path.join(root_dir, 'saved', 'venue_img')
                 
-            # Check if the exact filename exists in the public folder
-            public_path = os.path.join('E:/eims/eims-client_project/eims_client/public/img/venues-img', filename)
-            if os.path.exists(public_path):
-                logger.info(f"Serving venue image from public folder: {filename}")
-                return send_from_directory('E:/eims/eims-client_project/eims_client/public/img/venues-img', filename)
-            
-            # If this is a path with directories, extract just the filename
-            if '/' in filename:
-                simple_filename = filename.split('/')[-1]
-                static_path = os.path.join('E:/eims/eims-client_project/eims_client/public/img/venues-img', simple_filename)
-                if os.path.exists(static_path):
-                    logger.info(f"Serving venue image from public folder (extracted filename): {simple_filename}")
-                    return send_from_directory('E:/eims/eims-client_project/eims_client/public/img/venues-img', simple_filename)
-            
-            # If none of the above, use grandballroom.png as a fallback
-            logger.warning(f"Venue image not found: {filename}, serving fallback image")
-            return send_from_directory('E:/eims/eims-client_project/eims_client/public/img/venues-img', 'grandballroom.png')
-            
+            # Check if the requested file exists
+            requested_file_path = os.path.join(venue_img_dir, filename)
+            if os.path.exists(requested_file_path):
+                return send_from_directory(venue_img_dir, filename)
+            else:
+                # Return default venue image
+                return send_from_directory(venue_img_dir, 'grandballroom.png')
         except Exception as e:
             logger.error(f"Error serving venue image: {e}")
             return jsonify({
@@ -3339,11 +3314,11 @@ def init_routes(app):
                     filename = secure_filename(file.filename)
                     image_filename = f"outfit_{timestamp}_{filename}"
                     
-                    # Ensure the directory exists
-                    os.makedirs('E:/eims/saved/outfits_img', exist_ok=True)
+                    # Ensure the directory exists and get the path
+                    outfits_dir = get_saved_dir('outfits_img')
                     
                     # Save the file
-                    file_path = os.path.join('E:/eims/saved/outfits_img', image_filename)
+                    file_path = os.path.join(outfits_dir, image_filename)
                     file.save(file_path)
                     
                     logger.info(f"Saved outfit image to {file_path}")
@@ -3558,23 +3533,13 @@ def init_routes(app):
     def serve_admin_profile_image(filename):
         """Serve admin profile images from the users_profile directory"""
         try:
-            # Check if the requested file exists
-            image_path = os.path.join('E:/eims/saved/users_profile', filename)
-            if os.path.exists(image_path):
-                return send_from_directory('E:/eims/saved/users_profile', filename)
-            
-            # If file doesn't exist, return the dummy profile pic
-            return send_from_directory('E:/eims/saved/users_profile', 'dummy_profile.png')
+            profile_dir = get_saved_dir('users_profile')
+            if filename and os.path.exists(os.path.join(profile_dir, filename)):
+                return send_from_directory(profile_dir, filename)
+            return send_from_directory(profile_dir, 'dummy_profile.png')
         except Exception as e:
-            logger.error(f"Error serving admin profile image: {e}")
-            try:
-                # As a last resort, try to serve the dummy profile
-                return send_from_directory('E:/eims/saved/users_profile', 'dummy_profile.png')
-            except:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Image not found'
-                }), 404
+            logger.error(f"Error serving profile image: {str(e)}")
+            return send_from_directory(profile_dir, 'dummy_profile.png')
 
     @app.route('/api/admin/update-profile-picture', methods=['POST'])
     @jwt_required()
@@ -3615,8 +3580,11 @@ def init_routes(app):
             filename = secure_filename(file.filename)
             unique_filename = f"{uuid.uuid4()}_{filename}"
             
-            # Save the file
-            save_path = os.path.join('E:/eims/saved/users_profile', unique_filename)
+            # Get the profile images directory
+            profile_dir = get_saved_dir('users_profile')
+            
+            # Save the file with unique filename
+            save_path = os.path.join(profile_dir, unique_filename)
             file.save(save_path)
             
             # Update the user's profile picture in the database
@@ -3687,5 +3655,24 @@ def init_routes(app):
                 cursor.close()
             if conn:
                 conn.close()
+
+    @app.route('/api/events/<int:events_id>/feedback', methods=['GET', 'OPTIONS'])
+    @cross_origin(supports_credentials=True, origins=['http://localhost:5173'])
+    @jwt_required(optional=True)  # Make JWT optional to handle OPTIONS requests
+    def get_event_feedback_route(events_id):
+        try:
+            feedback = get_event_feedback(events_id)
+            if feedback:
+                return jsonify({
+                    'feedback_id': feedback['feedback_id'],
+                    'rating': feedback['rating'],
+                    'feedback_text': feedback['feedback_text'],
+                    'created_at': feedback['created_at'].isoformat() if feedback['created_at'] else None,
+                    'user': f"{feedback['firstname']} {feedback['lastname']}"
+                }), 200
+            return jsonify({'message': 'No feedback found for this event'}), 404
+        except Exception as e:
+            print(f"Error in get_event_feedback_route: {e}")
+            return jsonify({'message': 'Error fetching feedback'}), 500
 
     return app

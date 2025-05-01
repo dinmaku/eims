@@ -16,6 +16,7 @@ export default {
         merriweatherBoldItalic: ["Merriweather-BoldItalic", "serif"],
         quicksand: ["Quicksand", "sans-serif"],
         gothic: ["GothicA1", "sans-serif"],
+        inter: ["Inter", "sans-serif"],
       },
       scrollBehavior: {
         smooth: 'smooth',
