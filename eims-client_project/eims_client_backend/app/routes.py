@@ -10,7 +10,8 @@ from .models import (
     get_event_types, get_all_additional_services, get_booked_schedules, add_event_item,
     create_wishlist_package, initialize_test_suppliers, get_user_profile_by_id,
     change_password, get_db_connection, update_user_profile_picture, get_client_packages,
-    get_supplier_booked_events, get_gown_package_outfits, add_event_feedback, get_event_feedback
+    get_supplier_booked_events, get_gown_package_outfits, add_event_feedback, get_event_feedback,
+    update_user_profile
 )
 import logging
 import jwt
@@ -1181,6 +1182,63 @@ def init_routes(app):
             }), 200
         except Exception as e:
             app.logger.error(f"Error getting event feedbacks: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/api/user/update-profile', methods=['PUT', 'OPTIONS'])
+    @jwt_required()
+    def update_user_profile_route():
+        if request.method == 'OPTIONS':
+            response = jsonify({'message': 'OK'})
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            return response, 200
+
+        try:
+            # Get the current user's email from JWT token
+            email = get_jwt_identity()
+            userid = get_user_id_by_email(email)
+            
+            if not userid:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User not found'
+                }), 404
+
+            data = request.get_json()
+            firstname = data.get('firstname')
+            lastname = data.get('lastname')
+            username = data.get('username')
+            contactnumber = data.get('contactnumber')
+            address = data.get('address')
+
+            # Update the profile using the existing model function
+            success = update_user_profile(
+                userid=userid,
+                firstname=firstname,
+                lastname=lastname,
+                username=username,
+                contactnumber=contactnumber,
+                address=address
+            )
+
+            if success:
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Profile updated successfully'
+                }), 200
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to update profile'
+                }), 400
+
+        except Exception as e:
+            logger.error(f"Error updating user profile: {e}")
             return jsonify({
                 'status': 'error',
                 'message': str(e)

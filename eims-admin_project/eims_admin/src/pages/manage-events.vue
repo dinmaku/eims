@@ -292,7 +292,7 @@
                   <th scope="col" class="px-2 py-3">End Time</th>
                   <th scope="col" class="px-2 py-3">Date</th>
               <th scope="col" class="px-2 py-3">Event Type</th>
-                  <th scope="col" class="px-2 py-3">Remaining Balance</th>
+                  <th scope="col" class="px-2 py-3">Invoice Status</th>
               <th scope="col" class="px-2 py-3">Action</th>
             </tr>
           </thead>
@@ -317,8 +317,15 @@
                   <td class="px-1 py-3 truncate">{{ formatTime(event.end_time) }}</td>
                   <td class="px-1 py-3 truncate">{{ formatDate(event.schedule) }}</td>
               <td class="px-1 py-3 truncate">{{ event.event_type || 'Standard Event' }}</td>
-              <td class="px-1 py-3 truncate font-medium" :class="getPriceCellClass(event)">
-                  <span>{{ event.has_invoice ? `₱ ${formatPrice(event.remainingBalance || 0)}` : 'No Invoice' }}</span>
+              <td class="px-1 py-3 truncate font-medium">
+                  <span :class="{
+                    'text-green-600': event.has_invoice && event.invoice_status === 'Paid',
+                    'text-blue-600': event.has_invoice && event.invoice_status === 'Partially Paid',
+                    'text-red-600': event.has_invoice && event.invoice_status === 'Unpaid',
+                    'text-gray-600': !event.has_invoice
+                  }">
+                    {{ event.has_invoice ? event.invoice_status : 'No Invoice' }}
+                  </span>
               </td>
               <td class="px-1 py-3">
                 <div class="flex items-center space-x-0.5">
@@ -2256,9 +2263,9 @@
             return;
           }
 
-          // Initialize remaining balance and invoice flag for all events
+          // Initialize invoice status and flag for all events
           for (const event of events) {
-            event.remainingBalance = 0;
+            event.invoice_status = 'Unpaid';
             event.has_invoice = false;
           }
 
@@ -2285,9 +2292,9 @@
                 return;
               }
 
-              // Mark that this event has an invoice and store the final amount
+              // Mark that this event has an invoice and store the status
               event.has_invoice = true;
-              event.remainingBalance = invoice.final_amount || 0;
+              event.invoice_status = invoice.status || 'Unpaid';
               
             } catch (error) {
               console.warn(`Error fetching invoice for event ${event.events_id}:`, error);

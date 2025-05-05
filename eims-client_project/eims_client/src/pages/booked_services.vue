@@ -1,5 +1,25 @@
 <template>
     <div class="h-screen flex flex-col items-center bg-gray-200 overflow-x-hidden overflow-y-auto px-4 md:px-8">
+        <!-- Alert Modal -->
+        <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+            <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+                        {{ alertType === 'success' ? 'Success' : 'Error' }}
+                    </h3>
+                    <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+                        <span class="text-2xl">&times;</span>
+                    </button>
+                </div>
+                <p class="text-gray-700">{{ alertMessage }}</p>
+                <div class="flex justify-end mt-4">
+                    <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="w-full mt-32">
             <div class="mt-12 md:mt-1 ml-2 md:ml-16">
                 <h1 class="text-2xl md:text-4xl font-raleway font-medium text-gray-800 tracking-wide">Booking Status</h1>
@@ -548,6 +568,9 @@ export default defineComponent({
             rating: 0,
             feedbackText: '',
             existingFeedback: null as Feedback | null,
+            showAlert: false,
+            alertType: 'success',
+            alertMessage: '',
         };
     },
     computed: {
@@ -843,7 +866,7 @@ export default defineComponent({
                 });
 
                 if (response.status === 201) {
-                    alert('Thank you for your feedback!');
+                    this.showAlertMessage('success', 'Thank you for your feedback!');
                     this.closeRatingModal();
                 }
             } catch (error) {
@@ -852,9 +875,9 @@ export default defineComponent({
                     localStorage.removeItem('access_token');
                     this.$router.push('/login');
                 } else if (error.response?.status === 409) {
-                    alert('You have already submitted feedback for this event.');
+                    this.showAlertMessage('error', 'You have already submitted feedback for this event.');
                 } else {
-                    alert('Failed to submit rating. Please try again.');
+                    this.showAlertMessage('error', 'Failed to submit rating. Please try again.');
                 }
             }
         },
@@ -870,6 +893,17 @@ export default defineComponent({
 
         handleImageError(e) {
             e.target.style.display = 'none';
+        },
+
+        showAlertMessage(type: 'success' | 'error', message: string) {
+            this.alertType = type;
+            this.alertMessage = message;
+            this.showAlert = true;
+        },
+
+        closeAlert() {
+            this.showAlert = false;
+            this.alertMessage = '';
         },
     },
 
