@@ -333,7 +333,7 @@
     </div>
             
     <div class="flex m-2 mt-8 space-x-5">
-      <img src="/img/payment.png" alt="payment" class="h-12 ml-2 mt-3 rounded-full bg-gray-100">
+      <img src="/img/usd-circle.png" alt="payment" class="h-12 ml-2 mt-3 rounded-full bg-gray-100">
       <div class="flex flex-col"> 
         <label for="paymentInput" class="font-semibold text-start text-lg font-inter text-gray-600">Amount</label>
         <div class="relative">
@@ -366,7 +366,7 @@
 
     <!-- Discount Selection Section -->
     <div class="flex m-2 mt-8 space-x-5">
-      <img src="/img/discount.png" alt="discount" class="h-12 ml-2 mt-3 rounded-full bg-gray-100">
+      <img src="/img/discount1.png" alt="discount" class="h-12 ml-2 mt-3">
       <div class="flex flex-col">
         <label class="font-semibold text-start text-lg font-inter text-gray-600">Discount</label>
         <div class="flex items-center">
@@ -437,7 +437,7 @@
       focus:outline-none hover:bg-gray-400 hover:text-gray-700 rounded-lg transform-transition duration-200 transform hover:scale-105" @click="closePaymentForm">
         Cancel Payment
       </button>
-      <button class="bg-gray-600 py-2 px-5 rounded-full font-semibold text-sm text-white transform-transition duration-200 transform hover:scale-105" @click="handlePayment">
+      <button @click.prevent="handlePayment" class="bg-gray-600 py-2 px-5 rounded-full font-semibold text-sm text-white transform-transition duration-200 transform hover:scale-105">
         Pay Now
       </button>
     </div>
@@ -564,6 +564,29 @@
   </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div v-if="showConfirmModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-[400px]">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold text-gray-800">Confirm Payment</h3>
+      <button @click="handleConfirmModal(false)" class="text-gray-500 hover:text-gray-700">
+        <span class="text-2xl">&times;</span>
+      </button>
+    </div>
+    <p class="text-gray-700 mb-6">{{ confirmModalMessage }}</p>
+    <div class="flex justify-end space-x-3">
+      <button @click="handleConfirmModal(false)" 
+              class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+        Cancel
+      </button>
+      <button @click="handleConfirmModal(true)" 
+              class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Continue
+      </button>
+    </div>
+  </div>
+</div>
+
 </div>
 </template>
 
@@ -583,7 +606,10 @@ export default {
          paymentMethod: '',
          referenceNumber: '',
          additionalServices: [],
-         lastPayment: null, // Add a variable to store the last successful payment
+         lastPayment: null,
+         showConfirmModal: false,
+         confirmModalMessage: '',
+         confirmModalCallback: null,
 
          // Collapsible section flags
          showPackageSection: false,
@@ -592,9 +618,9 @@ export default {
          showOutfitSection: false,
          showServiceSection: false,
 
-        showAlert: false,
-        alertType: 'success',
-        alertMessage: '',
+         showAlert: false,
+         alertType: 'success',
+         alertMessage: '',
 
        venues: [
               { no: 1, venueName: 'Grand Ballroom', price: 5000 },
@@ -900,40 +926,51 @@ export default {
     async handlePayment() {
       if (this.successAlert) return;
       if (!this.paymentAmount || !this.paymentMethod) {
-        this.showAlert('Please enter payment amount and select payment method');
+        this.alertType = 'error';
+        this.alertMessage = 'Please enter payment amount and select payment method';
+        this.showAlert = true;
         return;
       }
       
       if (parseFloat(this.paymentAmount) <= 0) {
-        this.showAlert('Payment amount must be greater than zero');
+        this.alertType = 'error';
+        this.alertMessage = 'Payment amount must be greater than zero';
+        this.showAlert = true;
         return;
       }
       
       // Check for reference number when using digital payment methods
       const digitalPaymentMethods = ['GCash', 'Bank Transfer'];
       if (digitalPaymentMethods.includes(this.paymentMethod) && !this.referenceNumber) {
-        this.showAlert('Please enter a reference number for digital payments');
+        this.alertType = 'error';
+        this.alertMessage = 'Please enter a reference number for digital payments';
+        this.showAlert = true;
         return;
       }
       
       if (parseFloat(this.paymentAmount) > this.getRemainingBalance()) {
-        if (!confirm('Payment amount exceeds the remaining balance. Continue anyway?')) {
-          return;
-        }
+        this.showConfirmModal = true;
+        this.confirmModalMessage = `Payment amount (${this.formatPrice(this.paymentAmount)}) exceeds the remaining balance (${this.formatPrice(this.getRemainingBalance())}). Would you like to continue?`;
+        this.confirmModalCallback = () => this.processPayment();
+        return;
       }
       
+      await this.processPayment();
+    },
+
+    async processPayment() {
       try {
         console.log('Processing payment of:', this.paymentAmount);
         
         // Create payment data object
         const paymentData = {
           invoice_id: typeof this.invoice.invoice_id === 'string' && this.invoice.invoice_id.startsWith('SIM-')
-            ? parseInt(this.invoice.invoice_id.replace('SIM-', '')) || 1  // Convert simulated ID to a number
+            ? parseInt(this.invoice.invoice_id.replace('SIM-', '')) || 1
             : this.invoice.invoice_id,
           amount: parseFloat(this.paymentAmount),
           payment_method: this.paymentMethod,
           reference_number: this.referenceNumber || 'REF' + Math.floor(Math.random() * 1000000),
-          payment_date: new Date().toISOString().split('T')[0], // Add the required payment_date field
+          payment_date: new Date().toISOString().split('T')[0],
           recorded_by: localStorage.getItem('username') || 'Admin',
           notes: `Payment for invoice ${this.invoice.invoice_number || '#'}`
         };
@@ -993,14 +1030,14 @@ export default {
             const simulatedPayment = {
               ...paymentData,
               payment_id: Date.now(),
-          payment_date: new Date().toISOString().split('T')[0],
+              payment_date: new Date().toISOString().split('T')[0],
               created_at: new Date().toISOString()
-        };
+            };
         
-        // Add to local payments array
-        if (!this.payments) {
-          this.payments = [];
-        }
+            // Add to local payments array
+            if (!this.payments) {
+              this.payments = [];
+            }
             this.payments.push(simulatedPayment);
             console.log('Added simulated payment:', simulatedPayment);
           } else {
@@ -1071,16 +1108,26 @@ export default {
         };
         
         // Show success message
-      this.successAlert = true;
-        console.log('✅ Payment processed successfully');
+        this.alertType = 'success';
+        this.alertMessage = `Payment of ${this.formatPrice(this.paymentAmount)} recorded successfully`;
+        this.showAlert = true;
         
-      setTimeout(() => {
-        this.successAlert = false;
+        setTimeout(() => {
+          this.showAlert = false;
           this.closePaymentForm();
         }, 2000);
       } catch (error) {
         console.error('Error processing payment:', error);
-        this.showAlertMessage(`Payment failed: ${error.message}`);
+        this.alertType = 'error';
+        this.alertMessage = `Payment failed: ${error.message}`;
+        this.showAlert = true;
+      }
+    },
+
+    handleConfirmModal(confirmed) {
+      this.showConfirmModal = false;
+      if (confirmed && this.confirmModalCallback) {
+        this.confirmModalCallback();
       }
     },
 
@@ -2619,12 +2666,20 @@ export default {
         console.log('Updated remaining balance:', remainingBalance);
         console.log('Updated final amount:', this.invoice.final_amount);
         
-        // Show success message
-        this.$toast.success('Discount applied successfully');
+        // Show success alert
+        this.alertType = 'success';
+        this.alertMessage = `Successfully applied ${this.selectedDiscountName} discount of ${this.formatPrice(this.discountAmount)}`;
+        this.showAlert = true;
+        
+        // Close the discount modal
+        this.showDiscountModal = false;
         
       } catch (error) {
         console.error('Error saving discount to invoice:', error);
-        this.$toast.error('Failed to save discount. Please try again.');
+        // Show error alert
+        this.alertType = 'error';
+        this.alertMessage = 'Failed to save discount. Please try again.';
+        this.showAlert = true;
       }
     },
     
@@ -2676,13 +2731,13 @@ export default {
         }
     },
     showAlertMessage(message, type = 'error') {
-      this.this.showAlertMessageMessage = message;
-      this.this.showAlertMessageType = type;
+      this.alertMessage = message;
+      this.alertType = type;
       this.showAlert = true;
     },
     closeAlert() {
       this.showAlert = false;
-      this.this.showAlertMessageMessage = '';
+      this.alertMessage = '';
     },
   },
   
