@@ -29,7 +29,8 @@ const routes = [
   },
   {
     path: '/dashboard',
-    component: AdminDashboard, 
+    component: AdminDashboard,
+    meta: { requiresAuth: true }, // Add auth requirement for dashboard and its children
     children: [
       {
         path: '',
@@ -37,73 +38,84 @@ const routes = [
       },
       {
         name: 'Profile',
-        path: '/profile',
-        component: Profile
+        path: '/profile', 
+        component: Profile,
+        meta: { requiresAuth: true }
       },
       {
         name: 'ManageEvents',
         path: '/manage-events',
-        component: ManageEvents
+        component: ManageEvents,
+        requiresAuth: true,
       },
       {
         name: 'EventCalendar',
         path: '/event-calendar',
-        component: EventCalendar
+        component: EventCalendar,
+        requiresAuth: true,
       },
       {
         name: 'ManageOutfits',
         path: '/manage-outfits',
-        component: ManageOutfits
+        component: ManageOutfits,
+        requiresAuth: true,
       },
       {
         name: 'ManageUsers',
         path: '/manage-users', 
-        component: ManageUsers
+        component: ManageUsers,
+        requiresAuth: true,
       },
       {
         name: 'UploadGallery',
         path: '/upload-gallery', 
-        component: UploadGallery
+        component: UploadGallery,
+        requiresAuth: true,
       },
       {
         name: 'Settings',
         path: '/settings',
-        component: Settings
+        component: Settings,
+        requiresAuth: true,
       },
       {
         name: 'CreateEvent',
-        path: '/create-event',
+        path: 'create-event',
         component: CreateEvent,
+        meta: { requiresAuth: true },
         props: true,
         children: [
            {
-             path: '/wedding-form',
+             path: 'wedding-form', // Changed to relative path
              component: WeddingForm,
+             meta: { requiresAuth: true }
            },
            {
-            path: '/birthday-form',
+            path: 'birthday-form', // Changed to relative path
             component: BirthdayForm,
+            meta: { requiresAuth: true }
           },
           {
-            path: '/debut-form',
+            path: 'debut-form', // Changed to relative path
             component: DebutForm,
-          },
-          
-
-        ],
+            meta: { requiresAuth: true }
+          }
+        ]
       },
       {
         name: 'Invoice',
         path: '/invoice/:eventId?',
         component: Invoice,
-        props: true,     
+        props: true,
+        requiresAuth: true,     
       
       },
       {
         name: 'AddServices',
         path: '/add-services',
         component: AddServices,
-        props: true,     
+        props: true,   
+        requiresAuth: true,  
       
       },
       {
@@ -111,6 +123,7 @@ const routes = [
         path: '/add-venue',
         component: AddVenue,
         props: true,     
+        requiresAuth: true,
       
       },
       {
@@ -118,6 +131,7 @@ const routes = [
         path: '/add-outfitPackage',
         component: AddOutfitPackage,
         props: true,     
+        requiresAuth: true,
       
       },
       {
@@ -125,18 +139,21 @@ const routes = [
         path: '/additional-services',
         component: AdditionalServices,
         props: true,     
+        requiresAuth: true,
       },
       {
         name: 'AddWishlist',
         path: '/add-wishlist',
         component: AddWishlist,
-        props: true,     
+        props: true,
+        requiresAuth: true,     
       },
       {
         name: 'AddDiscounts',
         path: '/add-discounts',
         component: AddDiscounts,
         props: true,     
+        requiresAuth: true,
       },
     ],
   }
@@ -149,8 +166,16 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
+  // Set the document title
   document.title = to.meta.title || 'RedCarpet Admin';
-  next();
+
+  // Check authentication
+  const isLoggedIn = !!localStorage.getItem('access_token'); // or check Vuex store
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    next('/'); // Redirect to login if not logged in
+  } else {
+    next(); // Continue as normal
+  }
 });
 
 export default router;

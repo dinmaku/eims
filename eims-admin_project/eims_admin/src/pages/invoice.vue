@@ -86,9 +86,7 @@
           <!-- Handle online bookings -->
           <div v-else-if="event.booking_type === 'Online'">
             <p class="font-bold font-inter">
-              <!-- Special case for user ID 1 (Jack Cole) -->
-              <span v-if="event.userid == 1">Jack Cole</span>
-              <span v-else-if="event.firstname || event.lastname">
+              <span v-if="event.firstname || event.lastname">
                 {{ event.firstname || '' }} {{ event.lastname || '' }}
               </span>
               <span v-else-if="event.user_details">
@@ -97,20 +95,12 @@
               </span>
               <span v-else>Online Client (ID: {{ event.userid || 'Unknown' }})</span>
             </p>
-            <!-- Special case for user ID 1 address -->
-            <p v-if="event.userid == 1">123 Seaside Avenue, Iligan City</p>
-            <p v-else>{{ event.address || (event.user_details && event.user_details.address) || 'No address provided' }}</p>
-            
-            <!-- Special case for user ID 1 phone -->
-            <p v-if="event.userid == 1">09123456789</p>
-            <p v-else>{{ event.contactnumber || event.contact_number || 
+            <p>{{ event.address || (event.user_details && event.user_details.address) || 'No address provided' }}</p>
+            <p>{{ event.contactnumber || event.contact_number || 
                 (event.user_details && (event.user_details.contactnumber || event.user_details.contact_number)) || 
                 'No contact number provided' }}</p>
-                
-            <!-- Special case for user ID 1 email -->
-            <p v-if="event.userid == 1">jack.cole@example.com</p>
-            <p v-else>{{ event.email || (event.user_details && event.user_details.email) || 'No email provided' }}</p>
-        </div>
+            <p>{{ event.email || (event.user_details && event.user_details.email) || 'No email provided' }}</p>
+          </div>
           <!-- General fallback -->
           <div v-else>
             <p class="font-bold font-inter">
@@ -120,7 +110,7 @@
             <p>{{ event.address || 'No address provided' }}</p>
             <p>{{ event.contactnumber || event.contact_number || 'No contact number provided' }}</p>
             <p v-if="event.email">{{ event.email }}</p>
-            </div>
+          </div>
             </div>
         </div>
 
@@ -130,7 +120,10 @@
         </div>
 
       <div class="flex mt-12 ml-20 space-x-10">
-          <p class="text-md text-gray-700">Capacity: <span class="font-semibold">{{ event.capacity || (event.wishlist_package && event.wishlist_package.capacity) || '150 to 200' }} attendees</span></p>
+          <p class="text-md text-gray-700">
+            Capacity: <span class="font-semibold">{{ event.capacity || (event.wishlist_package && event.wishlist_package.capacity) || '150 to 200' }} attendees</span>
+            <span v-if="additionalCapacityInfo" class="ml-2 text-blue-600">(+{{ additionalCapacityInfo.additional }} additional persons at {{ formatPrice(additionalCapacityInfo.rate) }}/{{ additionalCapacityInfo.unit }} persons)</span>
+          </p>
           <p class="text-md text-gray-700">Event: <span class="font-semibold">{{ event.event_name || 'Unnamed Event' }}</span></p>
       </div>
 
@@ -437,8 +430,11 @@
       focus:outline-none hover:bg-gray-400 hover:text-gray-700 rounded-lg transform-transition duration-200 transform hover:scale-105" @click="closePaymentForm">
         Cancel Payment
       </button>
-      <button @click.prevent="handlePayment" class="bg-gray-600 py-2 px-5 rounded-full font-semibold text-sm text-white transform-transition duration-200 transform hover:scale-105">
-        Pay Now
+      <button @click.prevent="handlePayment" 
+              class="bg-gray-600 py-2 px-5 rounded-full font-semibold text-sm text-white transform-transition duration-200 transform hover:scale-105"
+              :class="{'opacity-50 cursor-not-allowed': isRecordButtonDisabled}"
+              :disabled="isRecordButtonDisabled">
+        Record
       </button>
     </div>
 
@@ -601,6 +597,7 @@ export default {
          paymentForm: false,
          successAlert: false,
          additionalCharges: 0,
+         additionalCapacityInfo: null,  // Add this line
          totalPaymentsMade: 0,
          paymentAmount: 0,
          paymentMethod: '',
@@ -693,6 +690,25 @@ export default {
       const found = this.availableDiscounts.find(d => Number(d.discount_id) === Number(this.selectedDiscountTemp));
       console.log('Selected discount object:', found);
       return found || null;
+    },
+
+    isRecordButtonDisabled() {
+      // Disable if no payment amount or method
+      if (!this.paymentAmount || !this.paymentMethod) {
+        return true;
+      }
+
+      // Disable if payment amount is not positive
+      if (parseFloat(this.paymentAmount) <= 0) {
+        return true;
+      }
+
+      // Disable if digital payment method is selected but no reference number provided
+      if (this.digitalPaymentMethods.includes(this.paymentMethod) && !this.referenceNumber.trim()) {
+        return true;
+      }
+
+      return false;
     }
   },
 
@@ -969,7 +985,7 @@ export default {
             : this.invoice.invoice_id,
           amount: parseFloat(this.paymentAmount),
           payment_method: this.paymentMethod,
-          reference_number: this.referenceNumber || 'REF' + Math.floor(Math.random() * 1000000),
+          reference_number: this.paymentMethod === 'Cash' ? '' : (this.referenceNumber || 'REF' + Math.floor(Math.random() * 1000000)),
           payment_date: new Date().toISOString().split('T')[0],
           recorded_by: localStorage.getItem('username') || 'Admin',
           notes: `Payment for invoice ${this.invoice.invoice_number || '#'}`
@@ -1247,6 +1263,7 @@ export default {
       this.vendors = [];
       this.attires = [];
       this.additionalServices = [];
+      this.additionalCapacityInfo = null;  // Reset additional capacity info
       
       console.log('Loading inclusions from event data:', this.event);
       
@@ -1254,6 +1271,41 @@ export default {
       if (!this.event || Object.keys(this.event).length === 0) {
         console.warn('No event data available to load inclusions');
         return;
+      }
+      
+      // Load additional capacity information first
+      try {
+        if (this.event.wishlist_package) {
+          const pkg = this.event.wishlist_package;
+          const baseCapacity = pkg.capacity || 0;
+          const additionalCapacityCharges = parseFloat(pkg.additional_capacity_charges || 0);
+          const chargeUnit = parseInt(pkg.charge_unit || 1);
+          
+          // Parse additional capacity from description
+          let additionalCapacity = 0;
+          if (pkg.description) {
+            const match = pkg.description.match(/\[Additional capacity: (\d+) persons/);
+            if (match) {
+              additionalCapacity = parseInt(match[1]);
+              
+              // Set the additional capacity info for display
+              this.additionalCapacityInfo = {
+                additional: additionalCapacity,
+                rate: additionalCapacityCharges,
+                unit: chargeUnit
+              };
+              
+              // Calculate total additional charges
+              if (additionalCapacityCharges > 0 && additionalCapacity > 0) {
+                const units = Math.ceil(additionalCapacity / chargeUnit);
+                this.additionalCharges = units * additionalCapacityCharges;
+                console.log(`Loaded additional capacity charges: ${this.additionalCharges} (${additionalCapacity} additional persons at ${additionalCapacityCharges} per ${chargeUnit} persons)`);
+              }
+            }
+          }
+        }
+      } catch (capacityError) {
+        console.error('Error loading additional capacity charges:', capacityError);
       }
       
       // Load venue - check if we have wishlist_venues data
@@ -2268,19 +2320,6 @@ export default {
         
         console.log('Fetching user details for userId:', userId);
         
-        // For userid 1, use hardcoded data since we know it's causing issues
-        if (userId === 1) {
-          console.log('Using hardcoded data for known user (ID 1)');
-          return {
-            userid: 1,
-            firstname: 'Jack',
-            lastname: 'Cole',
-            email: 'jack.cole@example.com',
-            contactnumber: '09123456789',
-            address: '123 Seaside Avenue, Iligan City'
-          };
-        }
-        
         const token = localStorage.getItem('access_token');
         if (!token) {
           console.warn('No authentication token found');
@@ -2305,7 +2344,8 @@ export default {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
               },
-              credentials: 'include'
+              credentials: 'include',
+              mode: 'cors'
             });
             
             // Check if we got a JSON response
@@ -2318,9 +2358,36 @@ export default {
             if (response.ok) {
               const data = await response.json();
               console.log(`Successfully fetched user data from ${url}:`, data);
-              return data;
+              
+              // Handle both direct data and nested data.data format
+              const userData = data.data || data;
+              
+              // Normalize the response format
+              const normalizedData = {
+                userid: userData.userid,
+                firstname: userData.firstname || userData.first_name,
+                lastname: userData.lastname || userData.last_name,
+                email: userData.email,
+                contactnumber: userData.contactnumber || userData.contact_number,
+                address: userData.address
+              };
+
+              // Log the normalized data
+              console.log('Normalized user data:', normalizedData);
+              
+              // Verify we have at least some basic user information
+              if (normalizedData.userid && (normalizedData.firstname || normalizedData.lastname)) {
+                return normalizedData;
+              } else {
+                console.warn('Retrieved user data is incomplete:', normalizedData);
+                continue; // Try next URL if data is incomplete
+              }
             } else {
               console.log(`Failed with URL ${url}: ${response.status} ${response.statusText}`);
+              if (response.status === 401) {
+                console.warn('Authentication failed, token might be invalid');
+                break; // Stop trying if authentication failed
+              }
             }
           } catch (error) {
             console.error(`❌ Error with URL ${url}:`, error.message);
@@ -2385,7 +2452,7 @@ export default {
         console.log('Processed discounts array:', discounts);
         
         this.availableDiscounts = discounts.filter(discount => 
-          discount.status === 'active' && 
+          discount.status.toLowerCase() === 'active' && 
           (!discount.minimum_purchase || discount.minimum_purchase <= this.subtotal())
         );
         

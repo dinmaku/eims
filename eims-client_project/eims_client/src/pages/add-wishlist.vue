@@ -183,7 +183,6 @@
                   <button type = "button" v-for="serviceType in supplierTypes" :key="serviceType" @click="selectSupplierType(serviceType)" class="w-full text-left px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md transition duration-150">
                     {{ serviceType }}
                   </button>
-                  <button type="button" @click="showExternalSupplierModal = true" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Add External Supplier</button>
                 </div>
               </div>
             </div>
@@ -438,14 +437,8 @@
                       {{ selectedPackage.capacity + (selectedPackage.additional_capacity || 0) }} persons
                   </span>
                   <br>
-                  Additional Charges: {{ formatPrice(selectedPackage.additional_capacity_charges) }} per {{ selectedPackage.charge_unit }} person(s)
+                 
               </p>
-              <button type = "button"
-                  @click="showCapacityModal = true"
-                  class="mt-2 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-105"
-              >
-                  Add Capacity
-              </button>
           </div>
               <!-- Capacity Modal -->
               <div v-if="showCapacityModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
@@ -654,27 +647,45 @@
 
 
                     <!-- Event Schedule Section -->
-                    <div class="mb-5 space-x-4">
+                    <div class="mb-5">
                     <h3 class="text-lg font-semibold mb-2">Event Schedule</h3>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-600 mb-1 block">Date</label>
                     <input 
-                        v-model="eventSchedule.date" 
                         type="date" 
-                        class="w-1/4 p-2 border rounded mb-2"
-                        @change="checkScheduleAvailability"
-                        :disabled="isDateBooked"
+                                    class="w-full p-2 border rounded"
+                                    :min="minDate"
+                                    :value="eventSchedule.date"
+                                    @input="handleDateChange"
+                                    :class="{ 
+                                        'bg-gray-100': isDateDisabled,
+                                        'cursor-not-allowed': isDateDisabled || isPastDate(eventSchedule.date)
+                                    }"
                     >
+                                <p v-if="dateError" class="text-red-500 text-xs mt-1">{{ dateError }}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-600 mb-1 block">Start Time</label>
                     <input 
                         v-model="eventSchedule.start_time" 
                         type="time" 
-                        class="w-1/4 p-2 border rounded mb-2"
+                                    class="w-full p-2 border rounded"
                         :disabled="!eventSchedule.date || isDateBooked"
+                                    @change="checkScheduleAvailability"
                     >
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-600 mb-1 block">End Time</label>
                     <input 
                         v-model="eventSchedule.end_time" 
                         type="time" 
-                        class="w-1/4 p-2 border rounded"
+                                    class="w-full p-2 border rounded"
                         :disabled="!eventSchedule.start_time || isDateBooked"
+                                    @change="checkScheduleAvailability"
                     >
+                            </div>
+                        </div>
                     <p v-if="scheduleError" class="text-red-500 text-sm mt-2">{{ scheduleError }}</p>
                 </div>
                   
@@ -815,6 +826,7 @@ export default {
         isDateBooked: false,
         scheduleError: '',
         showSuccessModal: false,
+        dateError: '',
     };
   },
   methods: {
@@ -827,81 +839,87 @@ export default {
             }
             
             console.log('Fetching booked dates...');
-            const response = await axios.get('http://localhost:5000/api/events/schedules', {
+            const response = await axios.get('http://localhost:5001/api/events/schedules', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
             if (response.data && Array.isArray(response.data)) {
-                this.bookedDates = response.data.filter(booking => 
-                    booking.schedule && booking.start_time && booking.end_time
-                );
-                console.log('Successfully fetched booked dates:', this.bookedDates);
+                // Format the dates to match the input date format (YYYY-MM-DD)
+                this.bookedDates = response.data
+                    .filter(booking => booking.schedule && booking.start_time && booking.end_time)
+                    .map(booking => ({
+                        ...booking,
+                        schedule: new Date(booking.schedule).toISOString().split('T')[0]
+                    }));
+                console.log('Formatted booked dates:', this.bookedDates);
             } else {
                 console.error('Invalid response format:', response.data);
             }
         } catch (error) {
             console.error('Error fetching booked dates:', error);
-            if (error.response) {
-                console.error('Error details:', {
-                    status: error.response.status,
-                    data: error.response.data,
-                    headers: error.response.headers
-                });
-            }
         }
     },
     async checkScheduleAvailability() {
-        if (!this.eventSchedule.date || !this.eventSchedule.start_time || !this.eventSchedule.end_time) {
-            console.log('Schedule not fully selected yet');
+        if (!this.eventSchedule.date) {
+            console.log('No date selected');
             return;
         }
 
-        const formatTime = (time) => {
-            // Convert time to HH:mm format for comparison
-            return time.split(':').slice(0, 2).join(':');
-        };
+        if (!this.eventSchedule.start_time || !this.eventSchedule.end_time) {
+            console.log('Time not fully selected yet');
+            return;
+        }
 
+        const formatTime = (time) => time.split(':').slice(0, 2).join(':');
         const selectedDate = this.eventSchedule.date;
         const selectedStartTime = formatTime(this.eventSchedule.start_time);
         const selectedEndTime = formatTime(this.eventSchedule.end_time);
 
-        console.log('Checking schedule availability for:', {
-            date: selectedDate,
-            start: selectedStartTime,
-            end: selectedEndTime,
-            bookedDates: this.bookedDates
-        });
+        // Check for time overlap on the same date
+        const overlappingBooking = this.bookedDates.find(booking => {
+            if (booking.schedule !== selectedDate) return false;
 
-        // Check if any booked date overlaps with selected schedule
-        this.isDateBooked = this.bookedDates.some(booking => {
             const bookingStartTime = formatTime(booking.start_time);
             const bookingEndTime = formatTime(booking.end_time);
 
-            const overlap = (
-                booking.schedule === selectedDate &&
-                ((selectedStartTime >= bookingStartTime && selectedStartTime < bookingEndTime) ||
+            return (
+                (selectedStartTime >= bookingStartTime && selectedStartTime < bookingEndTime) ||
                  (selectedEndTime > bookingStartTime && selectedEndTime <= bookingEndTime) ||
-                 (selectedStartTime <= bookingStartTime && selectedEndTime >= bookingEndTime))
+                (selectedStartTime <= bookingStartTime && selectedEndTime >= bookingEndTime)
             );
-            
-            if (overlap) {
-                console.log('Found overlapping booking:', {
-                    bookedDate: booking.schedule,
-                    bookedStart: bookingStartTime,
-                    bookedEnd: bookingEndTime
-                });
-            }
-            
-            return overlap;
         });
-
-        if (this.isDateBooked) {
-            this.scheduleError = 'This schedule overlaps with an existing booking';
-            console.log('Schedule is not available');
-        } else {
-            this.scheduleError = '';
-            console.log('Schedule is available');
+            
+        if (overlappingBooking) {
+            this.scheduleError = 'This time slot overlaps with an existing booking';
+            return false;
         }
+
+            this.scheduleError = '';
+        return true;
+    },
+    handleDateChange(event) {
+        const selectedDate = event.target.value;
+        console.log('Selected date:', selectedDate);
+        
+        // Check if the date is in the past
+        if (this.isPastDate(selectedDate)) {
+            this.dateError = 'Cannot select a past date';
+            this.eventSchedule.date = ''; // Clear the date
+            return;
+        }
+        
+        // Check if the date is already booked
+        const isBooked = this.bookedDates.some(booking => booking.schedule === selectedDate);
+        
+        if (isBooked) {
+            this.dateError = 'This date is already booked';
+            this.eventSchedule.date = ''; // Clear the date
+            return;
+        }
+        
+        this.dateError = '';
+        this.eventSchedule.date = selectedDate;
+        this.checkScheduleAvailability();
     },
     checkLoginStatus() {
       const token = localStorage.getItem('access_token');
@@ -911,7 +929,7 @@ export default {
         return;
       }
 
-      axios.get('http://127.0.0.1:5000/check-auth', {
+      axios.get('http://127.0.0.1:5001/check-auth', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -942,7 +960,7 @@ export default {
           return;
         }
 
-        const response = await axios.get('http://127.0.0.1:5000/created-packages', {
+        const response = await axios.get('http://127.0.0.1:5001/created-packages', {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
@@ -1206,7 +1224,7 @@ export default {
       async fetchPackageDetails(packageId) {
           try {
             const token = localStorage.getItem('access_token');
-            const response = await axios.get(`http://127.0.0.1:5000/packages/${packageId}`, {
+            const response = await axios.get(`http://127.0.0.1:5001/packages/${packageId}`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -1261,7 +1279,7 @@ export default {
     async fetchAvailableSuppliers() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await axios.get('http://127.0.0.1:5000/available-suppliers', {
+            const response = await axios.get('http://127.0.0.1:5001/available-suppliers', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -1280,7 +1298,7 @@ export default {
             if (response.data.length === 0) {
                 console.log('No suppliers found, trying alternate endpoint');
                 try {
-                    const altResponse = await axios.get('http://127.0.0.1:5000/suppliers', {
+                    const altResponse = await axios.get('http://127.0.0.1:5001/suppliers', {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -1343,7 +1361,7 @@ export default {
         async fetchAvailableVenues() {
           try {
               const token = localStorage.getItem('access_token');
-              const response = await axios.get('http://127.0.0.1:5000/available-venues', {
+              const response = await axios.get('http://127.0.0.1:5001/available-venues', {
                   headers: {
                       'Authorization': `Bearer ${token}`,
                       'Content-Type': 'application/json'
@@ -1372,7 +1390,7 @@ export default {
     async fetchAvailableGownPackages() {
       try {
           const token = localStorage.getItem('access_token');
-          const response = await axios.get('http://127.0.0.1:5000/available-gown-packages', {
+          const response = await axios.get('http://127.0.0.1:5001/available-gown-packages', {
               headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'
@@ -1402,7 +1420,7 @@ export default {
       async fetchEventTypes() {
           this.eventTypesLoading = true;
           try {
-            const response = await axios.get('http://127.0.0.1:5000/event-types', {
+            const response = await axios.get('http://127.0.0.1:5001/event-types', {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('access_token')}`,
               },
@@ -1419,7 +1437,7 @@ export default {
         async fetchAdditionalServices() {
           try {
             const token = localStorage.getItem('access_token');
-            const response = await axios.get('http://127.0.0.1:5000/created-services', {
+            const response = await axios.get('http://127.0.0.1:5001/created-services', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -1463,8 +1481,19 @@ export default {
                   return;
               }
 
-              if (!this.eventSchedule.date || !this.eventSchedule.start_time || !this.eventSchedule.end_time) {
-                  alert('Please fill in all event schedule details');
+              // Validate date and time fields
+              if (!this.eventSchedule.date) {
+                  alert('Please select an event date');
+                  return;
+              }
+
+              if (!this.eventSchedule.start_time) {
+                  alert('Please select a start time');
+                  return;
+              }
+
+              if (!this.eventSchedule.end_time) {
+                  alert('Please select an end time');
                   return;
               }
 
@@ -1531,7 +1560,7 @@ export default {
               };
 
               // Create event first
-              const eventResponse = await axios.post('http://127.0.0.1:5000/events', eventData, {
+              const eventResponse = await axios.post('http://127.0.0.1:5001/events', eventData, {
                   headers: {
                       'Content-Type': 'application/json',
                       'Authorization': `Bearer ${token}`
@@ -1565,7 +1594,7 @@ export default {
               console.log('Submitting wishlist data:', wishlistData);
 
               // Make API call to save wishlist with authentication
-              const response = await axios.post('http://127.0.0.1:5000/wishlist-packages', wishlistData, {
+              const response = await axios.post('http://127.0.0.1:5001/wishlist-packages', wishlistData, {
                   headers: {
                       'Content-Type': 'application/json',
                       'Authorization': `Bearer ${token}`
@@ -1577,7 +1606,7 @@ export default {
                   this.showSuccessModal = true; // Show success modal instead of alert
               } else {
                   // If wishlist creation fails, delete the event we just created
-                  await axios.delete(`http://127.0.0.1:5000/events/${eventResponse.data.events_id}`, {
+                  await axios.delete(`http://127.0.0.1:5001/events/${eventResponse.data.events_id}`, {
                       headers: {
                           'Authorization': `Bearer ${token}`
                       },
@@ -2251,6 +2280,14 @@ addSelectedService() {
       this.packagesForm = true;
       this.packagesDetailsForm = false;
     },
+    isPastDate(date) {
+        if (!date) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        const checkDate = new Date(date);
+        checkDate.setHours(0, 0, 0, 0); // Reset time to start of day
+        return checkDate < today;
+    },
   },
 
   computed: {
@@ -2368,6 +2405,15 @@ addSelectedService() {
   created() {
     this.fetchBookedDates();
 },
+    minDate() {
+        const today = new Date();
+        // Format the date as YYYY-MM-DD
+        return today.toISOString().split('T')[0];
+    },
+    isDateDisabled() {
+        return this.bookedDates.some(booking => booking.schedule === this.eventSchedule.date) || 
+               this.isPastDate(this.eventSchedule.date);
+    }
 };
 </script>
 

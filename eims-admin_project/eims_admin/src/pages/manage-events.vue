@@ -384,7 +384,7 @@
               <th scope="col" class="px-2 py-3">Package Deal</th>
               <th scope="col" class="px-2 py-3">Venue</th>
               <th scope="col" class="px-2 py-3">Schedule</th>
-              <th scope="col" class="px-2 py-3">Total Charges</th>
+             
               <th scope="col" class="px-2 py-3">Action</th>
             </tr>
           </thead>
@@ -407,7 +407,6 @@
                 </div>
               </td>
               <td class="px-1 py-3">{{ formatDate(event.schedule) }}</td>
-              <td class="px-1 py-3 font-medium">₱{{ formatPrice(event.total_price) }}</td>
               <td class="px-1 py-3">
                 <div class="flex items-center">
                   
@@ -624,13 +623,7 @@
                           @click="toggleVenueStatus(selectedEvent.venue)"
                         >
                       </div>
-                        <button type="button" @click="editVenue" class="inline-block cursor-pointer">
-                        <img 
-                          alt="Edit Icon" 
-                          class="w-[22px] h-[22px] transition-transform transform hover:scale-110 hover:brightness-90" 
-                          src="/img/edit.png" 
-                        >
-                      </button>
+              
                       <div @click="removeVenue" class="inline-block cursor-pointer">
                         <img 
                           alt="Delete Icon" 
@@ -664,13 +657,7 @@
                             @click="approveInclusion('venues', 0)"
                         >
                       </div>
-                        <button type="button" @click="editInclusion('venues', 0)" class="inline-block cursor-pointer">
-                        <img 
-                          alt="Edit Icon" 
-                          class="w-[22px] h-[22px] transition-transform transform hover:scale-110 hover:brightness-90" 
-                          src="/img/edit.png" 
-                        >
-                      </button>
+                       
                     <div @click="removeInclusion('venues', 0)" class="inline-block cursor-pointer">
                     <img 
                       alt="Delete Icon" 
@@ -723,13 +710,7 @@
                           src="/img/mark.png" 
                         >
                       </div>
-                      <button type="button" @click="editInclusion('suppliers', index)" class="inline-block cursor-pointer">
-                        <img 
-                          alt="Edit Icon" 
-                          class="w-[22px] h-[22px] transition-transform transform hover:scale-110 hover:brightness-90" 
-                          src="/img/edit.png" 
-                        >
-                      </button>
+        
                       <div @click="removeInclusion('suppliers', index)" class="inline-block cursor-pointer">
                         <img 
                           alt="Delete Icon" 
@@ -780,13 +761,6 @@
                           @click="approveInclusion('outfits', index)"
                         >
                       </div>
-                      <button type="button" @click="editInclusion('outfits', index)" class="inline-block cursor-pointer">
-                        <img 
-                          alt="Edit Icon" 
-                          class="w-[22px] h-[22px] transition-transform transform hover:scale-110 hover:brightness-90" 
-                          src="/img/edit.png" 
-                        >
-                      </button>
                       <button 
                         @click="removeInclusion('outfits', index)" 
                         class="inline-block cursor-pointer"
@@ -848,13 +822,6 @@
                           @click="approveInclusion('services', index)"
                         >
                       </div>
-                      <button type="button" @click="editInclusion('services', index)" class="inline-block cursor-pointer">
-                        <img 
-                          alt="Edit Icon" 
-                          class="w-[22px] h-[22px] transition-transform transform hover:scale-110 hover:brightness-90" 
-                          src="/img/edit.png" 
-                        >
-                      </button>
                     <div @click="removeInclusion('services', index)" class="inline-block cursor-pointer">
                     <img 
                       alt="Delete Icon" 
@@ -874,13 +841,6 @@
             <h3 class ="font-semibold text-blue-900 mb-2 font-inter text-start ml-3">Capacity Pax</h3>
           <div class ="w-full p-2 border rounded bg-gray-100 flex flex-col justify-center items-center">
             <p class = "text-md font-medium">Package Pax: <span class = "font-semibold">{{ selectedEvent.capacity }} persons</span></p>
-            <p class = "text-md ">Additional Charges: <span class = "font-medium">₱{{ selectedEvent.additional_capacity_charges }} per {{ selectedEvent.charge_unit }} person/s</span></p>
-            <button type = "button"
-                  @click="showCapacityModal = true"
-                  class="mt-2 bg-[#9B111E] hover:bg-[#B73A45] text-white py-2 px-4 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-105"
-              >
-                  Add Capacity
-              </button>
           </div>
       </div>
 
@@ -1107,6 +1067,19 @@
         {{ option.label }}
       </option>
       </select>
+      <div class="ml-4 flex items-center">
+        <span class="text-sm font-semibold text-gray-600">Additional Charges:</span>
+        <span class="ml-2 text-sm font-semibold text-blue-700">
+          {{ formatPrice(selectedEvent.additional_capacity_charges || 0) }} per {{ selectedEvent.charge_unit || 1 }} person(s)
+        </span>
+        <button 
+          @click="showCapacityModal = true"
+          class="ml-3 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+          :disabled="!enableEditDetails"
+        >
+          Add Capacity
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1451,10 +1424,6 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 text-left">Price</label>
         <input type="number" v-model="externalSupplierData.price" class="w-full p-2 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 text-left">Remarks</label>
-        <textarea v-model="externalSupplierData.remarks" class="w-full p-2 rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" rows="3"></textarea>
       </div>
     </div>
     <div class="flex justify-end mt-4 space-x-2">
@@ -3301,11 +3270,11 @@
       this.selectedEvent.suppliers.push({
         type: 'external',
         service: this.selectedExternalSupplierType,
-        supplier_id: 0, // Use 0 for external suppliers
+        supplier_id: null,  // Changed from 0 to null
         external_supplier_name: this.externalSupplierData.name,
         external_supplier_contact: this.externalSupplierData.contact,
         price: parseFloat(this.externalSupplierData.price) || 0,
-        remarks: this.externalSupplierData.remarks,
+        remarks: this.selectedExternalSupplierType,  // Store the selected service type in remarks
         status: 'Pending'
       });
       
@@ -3345,7 +3314,7 @@
         this.selectedInclusionType = type;
         this.showInclusionModal = true;
         if (type === 'supplier') {
-          this.showSupplierModal = true;
+         // Erased this.showSupplierModal = true
         } else if (type === 'venue') {
           this.showVenueModal = true;
         } else if (type === 'outfit') {
@@ -3746,6 +3715,7 @@
 
         closeSupplierModal() {
           this.showSupplierModal = false;
+          this.showInclusionModal = true;
         },
       displaySupplierName(supplier) {
         console.log('Displaying supplier:', JSON.stringify(supplier));
@@ -4143,7 +4113,7 @@
             gown_package_id: this.selectedEvent.gown_package_id || null,
             additional_capacity_charges: parseFloat(this.selectedEvent.additional_capacity_charges) || 0,
             charge_unit: parseInt(this.selectedEvent.charge_unit) || 1,
-            total_price: parseFloat(this.selectedEvent.total_price) || 0,
+            total_price: this.calculateExpectedPrice,  // Use actual rate from approved inclusions
             event_type_id: this.selectedEvent.event_type_id || null,
             status: this.selectedEvent.status || 'Wishlist',
             // Add the editable fields
@@ -4156,6 +4126,14 @@
             // Add additional capacity fields
             additional_capacity: parseInt(this.selectedEvent.additional_capacity) || 0,
             additional_capacity_total_price: parseFloat(this.selectedEvent.additional_capacity_total_price) || 0,
+            // Add wishlist_package specific fields
+            wishlist_package: {
+              ...this.selectedEvent.wishlist_package,
+              capacity: parseInt(this.selectedEvent.capacity) || 0,
+              additional_capacity_charges: parseFloat(this.selectedEvent.additional_capacity_charges) || 0,
+              charge_unit: parseInt(this.selectedEvent.charge_unit) || 1,
+              description: this.selectedEvent.description || ''
+            },
             outfits: this.selectedEvent.outfits.map(outfit => ({
               ...outfit,
               status: outfit.status || 'Pending'
@@ -4202,17 +4180,15 @@
               this.showAlertMessage('Wishlist updated successfully');
               this.closeWishlistModal();
             }
-            // Refresh data
-            console.log('Refreshing data after successful wishlist update...');
-            await this.fetchBookedWishlist();
-            console.log('Data refresh complete');
             return true;
           } else {
-            throw new Error((response.data && response.data.message) || 'Failed to update wishlist');
+            throw new Error(response.data.message || 'Failed to update wishlist');
           }
         } catch (error) {
-          console.error('Error in saveUpdatedWishlist:', error);
+          console.error('Error updating wishlist:', error);
+          if (showAlert) {
             this.showAlertMessage(`Error updating wishlist: ${error.message}`);
+          }
           return false;
         }
       },

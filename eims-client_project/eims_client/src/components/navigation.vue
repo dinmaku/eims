@@ -33,16 +33,16 @@
             </li>
 
           <li>
-            <a href="#" class="block py-2 px-3 text-gray-100 rounded hover:text-gray-300 md:border-0 md:p-0 dark:text-white dark:hover:text-gray-200">About</a>
+            <a href="#aboutus" class="block py-2 px-3 text-gray-100 rounded hover:text-gray-300 md:border-0 md:p-0 dark:text-white dark:hover:text-gray-200">About</a>
           </li>
           <li>
-            <a href="#" class="block py-2 px-3 text-gray-100 rounded hover:text-gray-300 md:border-0 md:p-0 dark:text-white dark:hover:text-gray-200">Contact</a>
+            <a href="#contactus" class="block py-2 px-3 text-gray-100 rounded hover:text-gray-300 md:border-0 md:p-0 dark:text-white dark:hover:text-gray-200">Contact</a>
           </li>
 
           <!-- Conditionally render based on login status -->
           <li v-if="!loggedIn">
             <button @click="showLoginForm" class="block py-2 px-3 text-gray-100 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-black md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">
-              Login
+              Sign In
             </button>
             <LoginRegister 
             :loginForm="loginModalForm" 
@@ -102,7 +102,7 @@
 
   <router-view></router-view>
 
-  <section class="w-full h-[500px] bg-gray-50">
+  <section class="w-full h-[500px] bg-gray-50" id="contactus">
     <div class="w-full h-[500px] bg-gray-700">
       <div class = "flex justify-between m-5">
          <div class = "flex flex-col my-5 space-y-2">
@@ -140,7 +140,7 @@
     <div class="flex flex-col text-center space-y-5 ml-5">
       <p class = "text-md font-medium font-poppins text-gray-300 ml">Explore</p>
       <ul class ="font-semibold text-lg text-center text-gray-50 space-y-1">
-        <li class="transition-transform duration-300 transform hover:scale-105 hover:underline" ><a href="">About Us</a></li>
+        <li class="transition-transform duration-300 transform hover:scale-105 hover:underline" ><a href="#aboutus">About Us</a></li>
         <li class="transition-transform duration-300 transform hover:scale-105 hover:underline" ><a href="">OurTeam</a></li>
         <li class="transition-transform duration-300 transform hover:scale-105 hover:underline" ><a href="">Gallery</a></li>
       </ul>
@@ -181,7 +181,7 @@ export default {
       showDropDown: false,
       isDropdownVisible: false,
       userProfile: null,
-      apiBaseUrl: 'http://127.0.0.1:5000'
+      apiBaseUrl: 'http://127.0.0.1:5001'
     };
   },
   computed: {

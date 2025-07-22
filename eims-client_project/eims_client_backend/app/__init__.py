@@ -10,7 +10,7 @@ def create_app():
 
     # Configure CORS with simpler setup
     CORS(app, 
-         resources={r"/*": {"origins": ["http://localhost:5173"],
+         resources={r"/*": {"origins": ["http://localhost:5174"],
                            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                            "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
                            "supports_credentials": True,

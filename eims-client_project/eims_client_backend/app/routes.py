@@ -25,6 +25,16 @@ logging.basicConfig(level=logging.DEBUG)
 
 def init_routes(app):
     
+    @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+    @app.route('/<path:path>', methods=['OPTIONS'])
+    def handle_options(path):
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response, 200
+
     @app.route('/login', methods=['POST'])
     def login():
         try:
@@ -66,7 +76,7 @@ def init_routes(app):
         contact_number = data.get('contactNumber')
         password = data.get('password')
         address = data.get('address', '') 
-        user_type = 'Client'  # Default user type
+        user_type = data.get('user_type', 'Client')  # Get user_type from request, default to 'Client' if not provided
 
         # Validate required fields
         if not all([first_name, last_name, username, email, contact_number, password]):
@@ -99,7 +109,6 @@ def init_routes(app):
             return jsonify({'message': 'An error occurred while fetching available venues'}), 500
 
     @app.route('/available-gown-packages', methods=['GET'])
-    @jwt_required()
     def get_available_gown_packages_route():
         try:
             gown_packages = get_available_gown_packages()
@@ -400,7 +409,7 @@ def init_routes(app):
         if request.method == 'OPTIONS':
             # Handle preflight request
             response = jsonify({'message': 'OK'})
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
             response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -416,7 +425,7 @@ def init_routes(app):
                     'success': False,
                     'message': 'Invalid user token'
                 })
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
                 response.headers.add('Access-Control-Allow-Credentials', 'true')
                 return response, 401
 
@@ -497,7 +506,7 @@ def init_routes(app):
                     'message': 'Event created successfully',
                     'events_id': events_id
                 })
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
                 response.headers.add('Access-Control-Allow-Credentials', 'true')
                 return response, 201
             else:
@@ -505,7 +514,7 @@ def init_routes(app):
                     'success': False,
                     'message': 'Failed to create event'
                 })
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
                 response.headers.add('Access-Control-Allow-Credentials', 'true')
                 return response, 500
 
@@ -515,7 +524,7 @@ def init_routes(app):
                 'success': False,
                 'message': f'Error creating event: {str(e)}'
             })
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response, 500
 
@@ -525,7 +534,7 @@ def init_routes(app):
         if request.method == 'OPTIONS':
             # Handle preflight request
             response = jsonify({'message': 'OK'})
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
             response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -541,7 +550,7 @@ def init_routes(app):
                     'success': False,
                     'message': 'User not found'
                 })
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
                 response.headers.add('Access-Control-Allow-Credentials', 'true')
                 return response, 404
 
@@ -618,7 +627,7 @@ def init_routes(app):
                     'message': 'Wishlist package created successfully',
                     'wishlist_id': wishlist_id
                 })
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
                 response.headers.add('Access-Control-Allow-Credentials', 'true')
                 return response, 201
             else:
@@ -626,7 +635,7 @@ def init_routes(app):
                     'success': False,
                     'message': 'Failed to create wishlist package'
                 })
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
                 response.headers.add('Access-Control-Allow-Credentials', 'true')
                 return response, 500
 
@@ -636,7 +645,7 @@ def init_routes(app):
                 'success': False,
                 'message': f'Error creating wishlist package: {str(e)}'
             })
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response, 500
 
@@ -652,7 +661,7 @@ def init_routes(app):
                 'status': 'success',
                 'data': suppliers
             })
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response, 200
         except Exception as e:
@@ -661,7 +670,7 @@ def init_routes(app):
                 'status': 'error',
                 'message': str(e)
             })
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response, 500
 
@@ -871,7 +880,7 @@ def init_routes(app):
             })
             
             # Add CORS headers
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
             
             return response
@@ -882,7 +891,7 @@ def init_routes(app):
                 'status': 'error',
                 'message': str(e)
             })
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response, 500
 
@@ -1192,7 +1201,7 @@ def init_routes(app):
     def update_user_profile_route():
         if request.method == 'OPTIONS':
             response = jsonify({'message': 'OK'})
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
             response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -1248,8 +1257,123 @@ def init_routes(app):
     def after_request(response):
         """Add CORS headers to all responses"""
         # Set standard CORS headers
-        response.headers.set('Access-Control-Allow-Origin', 'http://localhost:5173')
+        response.headers.set('Access-Control-Allow-Origin', 'http://localhost:5174')
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
         response.headers.set('Access-Control-Allow-Credentials', 'true')
         return response
+
+
+    @app.route('/events-by-month', methods=['GET'])
+    def events_by_month():
+        """
+        Returns event counts per month for each event type.
+        Response format:
+        {
+            "eventTypes": ["Wedding", "Birthday", ...],
+            "data": {
+                "Wedding": [countJan, countFeb, ..., countDec],
+                "Birthday": [countJan, ...]
+            }
+        }
+        """
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            # Get all event types
+            cursor.execute("SELECT event_type_name FROM event_type")
+            event_types = [row[0] for row in cursor.fetchall()]
+
+            # Prepare data dict
+            data = {}
+            for event_type in event_types:
+                # Count events per month for this type
+                cursor.execute("""
+                    SELECT MONTH(schedule) as month, COUNT(*) 
+                    FROM events 
+                    WHERE event_type = %s
+                    GROUP BY MONTH(schedule)
+                """, (event_type,))
+                month_counts = {row[0]: row[1] for row in cursor.fetchall()}
+                # Fill in 0 for months with no events
+                counts = [month_counts.get(i, 0) for i in range(1, 13)]
+                data[event_type] = counts
+
+            cursor.close()
+            conn.close()
+
+            return jsonify({
+                "eventTypes": event_types,
+                "data": data
+            }), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/events', methods=['GET'])
+    def get_events():
+        try:
+            conn = db.get_db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            cursor.execute("""
+                SELECT 
+                    event_id,
+                    event_type,
+                    schedule,
+                    event_name,
+                    event_theme,
+                    status
+                FROM events 
+                WHERE schedule >= CURRENT_DATE
+                ORDER BY schedule ASC
+            """)
+            
+            events = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            
+            return jsonify(events)
+            
+        except Exception as e:
+            print(f"Error fetching events: {e}")
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route('/api/users/<int:userid>', methods=['GET', 'OPTIONS'])
+    @app.route('/api/users/info/<int:userid>', methods=['GET', 'OPTIONS'])
+    @app.route('/api/user-details/<int:userid>', methods=['GET', 'OPTIONS'])
+    @jwt_required(optional=True)  # Make JWT optional to handle OPTIONS requests
+    def get_user_info_route(userid):
+        if request.method == 'OPTIONS':
+            response = jsonify({'message': 'OK'})
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5174')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            return response, 200
+            
+        try:
+            # Query the database for user profile data
+            user_data = get_user_profile_by_id(userid)
+            
+            if not user_data:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User not found'
+                }), 404
+
+            return jsonify({
+                'status': 'success',
+                'data': user_data
+            }), 200
+            
+        except Exception as e:
+            logging.error(f"Error fetching user by id: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+    
+            
+            
+   

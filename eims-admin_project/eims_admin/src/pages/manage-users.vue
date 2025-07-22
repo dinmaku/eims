@@ -331,7 +331,7 @@ transition-transform duration-300 transform hover:scale-105" @click="addUserBtn"
   <div class="bg-white p-5 rounded-lg shadow-lg w-[400px]">
     <div class="flex flex-col items-center">
       <h2 class="text-xl font-inter mb-4">Confirm Status Change</h2>
-      <p class="mb-6 text-center">Are you sure you want to set this supplier to {{ pendingStatus }}?</p>
+      <p class="mb-6 text-center">Are you sure you want to change the Supplier status?</p>
       <div class="flex space-x-4">
         <button 
           @click="closeStatusConfirmModal" 
@@ -807,10 +807,11 @@ export default {
         dummyIndex: start + index + 1
       })).slice(start, end);
     },
-    totalSuppliers() {
-        return this.suppliers.length;
-    },
-
+   totalSuppliers() {
+      const total = this.suppliers.length;
+      localStorage.setItem('totalSuppliers', total);
+      return total;
+  },
     totalStaff() {
       return this.staffs.length;
     },
@@ -878,6 +879,7 @@ export default {
     },
   },
   methods: {
+   
     async handleRegister() {
             try {
                 // Validate required fields
@@ -991,7 +993,7 @@ export default {
                     : 'Unknown Name',
                   email: user.email || 'No email',
                   contact: user.contactnumber || 'No contact',
-                  position: user.user_type === 'assistant' ? 'Assistant' : 'Staff',
+                  position: user.user_type,
                   dummyIndex: index + 1,
                 };
               });
@@ -1095,7 +1097,7 @@ export default {
                   lastname: lastName,
                   email: this.selectedStaff.email,
                   contactnumber: this.selectedStaff.contact,
-                  user_type: this.selectedStaff.position.toLowerCase() // Convert 'Assistant' or 'Staff' to lowercase
+                  user_type: this.selectedStaff.position
                 },
                 {
                   headers: {

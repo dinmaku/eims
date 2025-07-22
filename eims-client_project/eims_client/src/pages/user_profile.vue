@@ -246,7 +246,7 @@ export default {
       previewImage: null,
       allowedFileTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
       maxFileSize: 5 * 1024 * 1024, // 5MB
-      apiBaseUrl: 'http://127.0.0.1:5000',
+      apiBaseUrl: 'http://127.0.0.1:5001',
       passwordForm: {
         currentPassword: '',
         newPassword: '',

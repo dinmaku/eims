@@ -191,34 +191,40 @@ def get_user_wishlist(userid):
             else:
                 item_dict['venue'] = None
             
-            # Format outfit details
+            # Format outfit details with enhanced logging
+            logger.info(f"Processing event {item_dict.get('event_name')} (ID: {item_dict.get('events_id')})")
+            logger.info(f"Gown package info - Name: {item_dict.get('gown_package_name')}, Price: {item_dict.get('gown_package_price')}")
+            
             if item_dict.get('outfit_details'):
                 try:
-                    logger.info(f"Processing outfits for event {item_dict.get('event_name')}. Raw outfit data: {item_dict['outfit_details']}")
-                    # Check if outfit_details is not None and is a list
+                    logger.info(f"Raw outfit_details: {item_dict['outfit_details']}")
                     if isinstance(item_dict['outfit_details'], list):
-                        item_dict['outfits'] = [
-                            {
-                                'outfit_id': details[0] if len(details) > 0 else None,
-                                'outfit_name': details[1] if len(details) > 1 else None,
-                                'outfit_type': details[2] if len(details) > 2 else None,
-                                'outfit_color': details[3] if len(details) > 3 else None,
-                                'outfit_desc': details[4] if len(details) > 4 else None,
-                                'rent_price': details[5] if len(details) > 5 else None,
-                                'outfit_img': details[6] if len(details) > 6 else None,
-                                'status': details[7] if len(details) > 7 else None,
-                                'remarks': details[8] if len(details) > 8 else None
-                            }
-                            for details in item_dict['outfit_details']
-                            if details is not None
-                        ]
+                        outfits = []
+                        for details in item_dict['outfit_details']:
+                            if details is not None:
+                                outfit = {
+                                    'outfit_id': details[0] if len(details) > 0 else None,
+                                    'outfit_name': details[1] if len(details) > 1 else None,
+                                    'outfit_type': details[2] if len(details) > 2 else None,
+                                    'outfit_color': details[3] if len(details) > 3 else None,
+                                    'outfit_desc': details[4] if len(details) > 4 else None,
+                                    'rent_price': details[5] if len(details) > 5 else None,
+                                    'outfit_img': details[6] if len(details) > 6 else None,
+                                    'status': details[7] if len(details) > 7 else None,
+                                    'remarks': details[8] if len(details) > 8 else None
+                                }
+                                logger.info(f"Processed outfit: {outfit}")
+                                outfits.append(outfit)
+                        item_dict['outfits'] = outfits
+                        logger.info(f"Total outfits processed: {len(outfits)}")
                     else:
-                        logger.warning(f"outfit_details is not a list for event {item_dict.get('event_name')}: {type(item_dict['outfit_details'])}")
+                        logger.warning(f"outfit_details is not a list: {type(item_dict['outfit_details'])}")
                         item_dict['outfits'] = []
                 except Exception as e:
-                    logger.error(f"Error processing outfit details for event {item_dict.get('event_name')}: {str(e)}")
+                    logger.error(f"Error processing outfit details: {str(e)}")
                     item_dict['outfits'] = []
             else:
+                logger.info("No outfit_details found for this event")
                 item_dict['outfits'] = []
 
             # Format supplier details

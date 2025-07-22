@@ -103,7 +103,11 @@ CREATE TABLE IF NOT EXISTS wishlist_suppliers (
     supplier_id INTEGER REFERENCES suppliers(supplier_id),
     price DECIMAL(10,2),
     remarks TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'Pending',
+    has_been_updated BOOLEAN DEFAULT FALSE,
+    external_supplier_name VARCHAR(255),
+    external_supplier_contact VARCHAR(255)
 );
 
 -- Create table for wishlist outfits

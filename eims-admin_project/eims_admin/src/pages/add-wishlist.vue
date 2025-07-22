@@ -1,6 +1,26 @@
 <template>
   <div class="h-full flex items-center justify-center font-inter">
-    <form class="bg-gray-200 w-full h-full flex flex-col items-center overflow-y-auto mb-20">
+    <!-- Alert Modal -->
+    <div v-if="showAlert" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+      <div :class="['bg-white p-5 rounded-lg shadow-lg w-[400px] border-l-4', alertType === 'success' ? 'border-green-500' : 'border-red-500']">
+        <div class="flex justify-between items-center mb-4">
+          <h3 :class="['text-lg font-semibold', alertType === 'success' ? 'text-green-600' : 'text-red-600']">
+            {{ alertType === 'success' ? 'Success' : 'Error' }}
+          </h3>
+          <button @click="closeAlert" class="text-gray-500 hover:text-gray-700">
+            <span class="text-2xl">&times;</span>
+          </button>
+        </div>
+        <p class="text-gray-700">{{ alertMessage }}</p>
+        <div class="flex justify-end mt-4">
+          <button @click="closeAlert" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gray-200 w-full h-full flex flex-col items-center overflow-y-auto mb-20">
       <div class="mt-20 flex flex-col items-center text-center space-y-2">
         <h1 class="text-5xl font-merriweatherBoldItalic font-semibold text-gray-800">On-Site Booking</h1>
       </div>
@@ -50,16 +70,17 @@
                 ></textarea>
               </div>
               <div class="flex justify-center items-center space-x-4">
-                <button class="mt-10 py-2 px-4 bg-gray-300 hover:bg-gray-400 font-semibold text-gray-900 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-105"
-                 @click = "cancelOnsiteBooking"
+                <button 
+                  type="button"
+                  class="mt-10 py-2 px-4 bg-gray-300 hover:bg-gray-400 font-semibold text-gray-900 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-105"
+                  @click="cancelOnsiteBooking"
                 >
-                 
                   Cancel
                 </button>
                 <button
                   type="button"
-                  @click="nextPhase"
                   class="mt-10 py-2 px-4 bg-blue-300 hover:bg-blue-400 font-semibold text-gray-900 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-110"
+                  @click="nextPhase"
                 >
                   Next
                 </button>
@@ -424,11 +445,19 @@
               <!-- Individual Outfit Selection -->
               <div v-if="outfitSelectionMode === 'individual'">
                 <label class="block text-sm font-medium text-gray-700">Select Individual Outfit</label>
-                <select v-model="selectedOutfit" class="w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                  <option selected disabled value="">Select Individual Outfit</option>
-                  <option v-for="outfit in outfits" :key="outfit.outfit_id" :value="outfit">
-                    {{ outfit.outfit_name }} - {{ outfit.outfit_type }} (Size: {{ outfit.size }}) - {{ formatPrice(outfit.rent_price) }}
-                  </option>
+                <select 
+                    v-model="selectedOutfit" 
+                    class="w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    @change="console.log('Selected outfit changed:', selectedOutfit)"
+                >
+                    <option :value="null">Select an outfit</option>
+                    <option 
+                        v-for="outfit in outfits" 
+                        :key="outfit.outfit_id" 
+                        :value="outfit"
+                    >
+                        {{ outfit.outfit_name }} - {{ outfit.outfit_type }} (Size: {{ outfit.size }}) - {{ formatPrice(outfit.rent_price) }} php
+                    </option>
                 </select>
               </div>
 
@@ -554,14 +583,8 @@
                       {{ selectedPackage.capacity + (selectedPackage.additional_capacity || 0) }} persons
                   </span>
                   <br>
-                  Additional Charges: {{ formatPrice(selectedPackage.additional_capacity_charges) }} per {{ selectedPackage.charge_unit }} person(s)
+                 
               </p>
-              <button type = "button"
-                  @click="showCapacityModal = true"
-                  class="mt-2 bg-[#9B111E] hover:bg-[#B73A45] text-white py-2 px-4 rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-105"
-              >
-                 + Capacity
-              </button>
           </div>
               <!-- Capacity Modal -->
               <div v-if="showCapacityModal" @click.self="showCapacityModal = false" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
@@ -718,32 +741,31 @@
                         </div>
 
                         <!-- For Outfit -->
-                        <div v-if="editingInclusion?.type === 'outfit'" class="space-y-3">
+                        <div v-if="editingInclusion?.type === 'outfit' || editingInclusion?.type === 'outfit_package'" class="space-y-3">
+                            <!-- Package Selection -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Outfit Package</label>
-                                <select v-model="editingInclusion.data.outfit_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <label class="block text-sm font-medium text-gray-700">Select Outfit Package</label>
+                                <select v-model="editingInclusion.data.gown_package_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Select an outfit package</option>
-                                    <template v-if="availableGownPackages && availableGownPackages.length > 0">
-                                        <option v-for="outfit in availableGownPackages" 
-                                                :key="outfit.gown_package_id" 
-                                                :value="outfit.gown_package_id">
-                                            {{ outfit.gown_package_name }} - {{ outfit.gown_package_price }} php
-                                        </option>
-                                    </template>
+                                    <option v-for="outfit in availableGownPackages" 
+                                            :key="outfit.gown_package_id" 
+                                            :value="outfit.gown_package_id">
+                                        {{ outfit.gown_package_name }} - {{ formatPrice(outfit.gown_package_price) }} php
+                                    </option>
                                 </select>
                             </div>
                         </div>
-
-                    
 
                         <!-- For Additional Service -->
                         <div v-if="editingInclusion?.type === 'service'" class="space-y-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Additional Service</label>
-                                <select v-model="editingInclusion.data.service_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <select v-model="editingInclusion.data.add_service_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Select a service</option>
-                                    <option v-for="service in additionalServices" :key="service.service_id" :value="service.service_id">
-                                        {{ service.service_name }}
+                                    <option v-for="service in additionalServices" 
+                                            :key="service.add_service_id" 
+                                            :value="service.add_service_id">
+                                        {{ service.add_service_name }} - {{ formatPrice(service.add_service_price) }} php
                                     </option>
                                 </select>
                             </div>
@@ -769,12 +791,14 @@
                     <div>
                         <label class="text-xs text-gray-600 mb-1 block">Date</label>
                         <input 
-                            v-model="eventSchedule.date" 
                             type="date" 
                             class="w-full p-2 border rounded"
-                            @change="checkScheduleAvailability"
-                            :disabled="isDateBooked"
+                            :min="minDate"
+                            :value="eventSchedule.date"
+                            @input="handleDateChange"
+                            :class="{ 'bg-gray-100': isDateDisabled }"
                         >
+                        <p v-if="dateError" class="text-red-500 text-xs mt-1">{{ dateError }}</p>
                     </div>
                     <div>
                         <label class="text-xs text-gray-600 mb-1 block">Start Time</label>
@@ -809,23 +833,7 @@
           </div>
 
       </div>
-    </form>
-
-    <div v-if="showAlert" class="fixed inset-x-0 top-1/3 mx-auto max-w-md bg-green-100 border border-green-400 text-green-700 px-4 py-5 rounded shadow-lg transform transition-all duration-500 ease-in-out" role="alert">
-    <div class="flex items-center">
-      <div class = "text-3xl font-bold ml-1 rounded-full bg-gray-200 px-2">
-        &check;
-      </div>
-      <div>
-        <div class = "flex flex-col ml-5"> 
-        <strong class="font-bold">Success!</strong>
-        <span class="block sm:inline">Event successfully added to your wishlist!</span>
-      </div>
-      </div>
     </div>
-  </div>
-
-
 
   </div>
 </template>
@@ -847,7 +855,7 @@ export default {
       event_theme: '',
       event_color: "#000000",
       venue: '',
-      showCapacityModal: false, // To control modal visibility
+      showCapacityModal: false,
       additionalCapacity: 0,
       isUserLoggedIn: false,
       showAlert: false,
@@ -859,7 +867,7 @@ export default {
       packages: [],
       filteredPackages: [],
       selectedPackage: null,
-
+      dateError: '',
       eventTypesLoading: true,
       availableSuppliers: [], 
       availableVenues: [], 
@@ -925,6 +933,8 @@ export default {
         outfits: [],
         selectedOutfit: null,
         showOutfitModal: false,
+        alertType: 'success',
+        alertMessage: '',
     };
   },
   methods: {
@@ -936,82 +946,64 @@ export default {
                 return;
             }
             
-            console.log('Fetching booked dates...');
+            console.log('Fetching booked dates with token:', token);
             const response = await axios.get('http://localhost:5000/events/schedules', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
             if (response.data && Array.isArray(response.data)) {
-                this.bookedDates = response.data.filter(booking => 
-                    booking.schedule && booking.start_time && booking.end_time
-                );
-                console.log('Successfully fetched booked dates:', this.bookedDates);
+                // Format the dates to match the input date format (YYYY-MM-DD)
+                this.bookedDates = response.data
+                    .filter(booking => booking.schedule && booking.start_time && booking.end_time)
+                    .map(booking => ({
+                        ...booking,
+                        schedule: new Date(booking.schedule).toISOString().split('T')[0]
+                    }));
+                console.log('Formatted booked dates:', this.bookedDates);
             } else {
                 console.error('Invalid response format:', response.data);
             }
         } catch (error) {
             console.error('Error fetching booked dates:', error);
-            if (error.response) {
-                console.error('Error details:', {
-                    status: error.response.status,
-                    data: error.response.data,
-                    headers: error.response.headers
-                });
-            }
         }
     },
     async checkScheduleAvailability() {
-        if (!this.eventSchedule.date || !this.eventSchedule.start_time || !this.eventSchedule.end_time) {
-            console.log('Schedule not fully selected yet');
+        if (!this.eventSchedule.date) {
+            console.log('No date selected');
             return;
         }
 
-        const formatTime = (time) => {
-            // Convert time to HH:mm format for comparison
-            return time.split(':').slice(0, 2).join(':');
-        };
+        if (!this.eventSchedule.start_time || !this.eventSchedule.end_time) {
+            console.log('Time not fully selected yet');
+            return;
+        }
 
+        const formatTime = (time) => time.split(':').slice(0, 2).join(':');
         const selectedDate = this.eventSchedule.date;
         const selectedStartTime = formatTime(this.eventSchedule.start_time);
         const selectedEndTime = formatTime(this.eventSchedule.end_time);
 
-        console.log('Checking schedule availability for:', {
-            date: selectedDate,
-            start: selectedStartTime,
-            end: selectedEndTime,
-            bookedDates: this.bookedDates
-        });
+        // Check for time overlap on the same date
+        const overlappingBooking = this.bookedDates.find(booking => {
+            if (booking.schedule !== selectedDate) return false;
 
-        // Check if any booked date overlaps with selected schedule
-        this.isDateBooked = this.bookedDates.some(booking => {
             const bookingStartTime = formatTime(booking.start_time);
             const bookingEndTime = formatTime(booking.end_time);
 
-            const overlap = (
-                booking.schedule === selectedDate &&
-                ((selectedStartTime >= bookingStartTime && selectedStartTime < bookingEndTime) ||
-                 (selectedEndTime > bookingStartTime && selectedEndTime <= bookingEndTime) ||
-                 (selectedStartTime <= bookingStartTime && selectedEndTime >= bookingEndTime))
+            return (
+                (selectedStartTime >= bookingStartTime && selectedStartTime < bookingEndTime) ||
+                (selectedEndTime > bookingStartTime && selectedEndTime <= bookingEndTime) ||
+                (selectedStartTime <= bookingStartTime && selectedEndTime >= bookingEndTime)
             );
-            
-            if (overlap) {
-                console.log('Found overlapping booking:', {
-                    bookedDate: booking.schedule,
-                    bookedStart: bookingStartTime,
-                    bookedEnd: bookingEndTime
-                });
-            }
-            
-            return overlap;
         });
 
-        if (this.isDateBooked) {
-            this.scheduleError = 'This schedule overlaps with an existing booking';
-            console.log('Schedule is not available');
-        } else {
-            this.scheduleError = '';
-            console.log('Schedule is available');
+        if (overlappingBooking) {
+            this.scheduleError = 'This time slot overlaps with an existing booking';
+            return false;
         }
+
+        this.scheduleError = '';
+        return true;
     },
     checkLoginStatus() {
       const token = localStorage.getItem('access_token');
@@ -1210,29 +1202,34 @@ export default {
 
         async fetchOutfits() {
             try {
-              const token = localStorage.getItem('access_token');
-              if (!token) return;
+                const token = localStorage.getItem('access_token');
+                if (!token) return;
 
-              const response = await axios.get('http://127.0.0.1:5000/outfits', {
-                headers: { Authorization: `Bearer ${token}` }
-              });
+                const response = await axios.get('http://127.0.0.1:5000/outfits', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
 
-              this.outfits = response.data.map(outfit => ({
-                outfit_id: outfit.outfit_id,
-                outfit_name: outfit.outfit_name,
-                outfit_type: outfit.outfit_type,
-                outfit_color: outfit.outfit_color,
-                outfit_desc: outfit.outfit_desc,
-                rent_price: parseFloat(outfit.rent_price) || 0,
-                status: outfit.status,
-                size: outfit.size
-              }));
+                console.log('Raw outfits response:', response.data);
+
+                this.outfits = response.data.map(outfit => ({
+                    outfit_id: outfit.outfit_id,
+                    outfit_name: outfit.outfit_name,
+                    outfit_type: outfit.outfit_type,
+                    outfit_color: outfit.outfit_color,
+                    outfit_desc: outfit.outfit_desc,
+                    rent_price: parseFloat(outfit.rent_price || 0),
+                    status: outfit.status,
+                    size: outfit.size
+                }));
+
+                console.log('Processed outfits:', this.outfits);
             } catch (error) {
-              if (error.response) {
-                console.error('Error response:', error.response.data);
-              }
+                console.error('Error fetching outfits:', error);
+                if (error.response) {
+                    console.error('Error response:', error.response.data);
+                }
             }
-          },
+        },
       
 
     filterPackages() {
@@ -1475,24 +1472,35 @@ export default {
         // Get authentication token
         const token = localStorage.getItem('access_token');
         if (!token) {
-            alert('You are not logged in. Please log in to add to the wishlist.');
+            this.showAlertMessage('You are not logged in. Please log in to add to the wishlist.', 'error');
             return;
         }
 
         // Validate required fields
         if (!this.selectedPackage) {
-            alert('Please select a package');
+            this.showAlertMessage('Please select a package', 'error');
             return;
         }
 
-        if (!this.eventSchedule.date || !this.eventSchedule.start_time || !this.eventSchedule.end_time) {
-            alert('Please fill in all event schedule details');
+        // Validate date and time fields
+        if (!this.eventSchedule.date) {
+            this.showAlertMessage('Please select an event date', 'error');
+            return;
+        }
+
+        if (!this.eventSchedule.start_time) {
+            this.showAlertMessage('Please select a start time', 'error');
+            return;
+        }
+
+        if (!this.eventSchedule.end_time) {
+            this.showAlertMessage('Please select an end time', 'error');
             return;
         }
 
         // Validate onsite booking information
         if (!this.onsite_firstname || !this.onsite_lastname || !this.onsite_contact || !this.onsite_address) {
-            alert('Please fill in all onsite booking information');
+            this.showAlertMessage('Please fill in all onsite booking information', 'error');
             return;
         }
 
@@ -1614,8 +1622,10 @@ export default {
         });
 
         if (response.data.success) {
-            alert('Wishlist submitted successfully!');
-            this.$router.push('/manage-events');
+            this.showAlertMessage('Wishlist submitted successfully!', 'success');
+            setTimeout(() => {
+              this.$router.push('/manage-events');
+            }, 2000);
         } else {
             // If wishlist creation fails, delete the event we just created
             await axios.delete(`http://127.0.0.1:5000/events/${eventResponse.data.events_id}`, {
@@ -1624,11 +1634,11 @@ export default {
                 },
                 withCredentials: true
             });
-            throw new Error(response.data.message || 'Failed to create wishlist');
+            this.showAlertMessage(response.data.message || 'Failed to create wishlist', 'error');
         }
     } catch (error) {
         console.error('Error submitting wishlist:', error);
-        alert('Failed to create wishlist: ' + (error.response?.data?.message || error.message));
+        this.showAlertMessage('Failed to create wishlist: ' + (error.response?.data?.message || error.message), 'error');
     }
 },
     addSupplier(type) {
@@ -1856,12 +1866,15 @@ addSelectedOutfit() {
         return;
     }
 
-    console.log('Current inclusions:', this.inclusions);
+    // Convert Proxy to plain object and log the raw data
+    const rawOutfit = JSON.parse(JSON.stringify(this.selectedOutfit));
+    console.log('Raw selected outfit data:', rawOutfit);
     
     // Check if this specific outfit type already exists
     const hasExistingOutfit = this.inclusions.some(item => 
         item.type === 'individual_outfit' && 
-        item.data.outfit_id === this.selectedOutfit.outfit_id
+        (item.data.outfit_id === rawOutfit.outfit_id || 
+         item.data.gown_package_id === rawOutfit.gown_package_id)
     );
     
     if (hasExistingOutfit) {
@@ -1870,22 +1883,34 @@ addSelectedOutfit() {
         return;
     }
 
-    // Create outfit data with proper name and price
-    const outfitData = {
-        outfit_id: this.selectedOutfit.outfit_id,
-        outfit_name: this.selectedOutfit.outfit_name,
-        outfit_type: this.selectedOutfit.outfit_type,
-        rent_price: parseFloat(this.selectedOutfit.rent_price || 0),
-        size: this.selectedOutfit.size
-    };
+    // Create outfit data based on what type of data we received
+    let outfitData;
+    if (rawOutfit.gown_package_id) {
+        outfitData = {
+            gown_package_id: rawOutfit.gown_package_id,
+            gown_package_name: rawOutfit.gown_package_name || '',
+            gown_package_price: parseFloat(rawOutfit.gown_package_price || 0)
+        };
+    } else {
+        outfitData = {
+            outfit_id: rawOutfit.outfit_id,
+            outfit_name: rawOutfit.outfit_name || '',
+            outfit_type: rawOutfit.outfit_type || '',
+            size: rawOutfit.size || '',
+            rent_price: parseFloat(rawOutfit.rent_price || 0),
+            price: parseFloat(rawOutfit.rent_price || 0)
+        };
+    }
+
+    console.log('Processed outfit data:', outfitData);
 
     // Add to inclusions with the correct type and data
-    this.inclusions = [...this.inclusions, {
+    this.inclusions.push({
         type: 'individual_outfit',
         data: outfitData
-    }];
+    });
 
-    console.log('Added outfit:', outfitData);
+    console.log('Updated inclusions after adding outfit:', this.inclusions);
     this.updateTotalPrice();
     this.selectedOutfit = null;
     this.closeOutfitModal();
@@ -1944,9 +1969,11 @@ addSelectedOutfit() {
           } else if (inclusion.type === 'venue') {
               await this.fetchAvailableVenues();
               console.log('Venues after fetch:', this.availableVenues);
-          } else if (inclusion.type === 'outfit') {
+          } else if (inclusion.type === 'outfit' || inclusion.type === 'outfit_package') {
               await this.fetchAvailableGownPackages();
+              await this.fetchOutfits(); // Make sure we have both outfit packages and individual outfits
               console.log('Outfits after fetch:', this.availableGownPackages);
+              console.log('Individual outfits after fetch:', this.outfits);
           } else if (inclusion.type === 'service') {
               await this.fetchAdditionalServices();
               console.log('Services after fetch:', this.additionalServices);
@@ -2004,20 +2031,17 @@ addSelectedOutfit() {
             }
         }
 
-        if (this.editingInclusion.type === 'outfit') {
-            const selectedOutfit = this.availableGownPackages.find(o => o.gown_package_id === parseInt(this.editingInclusion.data.outfit_id));
-            console.log('Selected outfit:', selectedOutfit);
+        if (this.editingInclusion.type === 'outfit_package') {
+            const selectedOutfit = this.availableGownPackages.find(o => o.gown_package_id === parseInt(this.editingInclusion.data.gown_package_id));
+            console.log('Selected outfit package:', selectedOutfit);
             
             if (selectedOutfit) {
                 this.editingInclusion.data = {
-                    outfit_id: selectedOutfit.gown_package_id,
                     gown_package_id: selectedOutfit.gown_package_id,
-                    name: selectedOutfit.gown_package_name,
                     gown_package_name: selectedOutfit.gown_package_name,
-                    price: parseFloat(selectedOutfit.gown_package_price || 0),
                     gown_package_price: parseFloat(selectedOutfit.gown_package_price || 0)
                 };
-                console.log('Updated outfit data:', this.editingInclusion.data);
+                console.log('Updated outfit package data:', this.editingInclusion.data);
             }
         }
 
@@ -2034,20 +2058,50 @@ addSelectedOutfit() {
             }
         }
 
+        if (this.editingInclusion.type === 'service') {
+            const selectedService = this.additionalServices.find(s => s.add_service_id === this.editingInclusion.data.add_service_id);
+            if (selectedService) {
+                this.editingInclusion.data = {
+                    add_service_id: selectedService.add_service_id,
+                    add_service_name: selectedService.add_service_name,
+                    price: parseFloat(selectedService.add_service_price || 0),
+                    add_service_price: parseFloat(selectedService.add_service_price || 0),
+                    add_service_description: selectedService.add_service_description || ''
+                };
+            }
+        }
+
         this.inclusions.splice(this.editingInclusionIndex, 1, this.editingInclusion);
         this.updateTotalPrice();
         this.closeEditInclusionModal();
     },
       getInclusionName(inclusion) {
-          if (!inclusion || !inclusion.data) return 'Unknown Item';
+          if (!inclusion || !inclusion.data) {
+              console.log('Invalid inclusion or missing data:', inclusion);
+              return 'Unknown Item';
+          }
+          
+          // Convert Proxy to plain object if needed
+          const data = typeof inclusion.data === 'object' ? JSON.parse(JSON.stringify(inclusion.data)) : inclusion.data;
+          console.log('Processing data for name:', data);
           
           switch (inclusion.type) {
               case 'venue':
-                  return inclusion.data.venue_name || 'Unknown Venue';
+                  return data.venue_name || 'Unknown Venue';
               case 'outfit_package':
-                  return inclusion.data.gown_package_name || 'Unknown Package';
+                  return data.gown_package_name || 'Unknown Package';
               case 'individual_outfit':
-                  return inclusion.data.outfit_name || 'Unknown Outfit';
+                  console.log('Individual outfit data:', data);
+                  // Check if we have gown package data
+                  if (data.gown_package_name) {
+                      return `${data.gown_package_name} - ${this.formatPrice(data.gown_package_price)} php`;
+                  }
+                  // Otherwise use individual outfit data
+                  const outfitName = data.outfit_name || 'Unknown';
+                  const outfitType = data.outfit_type || 'Unknown Type';
+                  const outfitSize = data.size || 'Unknown Size';
+                  const price = parseFloat(data.rent_price || data.price || 0);
+                  return `${outfitName} (${outfitType} - Size: ${outfitSize}) - ${this.formatPrice(price)} php`;
               case 'supplier':
                   if (inclusion.data.type === 'external') {
                       return `${inclusion.data.external_supplier_name || 'Unknown'} (External)`;
@@ -2079,37 +2133,55 @@ addSelectedOutfit() {
                   }
                   return 'Unnamed Supplier';
               case 'service':
-                  return inclusion.data.add_service_name || 'Unknown Service';
+                  return data.add_service_name || 'Unknown Service';
               default:
                   return 'Unknown Item';
           }
       },
       getInclusionPrice(inclusion) {
-          if (!inclusion || !inclusion.data) return '-';
+          if (!inclusion || !inclusion.data) {
+              console.log('Invalid inclusion or missing data for price:', inclusion);
+              return '0.00 php';
+          }
+          
+          // Convert Proxy to plain object if needed
+          const data = typeof inclusion.data === 'object' ? JSON.parse(JSON.stringify(inclusion.data)) : inclusion.data;
+          console.log('Processing data for price:', data);
           
           let price = 0;
           switch (inclusion.type) {
-            case 'venue':
-                price = parseFloat(inclusion.data.venue_price || 0);
-                break;
-            case 'outfit_package':
-                price = parseFloat(inclusion.data.gown_package_price || 0);
-                break;
-            case 'individual_outfit':
-            case 'outfit':
-                price = parseFloat(inclusion.data.rent_price || 0);
-                break;
-            case 'supplier':
-                price = parseFloat(inclusion.data.price || 0);
-                break;
-            case 'service':
-                price = parseFloat(inclusion.data.price || inclusion.data.add_service_price || 0);
-                break;
-            default:
-                price = 0;
+              case 'venue':
+                  price = parseFloat(data.venue_price || 0);
+                  break;
+              case 'outfit_package':
+                  price = parseFloat(data.gown_package_price || 0);
+                  break;
+              case 'individual_outfit':
+                  // Check if we have gown package data
+                  if (data.gown_package_price) {
+                      price = parseFloat(data.gown_package_price || 0);
+                  } else {
+                      price = parseFloat(data.rent_price || data.price || 0);
+                  }
+                  console.log('Individual outfit price calculation:', {
+                      data: data,
+                      gown_package_price: data.gown_package_price,
+                      rent_price: data.rent_price,
+                      price: data.price,
+                      final_price: price
+                  });
+                  break;
+              case 'supplier':
+                  price = parseFloat(data.price || data.external_supplier_price || 0);
+                  break;
+              case 'service':
+                  price = parseFloat(data.price || data.add_service_price || 0);
+                  break;
+              default:
+                  price = 0;
           }
 
-          // Format the price with commas and 2 decimal places
+          console.log(`Price for ${inclusion.type}:`, price);
           return price.toLocaleString('en-PH', {
               style: 'decimal',
               minimumFractionDigits: 2,
@@ -2223,12 +2295,15 @@ addSelectedOutfit() {
             return;
         }
 
-        console.log('Current inclusions:', this.inclusions);
+        // Convert Proxy to plain object and log the raw data
+        const rawOutfit = JSON.parse(JSON.stringify(this.selectedOutfit));
+        console.log('Raw selected outfit data:', rawOutfit);
         
         // Check if this specific outfit type already exists
         const hasExistingOutfit = this.inclusions.some(item => 
             item.type === 'individual_outfit' && 
-            item.data.outfit_id === this.selectedOutfit.outfit_id
+            (item.data.outfit_id === rawOutfit.outfit_id || 
+             item.data.gown_package_id === rawOutfit.gown_package_id)
         );
         
         if (hasExistingOutfit) {
@@ -2237,22 +2312,34 @@ addSelectedOutfit() {
             return;
         }
 
-        // Create outfit data with proper name and price
-        const outfitData = {
-            outfit_id: this.selectedOutfit.outfit_id,
-            outfit_name: this.selectedOutfit.outfit_name,
-            outfit_type: this.selectedOutfit.outfit_type,
-            rent_price: parseFloat(this.selectedOutfit.rent_price || 0),
-            size: this.selectedOutfit.size
-        };
+        // Create outfit data based on what type of data we received
+        let outfitData;
+        if (rawOutfit.gown_package_id) {
+            outfitData = {
+                gown_package_id: rawOutfit.gown_package_id,
+                gown_package_name: rawOutfit.gown_package_name || '',
+                gown_package_price: parseFloat(rawOutfit.gown_package_price || 0)
+            };
+        } else {
+            outfitData = {
+                outfit_id: rawOutfit.outfit_id,
+                outfit_name: rawOutfit.outfit_name || '',
+                outfit_type: rawOutfit.outfit_type || '',
+                size: rawOutfit.size || '',
+                rent_price: parseFloat(rawOutfit.rent_price || 0),
+                price: parseFloat(rawOutfit.rent_price || 0)
+            };
+        }
+
+        console.log('Processed outfit data:', outfitData);
 
         // Add to inclusions with the correct type and data
-        this.inclusions = [...this.inclusions, {
+        this.inclusions.push({
             type: 'individual_outfit',
             data: outfitData
-        }];
+        });
 
-        console.log('Added outfit:', outfitData);
+        console.log('Updated inclusions after adding outfit:', this.inclusions);
         this.updateTotalPrice();
         this.selectedOutfit = null;
         this.closeOutfitModal();
@@ -2278,6 +2365,71 @@ addSelectedOutfit() {
         
         console.log(`Found ${filtered.length} suppliers for service type ${serviceType}:`, filtered);
         return filtered;
+    },
+    handleDateChange(event) {
+      const selectedDate = event.target.value;
+      console.log('Selected date:', selectedDate);
+      
+      // Check if the date is already booked
+      const isBooked = this.bookedDates.some(booking => booking.schedule === selectedDate);
+      
+      if (isBooked) {
+        this.showAlertMessage('This date is already booked', 'error');
+        this.eventSchedule.date = ''; // Clear the date
+        return;
+      }
+      
+      this.dateError = '';
+      this.eventSchedule.date = selectedDate;
+      this.checkScheduleAvailability();
+    },
+    nextPhase() {
+      // Validate personal information
+      if (!this.onsite_firstname.trim()) {
+        this.showAlertMessage('Please enter your first name', 'error');
+        return;
+      }
+      if (!this.onsite_lastname.trim()) {
+        this.showAlertMessage('Please enter your last name', 'error');
+        return;
+      }
+      if (!this.onsite_contact.trim()) {
+        this.showAlertMessage('Please enter your contact number', 'error');
+        return;
+      }
+      if (!this.onsite_address.trim()) {
+        this.showAlertMessage('Please enter your address', 'error');
+        return;
+      }
+      
+      // If all validations pass, proceed to next step
+      this.personalInfoForm = false;
+      this.wishlistDetailsForm = true;
+    },
+    backToPersonalInfo() {
+      this.wishlistDetailsForm = false;
+      this.personalInfoForm = true;
+    },
+    minDate() {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    },
+    isDateDisabled() {
+      return this.bookedDates.some(booking => booking.schedule === this.eventSchedule.date);
+    },
+    showAlertMessage(message, type = 'success') {
+      this.alertMessage = message;
+      this.alertType = type;
+      this.showAlert = true;
+      if (type === 'success') {
+        setTimeout(() => {
+          this.closeAlert();
+        }, 3000);
+      }
+    },
+    closeAlert() {
+      this.showAlert = false;
+      this.alertMessage = '';
     },
   },
 
@@ -2349,17 +2501,25 @@ addSelectedOutfit() {
     return total;
 },
 
-   nextPhase() {
-     this.personalInfoForm = false;
-     this.wishlistDetailsForm = true;
-   },
+   
    backToPersonalInfo() {
      this.wishlistDetailsForm = false;
      this.personalInfoForm = true;
     },
-       
+    minDate() {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    },
+    isDateDisabled() {
+      return this.bookedDates.some(booking => booking.schedule === this.eventSchedule.date);
+    }
   },
   mounted() {
+    console.log('Component mounted, initializing data:', {
+      eventSchedule: this.eventSchedule,
+      bookedDates: this.bookedDates,
+      isDateBooked: this.isDateBooked
+    });
     this.checkLoginStatus();
     this.fetchPackages();
     this.fetchAvailableSuppliers();
@@ -2377,10 +2537,18 @@ addSelectedOutfit() {
         this.filterPackages();
       }
     },
+    'eventSchedule.date': {
+      handler(newDate) {
+        console.log('Date watcher triggered with new date:', newDate);
+        this.checkScheduleAvailability();
+      },
+      immediate: true
+    }
   },
   created() {
+    console.log('Component created, calling fetchBookedDates');
     this.fetchBookedDates();
-},
+  },
 };
 </script>
 

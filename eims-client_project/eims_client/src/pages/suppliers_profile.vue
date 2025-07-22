@@ -130,7 +130,7 @@
 import axios from 'axios';
 
 // Configure axios defaults
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = 'http://localhost:5001';
 axios.defaults.withCredentials = true;
 
 export default {
@@ -142,7 +142,7 @@ export default {
       error: null,
       showFilter: false,
       selectedService: 'all',
-      apiBaseUrl: 'http://localhost:5000',
+      apiBaseUrl: 'http://localhost:5001',
     };
   },
   computed: {

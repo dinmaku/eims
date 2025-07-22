@@ -47,7 +47,7 @@ from .models import (
     update_wishlist_venue_status, get_wishlist_venues, get_venues,
     get_inactive_event_packages, toggle_event_package_status,
     get_user_profile_by_id, update_user_profile, update_user_profile_picture,
-    change_password, get_event_feedback
+    change_password, get_event_feedback, get_feedback_statistics
 )
 from werkzeug.utils import secure_filename
 import json
@@ -2654,46 +2654,30 @@ def init_routes(app):
             return response, 500
 
     @app.route('/api/users/<int:userid>', methods=['GET', 'OPTIONS'])
+    @app.route('/api/users/info/<int:userid>', methods=['GET', 'OPTIONS'])
+    @app.route('/api/user-details/<int:userid>', methods=['GET', 'OPTIONS'])
     @jwt_required(optional=True)  # Make JWT optional to handle OPTIONS requests
-    def get_user_by_id_route(userid):
+    def get_user_info_route(userid):
         if request.method == 'OPTIONS':
             response = jsonify({'message': 'OK'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
             response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response, 200
             
         try:
-            conn = db.get_db_connection()
-            cursor = conn.cursor()
-            
-            # Query to get user details by userid
-            query = """
-            SELECT userid, firstname, lastname, email, contactnumber, user_type, user_img, address, username
-            FROM users
-            WHERE userid = %s
-            """
-            cursor.execute(query, (userid,))
-            user_data = cursor.fetchone()
+            # Use the existing get_user_profile_by_id function from models
+            user_data = get_user_profile_by_id(userid)
             
             if not user_data:
                 return jsonify({"message": "User not found"}), 404
-                
-            columns = [desc[0] for desc in cursor.description]
-            user_dict = dict(zip(columns, user_data))
             
-            # Remove password from the result
-            if 'password' in user_dict:
-                del user_dict['password']
-            
-            return jsonify(user_dict), 200
+            return jsonify(user_data), 200
             
         except Exception as e:
             logger.error(f"Error fetching user by id: {e}")
             return jsonify({"message": f"Error: {str(e)}"}), 500
-        finally:
-            cursor.close()
-            conn.close()
 
     # Discount routes
     @app.route('/api/discounts', methods=['GET'])
@@ -3675,4 +3659,17 @@ def init_routes(app):
             print(f"Error in get_event_feedback_route: {e}")
             return jsonify({'message': 'Error fetching feedback'}), 500
 
+    @app.route('/api/feedback/statistics', methods=['GET'])
+    @cross_origin(supports_credentials=True, origins=['http://localhost:5173'])
+    @jwt_required(optional=True)
+    def get_feedback_statistics_route():
+        try:
+            statistics = get_feedback_statistics()
+            return jsonify(statistics), 200
+        except Exception as e:
+            print(f"Error in get_feedback_statistics_route: {e}")
+            return jsonify({'message': 'Error fetching feedback statistics'}), 500
+
     return app
+
+

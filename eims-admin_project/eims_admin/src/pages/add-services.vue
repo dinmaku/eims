@@ -146,14 +146,7 @@
                 </select>
               </div>
 
-              <div>
-                <label for="charge_unit" class="block text-xs font-medium text-gray-700 mb-1 text-left">Unit for Additional Charges</label>
-              <input type="number" id="charge_unit" v-model="packageData.charge_unit" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Set person unit" required />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1 text-left">Additional Capacity Charges</label>
-                <input type="number" v-model="packageData.additional_capacity_charges" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Additional Capacity Charges" required />
-              </div>
+              
             </div>
 
             <div class="mt-5">
@@ -442,14 +435,7 @@
             </select>
           </div>
 
-          <div>
-            <label for="charge_unit" class="block text-xs font-medium text-gray-700 mb-1 text-left">Unit for Additional Charges</label>
-            <input type="number" id="charge_unit" v-model="selectedPackage.charge_unit" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Set person unit" required />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1 text-left">Additional Capacity Charges</label>
-            <input type="number" v-model="selectedPackage.additional_capacity_charges" class="p-2 w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200" placeholder="Additional Capacity Charges" required />
-          </div>
+        
         </div>
 
         <div class="mt-5">

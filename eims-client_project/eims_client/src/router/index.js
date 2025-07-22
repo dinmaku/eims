@@ -29,6 +29,7 @@ const routes = [
         component: Wishlist,
         meta: {
           title: 'Wishlist',
+          requiresAuth: true,
         },
       },
       {
@@ -62,6 +63,7 @@ const routes = [
         component: BookedServices,
         meta: {
           title: 'My Bookings',
+          requiresAuth: true,
         },
       },
       {
@@ -70,6 +72,7 @@ const routes = [
         component: VendorSchedule,
         meta: {
           title: 'My Schedule',
+          requiresAuth: true,
         },
       },
       {
@@ -86,6 +89,7 @@ const routes = [
         component: UserProfile,
         meta: {
           title: 'User Profile',
+          requiresAuth: true,
         },
       },
       
@@ -107,6 +111,14 @@ function Router() {
 }
 
 router.beforeEach((to, from, next) => {
+  // Set the document title
   document.title = to.meta.title || 'RedCarpet';
-  next();
+
+  // Check authentication
+  const isLoggedIn = !!localStorage.getItem('access_token'); // or check Vuex store
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    next('/'); // Redirect to login if not logged in
+  } else {
+    next(); // Continue as normal
+  }
 });

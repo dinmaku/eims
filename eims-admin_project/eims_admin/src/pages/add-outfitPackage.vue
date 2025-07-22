@@ -1444,9 +1444,14 @@
                 dummyIndex: index + 1,
             }));
 
-            // Separate outfits by type
-            this.gowns = this.outfits.filter(outfit => outfit.outfit_type.toLowerCase().includes('gown'));
-            this.tuxedos = this.outfits.filter(outfit => outfit.outfit_type.toLowerCase().includes('tuxedo'));
+            // Separate outfits by type - include more dress-related terms
+            const dressTerms = ['gown', 'dress', 'robe', 'bridesmaid'];
+            this.gowns = this.outfits.filter(outfit => 
+                dressTerms.some(term => outfit.outfit_type.toLowerCase().includes(term))
+            );
+            this.tuxedos = this.outfits.filter(outfit => 
+                !dressTerms.some(term => outfit.outfit_type.toLowerCase().includes(term))
+            );
 
             } catch (error) {
             console.error('Error fetching outfits:', error.response?.data || error.message);

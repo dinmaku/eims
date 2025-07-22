@@ -174,7 +174,7 @@
           <div class="bg-white p-5 rounded-lg shadow-lg w-[400px]">
             <div class="flex flex-col items-center">
               <h2 class="text-xl font-semibold mb-4">Confirm Status Change</h2>
-              <p class="mb-6 text-center">Are you sure you want to set this venue to {{ pendingStatus }}?</p>
+              <p class="mb-6 text-center">Are you sure you want to change the venue status?</p>
               <div class="flex space-x-4">             
                 <button 
                   @click="closeStatusConfirmModal" 

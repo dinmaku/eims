@@ -65,7 +65,7 @@
       </div>
 
 
-      <div class="bg-[url('/img/background-aboutus.jpg')] bg-cover bg-center h-screen">
+      <div class="bg-[url('/img/background-aboutus.jpg')] bg-cover bg-center h-screen" id="aboutus">
         <div class="flex justify-end mr-14 h-full">
         <div class="bg-gray-200 w-[660px] h-full flex flex-col justify-start"> 
         <div class="space-y-5 text-center mt-40">
@@ -74,14 +74,10 @@
         </div>
         <div class="flex justify-center mt-12">
             <p class="text-center md:text-md px-10 font-medium font-raleway text-gray-700">
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+                "Red Carpet Wedding Services and Event Organizer is a premier event planning company based in Iligan City, dedicated to turning your special moments into unforgettable celebrations. From intimate gatherings to grand weddings, we bring elegance, precision, and creativity to every event we manage. Located at the heart of the city near the Plaza, our team combines local charm with professional expertise to deliver personalized services tailored to your vision. At Red Carpet, we don't just organize events — we create experiences that last a lifetime."
             </p>
         </div>
-            <div class = "flex justify-center mt-24">
-              <button class = "bg-gray-800 text-white py-2 px-5 rounded-lg shadow-xl font-medium transition-transform duration-300 transform hover:scale-105">
-                Check the full story
-              </button>
-            </div>
+            
         </div>
         
     </div>

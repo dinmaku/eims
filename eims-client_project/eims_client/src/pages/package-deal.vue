@@ -161,9 +161,7 @@
               <button class="view-details-btn" @click="viewPackageDetails(pkg)">
                 View Details
               </button>
-              <button class="add-to-wishlist-btn" @click="addToWishlist(pkg)">
-                <i class="fas fa-heart"></i>
-              </button>
+  
             </div>
           </div>
         </div>
@@ -257,7 +255,7 @@
 import axios from 'axios';
 
 // Configure axios defaults
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = 'http://localhost:5001';
 axios.defaults.withCredentials = true;
 
 export default {
@@ -409,35 +407,29 @@ export default {
         console.error('Error fetching packages:', error);
       }
     },
-    async fetchGownPackages() {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          console.error('No access token found');
-          return;
-        }
+   async fetchGownPackages() {
+        try {
+          const response = await axios.get('/available-gown-packages', {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
 
-        const response = await axios.get('/available-gown-packages', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+          console.log('Gown Packages Response:', response.data);
+
+          if (response.data) {
+            this.gownPackages = response.data;
+            console.log('Gown Packages loaded:', this.gownPackages);
+            this.error = null;
+          } else {
+            this.error = 'Failed to fetch gown packages';
+            console.error('Error:', this.error);
           }
-        });
-        console.log('Gown Packages Response:', response.data);
-        
-        if (response.data) {
-          this.gownPackages = response.data;
-          console.log('Gown Packages loaded:', this.gownPackages);
-          this.error = null;
-        } else {
-          this.error = 'Failed to fetch gown packages';
-          console.error('Error:', this.error);
+        } catch (error) {
+          this.error = error.response?.data?.message || error.message;
+          console.error('Error fetching gown packages:', error);
         }
-      } catch (error) {
-        this.error = error.response?.data?.message || error.message;
-        console.error('Error fetching gown packages:', error);
-      }
-    },
+      },
     getVenueImageUrl(image) {
       if (!image) {
         return `${axios.defaults.baseURL}/saved/venue_img/grandballroom.png`;

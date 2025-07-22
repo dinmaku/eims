@@ -1,20 +1,24 @@
 <template>
   <div class= "ml-10 mt-5 text-start">
-    <h1 class="font-inter font-bold text-4xl pb-1">Welcome, {{ userFullName }}</h1>
+    <h1 class="font-inter font-bold text-4xl pb-1">Welcome, {{ userType }}</h1>
     <p class="font-inter font-bold text-gray-400">Check your latest updates</p>
     <hr class="w-[1100px] mt-2">
   </div>
   
-    <!--Information Cards-->
-      <div class="py-10 pl-10 flex flex-row space-x-10">
-        <div class = "flex">
-          <VCalendar 
-            :attributes="attrs"
-                />
-          
+  <!--Information Cards-->
+  <div class="py-10 pl-10 flex flex-row space-x-10">
+    <div class="flex">
+      <div class="calendar-container w-[350px]">
+        <VCalendar 
+          :attributes="attrs"
+          is-expanded
+          :columns="1"
+          borderless
+        />
       </div>
-      <div class=""> <!-- Add padding to the dashboard -->
-      <div class="border border-gray-300 rounded-lg shadow-lg p-4" style="height: 280px; width: 450px;">
+    </div>
+    <div class=""> <!-- Add padding to the dashboard -->
+      <div class="border border-gray-300 rounded-lg shadow-lg p-4" style="height: 320px; width: 500px;">
         <apexchart 
           type="bar" 
           :options="barChartOptions" 
@@ -22,113 +26,19 @@
         />
       </div>
     </div>
-      <div class = "flex flex-col space-y-2">
-      <router-link to = "/manage-events">
-    <div class="border border-gray-300 w-80 h-32 rounded-lg bg-blue-100 flex justify-start items-center pt-2 pl-4 shadow-lg space-x-2">
-      <h2 class="text-6xl font-bold indent-7">7</h2>
-      <p class="text-sm text-gray-500 font-bold mt-7">Number of Wishlist </p>
-    </div>
-      </router-link>
-      <router-link to = "/manage-users">
-    <div class="border border-gray-300 w-80 h-32 rounded-lg bg-blue-100 flex justify-start items-center pt-2 pl-4 shadow-md space-x-2">
-      <h2 class=" text-6xl font-bold indent-7">21</h2>
-      <p class=" text-sm text-gray-500 font-semibold mt-7">Number of Suppliers </p>
-    </div>
-    </router-link>
   </div>
-  
-  
-  </div>
-  
   
   
   <!--Team's Progress -->
   <div class="flex space-x-10">
-  <div class="max-w-sm w-full bg-white-200 border border-gray-300 rounded-lg shadow-xl dark:bg-blue-200 p-4 md:p-6 ml-10 mb-5">
-    <div class="flex justify-between mb-5 ml-5">
-      <div class="flex items-center">
-        <div class="flex justify-center items-center">
-          <h5 class="text-xl font-bold leading-none text-gray-900 dark:text-white pe-1">Your team's progress</h5>
-          <svg data-popover-target="chart-info" data-popover-placement="bottom" class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer ms-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm0 16a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm1-5.034V12a1 1 0 0 1-2 0v-1.418a1 1 0 0 1 1.038-.999 1.436 1.436 0 0 0 1.488-1.441 1.501 1.501 0 1 0-3-.116.986.986 0 0 1-1.037.961 1 1 0 0 1-.96-1.037A3.5 3.5 0 1 1 11 11.466Z"/>
-          </svg>
-        </div>
-      </div>
-    </div>
   
-    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-      <div class="grid grid-cols-3 gap-3 mb-2">
-        <dl class="bg-orange-50 dark:bg-gray-600 rounded-lg flex flex-col items-center justify-center h-[78px]">
-          <dt class="w-8 h-8 rounded-full bg-orange-100 dark:bg-gray-500 text-orange-600 dark:text-orange-300 text-sm font-medium flex items-center justify-center mb-1">12</dt>
-          <dd class="text-orange-600 dark:text-orange-300 text-sm font-medium">Pending</dd>
-        </dl>
-        <dl class="bg-teal-50 dark:bg-gray-600 rounded-lg flex flex-col items-center justify-center h-[78px]">
-          <dt class="w-8 h-8 rounded-full bg-teal-100 dark:bg-gray-500 text-teal-600 dark:text-teal-300 text-sm font-medium flex items-center justify-center mb-1">23</dt>
-          <dd class="text-teal-600 dark:text-teal-300 text-sm font-medium">In progress</dd>
-        </dl>
-        <dl class="bg-blue-50 dark:bg-gray-600 rounded-lg flex flex-col items-center justify-center h-[78px]">
-          <dt class="w-8 h-8 rounded-full bg-blue-100 dark:bg-gray-500 text-blue-600 dark:text-blue-300 text-sm font-medium flex items-center justify-center mb-1">64</dt>
-          <dd class="text-blue-600 dark:text-blue-300 text-sm font-medium">Done</dd>
-        </dl>
-      </div>
-      <div>
-      <button @click="toggleDetails" type="button" class="hover:underline text-xs text-gray-500 dark:text-gray-400 font-medium inline-flex items-center">
-        Show more details
-        <svg class="w-2 h-2 ms-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
-        </svg>
-      </button>
-      <div v-if="isDetailsVisible" class="border-gray-200 border-t dark:border-gray-600 pt-3 mt-3 space-y-2">
-        <dl class="flex items-center justify-between">
-          <dt class="text-gray-500 dark:text-gray-400 text-sm font-normal">Average task completion rate:</dt>
-          <dd class="bg-green-100 text-green-800 text-xs font-medium inline-flex items-center px-2.5 py-1 rounded-md dark:bg-green-900 dark:text-green-300">
-            <svg class="w-2.5 h-2.5 me-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 14">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13V1m0 0L1 5m4-4 4 4"/>
-            </svg> 57%
-          </dd>
-        </dl>
-        <dl class="flex items-center justify-between">
-          <dt class="text-gray-500 dark:text-gray-400 text-sm font-normal">Days until sprint ends:</dt>
-          <dd class="bg-gray-100 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-1 rounded-md dark:bg-gray-600 dark:text-gray-300">13 days</dd>
-        </dl>
-        <dl class="flex items-center justify-between">
-          <dt class="text-gray-500 dark:text-gray-400 text-sm font-normal">Next meeting:</dt>
-          <dd class="bg-gray-100 text-gray-800 text-xs font-medium inline-flex items-center px-2.5 py-1 rounded-md dark:bg-gray-600 dark:text-gray-300">Thursday</dd>
-        </dl>
-      </div>
-    </div>
-    </div>
   
-    <!-- Radial Chart -->
-    <div class="py-6" id="radial-chart"></div>
-    <div class="grid grid-cols-1 items-center border-gray-200 border-t dark:border-gray-700 justify-between">
-      <div class="flex justify-between items-center pt-5">
-        <!-- Button -->
-        <a
-          href="#"
-          class="uppercase text-sm font-semibold inline-flex items-center rounded-lg text-blue-600 hover:text-blue-700 dark:hover:text-blue-500  hover:bg-gray-100 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700 px-3 py-2">
-          Progress report
-          <svg class="w-2.5 h-2.5 ms-1.5 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4 4-4"/>
-          </svg>
-        </a>
-      </div>
-    </div>
-  </div>
   
     
   <!---Events per Month Line Graph-->
   
-  <div class="relative flex flex-col rounded-xl bg-white bg-clip-border text-gray-700 shadow-lg border border-gray-300 h-[330px] w-[680px]">
+  <div class="relative flex flex-col rounded-xl bg-white bg-clip-border text-gray-700 shadow-lg border border-gray-300 h-[350px] w-full">
       <div class="relative mx-48 mt-4 flex flex-col gap-1 overflow-hidden rounded-none bg-transparent bg-clip-border text-gray-700 shadow-none md:flex-row md:items-center">
-        <div>
-          <h6 class="block font-sans text-base font-semibold leading-relaxed tracking-normal text-blue-gray-900 antialiased">
-            Events Booked in 2024
-          </h6>
-          <p class="block max-w-sm font-sans text-sm font-normal leading-normal text-gray-700 antialiased">
-          This are the successful events per Month
-          </p>
-        </div>
       </div>
       <div class="pt-0 px-2 pb-0 h-full">
         <div ref="lineChart"></div>
@@ -156,23 +66,22 @@
   import { defineComponent, onMounted, onUnmounted, ref } from 'vue';
   import VueApexCharts from "vue3-apexcharts";
   import axios from 'axios';
-  
+  import { Calendar } from 'v-calendar';
+  import 'v-calendar/style.css';
+
   export default defineComponent({
     name: 'Dashboard',
     components: {
       apexchart: VueApexCharts,
+      VCalendar: Calendar
     },
     data() {
       return {
         isDetailsVisible: false,
-        attrs: [
-          {
-            key: 'today',
-            highlight: 'red',
-            dates: new Date(),
-          },
-        ],
-  
+        attrs: [],
+        events: [],
+        userType: '',
+
         //Line chart configs
         barChartOptions: {
           chart: {
@@ -197,11 +106,32 @@
             title: {
               text: 'No of users',
               style: {
-              fontSize: '12px',
-              fontWeight: 'bold',
-              fontFamily: 'inherit',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                fontFamily: 'inherit',
+              }
             },
+            min: 0,
+            labels: {
+              formatter: function(value) {
+                return parseInt(value);
+              }
             },
+            axisBorder: {
+              show: true
+            },
+            axisTicks: {
+              show: true
+            },
+            forceNiceScale: true,
+            decimalsInFloat: 0
+          },
+          grid: {
+            yaxis: {
+              lines: {
+                show: true
+              }
+            }
           },
           title: {
             text: 'Feedback Ratings',
@@ -220,20 +150,90 @@
             data: [2, 6, 14, 21, 24], // Number of people for each rating
           },
         ],
-        userFullName: ''
       };
     },
     methods: {
       toggleDetails() {
         this.isDetailsVisible = !this.isDetailsVisible;
       },
-      
-    },
-    mounted() {
-      // Get user profile from localStorage
-      const userProfile = JSON.parse(localStorage.getItem('userProfile'));
-      if (userProfile) {
-        this.userFullName = `${userProfile.firstname} ${userProfile.lastname}`;
+      async getUserType() {
+        try {
+          const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+          if (userProfile && userProfile.user_type) {
+            this.userType = userProfile.user_type.charAt(0).toUpperCase() + userProfile.user_type.slice(1).toLowerCase();
+            console.log('User type:', userProfile.user_type);
+          } else {
+            this.userType = 'User'; // fallback
+          }
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+          this.userType = 'User'; // fallback
+        }
+      },
+      async fetchFeedbackData() {
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            console.error('No access token found');
+            return;
+          }
+          
+          const response = await axios.get('http://localhost:5000/api/feedback/statistics', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.data && Array.isArray(response.data)) {
+            // Update the bar chart data
+            this.barChartSeries[0].data = response.data;
+          }
+        } catch (error) {
+          console.error('Error fetching feedback data:', error);
+        }
+      },
+      async fetchEvents() {
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            console.error('No access token found');
+            return;
+          }
+          
+          const response = await axios.get('http://localhost:5000/events/schedules', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.data && Array.isArray(response.data)) {
+            this.events = response.data;
+            this.attrs = this.events.map(event => ({
+              key: event.events_id,
+              dates: new Date(event.schedule),
+              dot: {
+                color: this.getEventColor(event.status),
+                class: 'event-dot'
+              },
+              popover: {
+                label: `${event.event_name} (${event.status})`
+              }
+            }));
+            console.log('Calendar attributes:', this.attrs);
+          }
+        } catch (error) {
+          console.error('Error fetching events:', error);
+        }
+      },
+      getEventColor(status) {
+        switch (status?.toLowerCase()) {
+          case 'upcoming':
+            return 'blue';
+          case 'finished':
+            return 'green';
+          case 'cancelled':
+            return 'red';
+          case 'wishlist':
+            return 'orange';
+          default:
+            return 'gray';
+        }
       }
     },
     setup() {
@@ -242,6 +242,7 @@
       const isDetailsVisible = ref(false);
       const selectedMonth = ref(null);
       const pollingInterval = ref(null);
+      const lineChart = ref(null);
       
       // Area Chart Data
       const areaChartData = ref({
@@ -308,104 +309,190 @@
         }
       };
 
+      const fetchCompletedEvents = async () => {
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            console.error('No access token found');
+            return;
+          }
+
+          const response = await fetch('http://localhost:5000/events/all', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const events = await response.json();
+          
+          // Filter for completed events and group by month
+          const completedEvents = events.filter(event => 
+            event.status?.toLowerCase() === 'finished' && event.schedule
+          );
+
+          // Initialize counts for all months
+          const monthlyCounts = Array(12).fill(0);
+
+          // Count events by month
+          completedEvents.forEach(event => {
+            const date = new Date(event.schedule);
+            const month = date.getMonth(); // 0-11
+            monthlyCounts[month]++;
+          });
+
+          // Update the line chart
+          if (lineChart.value) {
+            const chartConfig = {
+              series: [
+                {
+                  name: "Completed Events",
+                  data: monthlyCounts,
+                },
+              ],
+              chart: {
+                type: "line",
+                height: 240,
+                toolbar: {
+                  show: false,
+                },
+              },
+              title: {
+                text: "Completed Events by Month",
+                align: "center",
+                style: {
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  fontFamily: "inherit",
+                },
+              },
+              dataLabels: {
+                enabled: false,
+              },
+              colors: ["#10B981"], // Green color for completed events
+              stroke: {
+                curve: 'smooth',
+                width: 3,
+              },
+              markers: {
+                size: 5,
+                colors: ["#10B981"],
+                strokeColors: "#fff",
+                strokeWidth: 2,
+              },
+              xaxis: {
+                axisTicks: {
+                  show: false,
+                },
+                axisBorder: {
+                  show: false,
+                },
+                labels: {
+                  style: {
+                    colors: "#616161",
+                    fontSize: "12px",
+                    fontFamily: "inherit",
+                    fontWeight: 400,
+                  },
+                },
+                categories: [
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
+                ],
+              },
+              yaxis: {
+                title: {
+                  text: "Number of Events",
+                  style: {
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    fontFamily: "inherit",
+                  },
+                },
+                labels: {
+                  style: {
+                    colors: "#616161",
+                    fontSize: "12px",
+                    fontFamily: "inherit",
+                    fontWeight: 400,
+                  },
+                  formatter: function(value) {
+                    return Math.round(value);
+                  }
+                },
+                min: 0,
+                max: undefined,
+                tickAmount: 5,
+                forceNiceScale: true
+              },
+              grid: {
+                show: true,
+                borderColor: "#dddddd",
+                strokeDashArray: 5,
+                xaxis: {
+                  lines: {
+                    show: true,
+                  },
+                },
+                padding: {
+                  top: 5,
+                  right: 20,
+                },
+              },
+              fill: {
+                opacity: 0.8,
+                type: 'gradient',
+                gradient: {
+                  shade: 'dark',
+                  gradientToColors: ['#34D399'],
+                  shadeIntensity: 1,
+                  type: 'horizontal',
+                  opacityFrom: 1,
+                  opacityTo: 1,
+                },
+              },
+              tooltip: {
+                theme: "dark",
+                y: {
+                  formatter: function(value) {
+                    return Math.round(value) + " events";
+                  }
+                }
+              },
+            };
+
+            const chart = new ApexCharts(lineChart.value, chartConfig);
+            chart.render();
+          }
+        } catch (error) {
+          console.error('Error fetching completed events:', error);
+        }
+      };
+
       onMounted(() => {
         fetchEventsByMonth();
         startPolling();
-        const chartConfig = {
-          series: [
-            {
-              name: "Sales",
-              data: [50, 40, 65, 29, 89, 53, 23, 70, 67],
-            },
-          ],
-          chart: {
-            type: "line",
-            height: 240,
-            toolbar: {
-              show: false,
-            },
-          },
-          title: {
-            show: "",
-          },
-          dataLabels: {
-            enabled: false,
-          },
-          colors: ["#020617"],
-          plotOptions: {
-            bar: {
-              columnWidth: "40%",
-              borderRadius: 2,
-            },
-          },
-          xaxis: {
-            axisTicks: {
-              show: false,
-            },
-            axisBorder: {
-              show: false,
-            },
-            labels: {
-              style: {
-                colors: "#616161",
-                fontSize: "12px",
-                fontFamily: "inherit",
-                fontWeight: 400,
-              },
-            },
-            categories: [
-              "Apr",
-              "May",
-              "Jun",
-              "Jul",
-              "Aug",
-              "Sep",
-              "Oct",
-              "Nov",
-              "Dec",
-            ],
-          },
-          yaxis: {
-            labels: {
-              style: {
-                colors: "#616161",
-                fontSize: "12px",
-                fontFamily: "inherit",
-                fontWeight: 400,
-              },
-            },
-          },
-          grid: {
-            show: true,
-            borderColor: "#dddddd",
-            strokeDashArray: 5,
-            xaxis: {
-              lines: {
-                show: true,
-              },
-            },
-            padding: {
-              top: 5,
-              right: 20,
-            },
-          },
-          fill: {
-            opacity: 0.8,
-          },
-          tooltip: {
-            theme: "dark",
-          },
-        };
-  
-        const chart = new ApexCharts(lineChart.value, chartConfig);
-        chart.render();
+        fetchCompletedEvents();
       });
 
       onUnmounted(() => {
         stopPolling();
       });
-
-      const lineChart = ref(null);
 
       // Line Chart Options with click interaction
       const areaChartOptions = ref({
@@ -487,6 +574,11 @@
         selectedMonth,
         lineChart
       };
+    },
+    mounted() {
+      this.fetchEvents();
+      this.fetchFeedbackData();
+      this.getUserType();
     }
   });
   
@@ -496,6 +588,54 @@
      html {
       scroll-behavior: smooth;
     }
-  
-  
-    </style>
+
+.calendar-container {
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1rem;
+}
+
+.event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+:deep(.vc-container) {
+  --vc-font-family: 'Inter', sans-serif;
+  --vc-rounded-lg: 0.5rem;
+  --vc-header-padding: 10px 0;
+  --vc-weeks-padding: 0 10px;
+  --vc-day-padding: 5px 0;
+  --vc-border-radius: 0.5rem;
+  --vc-popover-content-padding: 0.5rem;
+  --vc-popover-content-font-size: 0.875rem;
+  --vc-popover-content-bg: white;
+  --vc-popover-content-border: 1px solid #e2e8f0;
+  --vc-popover-content-border-radius: 0.375rem;
+  --vc-popover-content-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --vc-today-bg: #f3f4f6;
+  --vc-highlight-bg: #3b82f6;
+  --vc-highlight-content-color: white;
+  width: 100%;
+}
+
+:deep(.vc-header) {
+  font-weight: 600;
+}
+
+:deep(.vc-day-content) {
+  font-weight: 500;
+}
+
+:deep(.vc-day.is-today) {
+  font-weight: bold;
+}
+
+:deep(.vc-day.is-not-in-month) {
+  opacity: 0.4;
+}
+
+</style>

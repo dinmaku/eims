@@ -22,7 +22,7 @@
                     <input type="checkbox" class="mr-2 bg-white border-2 rounded-sm border-gray-500">
                     <label class="text-sm text-gray-700">Keep me logged in</label>
                 </div>
-                <button class="text-sm text-blue-900 hover:text-blue-800">Forget password?</button>
+                
             </div>
             <button type="submit" class="mt-8 w-full h-10 bg-blue-700 text-white rounded-lg shadow-md hover:bg-blue-500">Sign in</button>
             <div class="flex justify-center items-center mt-4 space-x-1">
@@ -135,7 +135,7 @@ export default {
     },
     async handleLogin() {
           try {
-              const response = await axios.post('http://127.0.0.1:5000/login', {
+              const response = await axios.post('http://127.0.0.1:5001/login', {
                   identifier: this.identifier,  // Can be email or username
                   password: this.password,
               });
@@ -184,7 +184,7 @@ export default {
                   return;
               }
 
-              const response = await axios.post('http://127.0.0.1:5000/register', {
+              const response = await axios.post('http://127.0.0.1:5001/register', {
                   firstName: this.firstName,
                   lastName: this.lastName,
                   username: this.username,
@@ -192,7 +192,7 @@ export default {
                   contactNumber: this.contactNumber,
                   password: this.registerPassword,
                   address: this.address,
-            
+                  user_type: 'Suppliers'  // Add this line to set user type as Suppliers
               });
 
               // Reset form and navigate to login after successful registration

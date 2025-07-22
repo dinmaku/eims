@@ -798,10 +798,12 @@ def get_all_booked_wishlist():
                 cursor.execute("""
                     SELECT 
                         ws.wishlist_supplier_id, ws.supplier_id, ws.status,
-                        s.service, u.firstname, u.lastname, ws.price
+                        s.service, u.firstname, u.lastname, ws.price,
+                        ws.external_supplier_name, ws.external_supplier_contact,
+                        ws.remarks
                     FROM wishlist_suppliers ws
-                    JOIN suppliers s ON ws.supplier_id = s.supplier_id
-                    JOIN users u ON s.userid = u.userid
+                    LEFT JOIN suppliers s ON ws.supplier_id = s.supplier_id
+                    LEFT JOIN users u ON s.userid = u.userid
                     WHERE ws.wishlist_id = %s
                 """, (event['wishlist_id'],))
                 
@@ -810,10 +812,14 @@ def get_all_booked_wishlist():
                     'wishlist_supplier_id': s[0],
                     'supplier_id': s[1],
                     'status': s[2],
-                    'service': s[3],
-                    'firstname': s[4],
-                    'lastname': s[5],
-                    'price': float(s[6]) if s[6] else 0
+                    'service': s[9] if s[1] is None else s[3],  # Use remarks as service for external suppliers
+                    'firstname': s[7] if s[1] is None else s[4],  # Use external_supplier_name for external suppliers
+                    'lastname': '' if s[1] is None else s[5],  # No lastname for external suppliers
+                    'price': float(s[6]) if s[6] else 0,
+                    'external_supplier_name': s[7],
+                    'external_supplier_contact': s[8],
+                    'remarks': s[9],
+                    'type': 'external' if s[1] is None else 'internal'
                 } for s in suppliers]
             
             # Get services for this event
@@ -2327,22 +2333,28 @@ def get_all_events():
                 cursor.execute("""
                     SELECT 
                         ws.wishlist_supplier_id, ws.supplier_id, ws.status,
-                        s.service, u.firstname, u.lastname, ws.price
+                        s.service, u.firstname, u.lastname, ws.price,
+                        ws.external_supplier_name, ws.external_supplier_contact,
+                        ws.remarks
                     FROM wishlist_suppliers ws
-                    JOIN suppliers s ON ws.supplier_id = s.supplier_id
-                    JOIN users u ON s.userid = u.userid
+                    LEFT JOIN suppliers s ON ws.supplier_id = s.supplier_id
+                    LEFT JOIN users u ON s.userid = u.userid
                     WHERE ws.wishlist_id = %s
                 """, (event['wishlist_id'],))
-
+                
                 suppliers = cursor.fetchall()
                 event['suppliers'] = [{
                     'wishlist_supplier_id': s[0],
                     'supplier_id': s[1],
                     'status': s[2],
-                    'service': s[3],
-                    'firstname': s[4],
-                    'lastname': s[5],
-                    'price': float(s[6]) if s[6] else 0
+                    'service': s[9] if s[1] is None else s[3],  # Use remarks as service for external suppliers
+                    'firstname': s[7] if s[1] is None else s[4],  # Use external_supplier_name for external suppliers
+                    'lastname': '' if s[1] is None else s[5],  # No lastname for external suppliers
+                    'price': float(s[6]) if s[6] else 0,
+                    'external_supplier_name': s[7],
+                    'external_supplier_contact': s[8],
+                    'remarks': s[9],
+                    'type': 'external' if s[1] is None else 'internal'
                 } for s in suppliers]
 
             # Get services for this event
@@ -2787,7 +2799,7 @@ def get_event_outfits(events_id):
                         'size': None,
                         'rent_price': None,
                         'gown_package_id': gown_package_id,
-                        'gown_package_name': outfit[8] or f"Package #{gown_package_id}",  # Fallback name
+                        'gown_package_name': outfit[8] or f"Package #{gown_package_id}",  # Fallback name if empty
                         'gown_package_price': float(outfit[9]) if outfit[9] else 0,
                         'type': 'package',
                         'package_outfits': [
@@ -3210,15 +3222,34 @@ def create_wishlist_package(events_id, package_data):
         # Add suppliers if provided
         if package_data.get('suppliers'):
             for supplier in package_data['suppliers']:
-                cursor.execute("""
-                    INSERT INTO wishlist_suppliers (wishlist_id, supplier_id, price, remarks)
-                    VALUES (%s, %s, %s, %s)
-                """, (
-                    wishlist_id,
-                    supplier['supplier_id'],
-                    supplier.get('price'),
-                    supplier.get('remarks')
-                ))
+                status = supplier.get('status', 'Pending')
+                if supplier.get('type') == 'external':
+                    cursor.execute("""
+                        INSERT INTO wishlist_suppliers (
+                            wishlist_id, supplier_id, price, remarks, status,
+                            external_supplier_name, external_supplier_contact
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        wishlist_id,
+                        None,  # supplier_id is NULL for external suppliers
+                        supplier.get('price', 0),
+                        supplier.get('service', ''),  # Store service type in remarks
+                        status,
+                        supplier.get('external_supplier_name', ''),
+                        supplier.get('external_supplier_contact', '')
+                    ))
+                else:
+                    cursor.execute("""
+                        INSERT INTO wishlist_suppliers (wishlist_id, supplier_id, price, remarks, status)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (
+                        wishlist_id,
+                        supplier['supplier_id'],
+                        supplier.get('price', 0),
+                        supplier.get('remarks', ''),
+                        status
+                    ))
         
         # Add outfits if provided
         if package_data.get('outfits'):
@@ -3541,16 +3572,34 @@ def update_wishlist_package(wishlist_id, package_data):
                 
                 # Insert updated suppliers
                 for supplier in package_data['suppliers']:
-                    cursor.execute("""
-                        INSERT INTO wishlist_suppliers (wishlist_id, supplier_id, price, remarks, status)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (
-                        wishlist_id,
-                        supplier['supplier_id'],
-                        supplier.get('price', 0),
-                        supplier.get('remarks', ''),
-                        supplier.get('status', 'Pending')
-                    ))
+                    status = supplier.get('status', 'Pending')
+                    if supplier.get('type') == 'external':
+                        cursor.execute("""
+                            INSERT INTO wishlist_suppliers (
+                                wishlist_id, supplier_id, price, remarks, status,
+                                external_supplier_name, external_supplier_contact
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            wishlist_id,
+                            None,  # supplier_id is NULL for external suppliers
+                            supplier.get('price', 0),
+                            supplier.get('remarks', ''),
+                            status,
+                            supplier.get('external_supplier_name', ''),
+                            supplier.get('external_supplier_contact', '')
+                        ))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO wishlist_suppliers (wishlist_id, supplier_id, price, remarks, status)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (
+                            wishlist_id,
+                            supplier['supplier_id'],
+                            supplier.get('price', 0),
+                            supplier.get('remarks', ''),
+                            status
+                        ))
                 conn.commit()
                 logger.info(f"Successfully updated suppliers for wishlist_id {wishlist_id}")
             except Exception as e:
@@ -3939,10 +3988,12 @@ def fetch_upcoming_events():
                 cursor.execute("""
                     SELECT 
                         ws.wishlist_supplier_id, ws.supplier_id, ws.status,
-                        s.service, u.firstname, u.lastname, ws.price
+                        s.service, u.firstname, u.lastname, ws.price,
+                        ws.external_supplier_name, ws.external_supplier_contact,
+                        ws.remarks
                     FROM wishlist_suppliers ws
-                    JOIN suppliers s ON ws.supplier_id = s.supplier_id
-                    JOIN users u ON s.userid = u.userid
+                    LEFT JOIN suppliers s ON ws.supplier_id = s.supplier_id
+                    LEFT JOIN users u ON s.userid = u.userid
                     WHERE ws.wishlist_id = %s
                 """, (event['wishlist_id'],))
                 
@@ -3951,10 +4002,14 @@ def fetch_upcoming_events():
                     'wishlist_supplier_id': s[0],
                     'supplier_id': s[1],
                     'status': s[2],
-                    'service': s[3],
-                    'firstname': s[4],
-                    'lastname': s[5],
-                    'price': float(s[6]) if s[6] else 0
+                    'service': s[9] if s[1] is None else s[3],  # Use remarks as service for external suppliers
+                    'firstname': s[7] if s[1] is None else s[4],  # Use external_supplier_name for external suppliers
+                    'lastname': '' if s[1] is None else s[5],  # No lastname for external suppliers
+                    'price': float(s[6]) if s[6] else 0,
+                    'external_supplier_name': s[7],
+                    'external_supplier_contact': s[8],
+                    'remarks': s[9],
+                    'type': 'external' if s[1] is None else 'internal'
                 } for s in suppliers]
             
             # Get services for this event
@@ -5258,3 +5313,65 @@ def get_event_feedback(events_id):
     except Exception as e:
         print(f"Error getting event feedback: {e}")
         return None
+
+def get_calendar_events():
+    """Get all events with their details for calendar display"""
+    try:
+        conn = db.get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cursor.execute("""
+            SELECT 
+                event_id,
+                event_type,
+                schedule,
+                event_name,
+                event_theme,
+                status
+            FROM events 
+            WHERE schedule >= CURRENT_DATE
+            ORDER BY schedule ASC
+        """)
+        
+        events = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return events
+    except Exception as e:
+        print(f"Error getting calendar events: {e}")
+        return None
+
+def get_feedback_statistics():
+    """Get statistics for all event feedbacks."""
+    try:
+        conn = db.get_db_connection()
+        cur = conn.cursor()
+        
+        # Get count of ratings grouped by rating value
+        cur.execute("""
+            SELECT rating, COUNT(*) as count
+            FROM event_feedbacks
+            GROUP BY rating
+            ORDER BY rating
+        """)
+        
+        # Initialize counts for all ratings (1-5)
+        rating_counts = {i: 0 for i in range(1, 6)}
+        
+        # Fill in actual counts
+        for row in cur.fetchall():
+            rating = row[0]
+            count = row[1]
+            rating_counts[rating] = count
+        
+        # Convert to list format for frontend
+        statistics = [rating_counts[i] for i in range(1, 6)]
+        
+        cur.close()
+        conn.close()
+        
+        return statistics
+    except Exception as e:
+        print(f"Error getting feedback statistics: {e}")
+        return [0, 0, 0, 0, 0]  # Return zeros if there's an error

@@ -194,7 +194,7 @@ export default {
       sortBy: '',
       isLoading: true,
       error: null,
-      apiBaseUrl: 'http://127.0.0.1:5000'
+      apiBaseUrl: 'http://127.0.0.1:5001'
     };
   },
   computed: {
@@ -297,7 +297,7 @@ export default {
           headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await axios.get('http://127.0.0.1:5000/outfits', {
+        const response = await axios.get('http://127.0.0.1:5001/outfits', {
           headers,
           withCredentials: true
         });
@@ -318,7 +318,7 @@ export default {
         if (error.response?.status === 401 || error.response?.status === 422) {
           // User is not logged in or token is invalid - still try to fetch public data
           try {
-            const response = await axios.get('http://127.0.0.1:5000/outfits', {
+            const response = await axios.get('http://127.0.0.1:5001/outfits', {
               headers: {
                 'Content-Type': 'application/json'
               }
@@ -372,7 +372,7 @@ export default {
 
       // Send the data to the backend using Axios
       axios
-        .post('http://127.0.0.1:5000/book-outfit', bookingData, {
+        .post('http://127.0.0.1:5001/book-outfit', bookingData, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
             'Content-Type': 'application/json'

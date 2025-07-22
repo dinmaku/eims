@@ -252,15 +252,15 @@
                 <!-- Section for Outfit Package -->
                 <div class="bg-gray-300 w-full px-2 py-3 space-y-2 rounded-xl mt-4">
                     <p class="text-gray-700 font-semibold">Outfit Package</p>
-                    <div v-if="selectedWishlist.gown_package_name" class="space-y-2">
-                        <div>
+                    <div class="space-y-2">
+                        <div v-if="selectedWishlist.gown_package_name">
                             <p class="text-sm">Package Name: {{ selectedWishlist.gown_package_name }}</p>
                             <p class="text-sm">Package Price: {{ formatPrice(selectedWishlist.gown_package_price) }} php</p>
                         </div>
                         
                         <!-- Outfits Table -->
                         <div class="mt-4" v-if="selectedWishlist.outfits && selectedWishlist.outfits.length > 0">
-                            <p class="text-sm font-medium mb-2">Included Outfits:</p>
+                            <p class="text-sm font-medium mb-2">{{ selectedWishlist.gown_package_name ? 'Included Outfits:' : 'Selected Outfits:' }}</p>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full bg-white rounded-lg overflow-hidden">
                                     <thead class="bg-gray-100">
@@ -297,9 +297,8 @@
                                 </table>
                             </div>
                         </div>
-                        <div v-else class="text-gray-600 text-sm">No outfits available in this package.</div>
+                        <div v-else class="text-gray-600 text-sm">No outfits available.</div>
                     </div>
-                    <div v-else class="text-gray-600 text-sm">No outfit package selected.</div>
                 </div>
 
                 <!-- Section for Additional Services -->
@@ -678,7 +677,7 @@ export default defineComponent({
                     return;
                 }
 
-                const response = await axios.get('http://127.0.0.1:5000/wishlist', {
+                const response = await axios.get('http://127.0.0.1:5001/wishlist', {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -686,6 +685,7 @@ export default defineComponent({
                     withCredentials: true
                 });
                 
+                console.log('Received wishlist data:', response.data);
                 this.bookedWishlist = response.data;
                 // Reset to page 1 when data changes
                 this.currentPage = 1;
@@ -711,7 +711,7 @@ export default defineComponent({
                     return;
                 }
 
-                const response = await axios.delete(`http://127.0.0.1:5000/booked_wishlist/${events_id}`, {
+                const response = await axios.delete(`http://127.0.0.1:5001/booked_wishlist/${events_id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -736,11 +736,20 @@ export default defineComponent({
         },
 
         displayWishlistDetails(item) {
+            console.log('Selected wishlist item:', item);
+            console.log('Gown package name:', item.gown_package_name);
+            console.log('Gown package price:', item.gown_package_price);
+            console.log('Outfits array:', item.outfits);
+            
             // Ensure outfits are properly formatted
             if (item.outfits && Array.isArray(item.outfits)) {
+                console.log('Number of outfits:', item.outfits.length);
+                item.outfits.forEach((outfit, index) => {
+                    console.log(`Outfit ${index + 1}:`, outfit);
+                });
                 this.selectedWishlist = item;
             } else {
-                // Create empty outfits array if none exists
+                console.warn('No valid outfits array found, creating empty array');
                 this.selectedWishlist = {
                     ...item,
                     outfits: []
@@ -762,7 +771,7 @@ export default defineComponent({
                     return;
                 }
 
-                const response = await axios.get('http://127.0.0.1:5000/booked-outfits', {
+                const response = await axios.get('http://127.0.0.1:5001/booked-outfits', {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -808,7 +817,7 @@ export default defineComponent({
             try {
                 // First check if user has already rated this event
                 const token = localStorage.getItem('access_token');
-                const response = await axios.get(`http://127.0.0.1:5000/event-feedback/${event.events_id}`, {
+                const response = await axios.get(`http://127.0.0.1:5001/event-feedback/${event.events_id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -854,7 +863,7 @@ export default defineComponent({
                     return;
                 }
 
-                const response = await axios.post('http://127.0.0.1:5000/event-feedback', {
+                const response = await axios.post('http://127.0.0.1:5001/event-feedback', {
                     events_id: this.selectedEventForRating.events_id,
                     rating: this.rating,
                     feedback_text: this.feedbackText
@@ -884,11 +893,11 @@ export default defineComponent({
 
         getOutfitImageUrl(imageFileName) {
             if (!imageFileName) {
-                return `http://127.0.0.1:5000/api/outfits/image/default_outfit.png`;
+                return `http://127.0.0.1:5001/api/outfits/image/default_outfit.png`;
             }
             // Clean up the image filename to only use the actual filename
             const filename = imageFileName.split(/[\/\\]/).pop();
-            return `http://127.0.0.1:5000/api/outfits/image/${filename}`;
+            return `http://127.0.0.1:5001/api/outfits/image/${filename}`;
         },
 
         handleImageError(e) {
