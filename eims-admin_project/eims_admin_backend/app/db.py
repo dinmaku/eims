@@ -1,10 +1,28 @@
 #db.py
 import psycopg2
+import logging
 from .config import DATABASE_CONFIG
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 def get_db_connection():
-    conn = psycopg2.connect(**DATABASE_CONFIG)
-    return conn
+    try:
+        logger.info("Attempting database connection...")
+        conn = psycopg2.connect(
+            host=DATABASE_CONFIG['host'],
+            database=DATABASE_CONFIG['database'],
+            user=DATABASE_CONFIG['user'],
+            password=DATABASE_CONFIG['password']
+        )
+        logger.info("Database connection successful")
+        return conn
+    except psycopg2.OperationalError as e:
+        logger.error(f"Database connection failed - OperationalError: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Database connection failed - Unexpected error: {str(e)}")
+        raise
 
 def get_all_discounts():
     try:

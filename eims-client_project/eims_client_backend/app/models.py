@@ -1953,3 +1953,130 @@ def get_event_feedback(events_id):
     finally:
         cursor.close()
         conn.close()
+
+def get_supplier_availability(supplier_id, start_date=None, end_date=None):
+    """
+    Get supplier availability for a date range
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+            SELECT 
+                availability_id,
+                supplier_id,
+                date,
+                is_available,
+                reason,
+                created_at,
+                updated_at
+            FROM supplier_availability 
+            WHERE supplier_id = %s
+        """
+        params = [supplier_id]
+        
+        if start_date and end_date:
+            query += " AND date BETWEEN %s AND %s"
+            params.extend([start_date, end_date])
+        elif start_date:
+            query += " AND date >= %s"
+            params.append(start_date)
+        elif end_date:
+            query += " AND date <= %s"
+            params.append(end_date)
+            
+        query += " ORDER BY date ASC"
+        
+        cursor.execute(query, params)
+        availability = cursor.fetchall()
+        
+        return availability
+    except Exception as e:
+        logger.error(f"Error getting supplier availability: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+def set_supplier_availability(supplier_id, date, is_available=True, reason=None):
+    """
+    Set supplier availability for a specific date
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Use UPSERT to handle both insert and update
+        query = """
+            INSERT INTO supplier_availability (supplier_id, date, is_available, reason)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (supplier_id, date) 
+            DO UPDATE SET 
+                is_available = EXCLUDED.is_available,
+                reason = EXCLUDED.reason,
+                updated_at = CURRENT_TIMESTAMP
+        """
+        
+        cursor.execute(query, (supplier_id, date, is_available, reason))
+        conn.commit()
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error setting supplier availability: {e}")
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_supplier_availability(supplier_id, date):
+    """
+    Delete supplier availability for a specific date
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        query = """
+            DELETE FROM supplier_availability 
+            WHERE supplier_id = %s AND date = %s
+        """
+        
+        cursor.execute(query, (supplier_id, date))
+        conn.commit()
+        
+        return cursor.rowcount > 0
+    except Exception as e:
+        logger.error(f"Error deleting supplier availability: {e}")
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_supplier_id_by_email(email):
+    """
+    Get supplier ID by email
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT s.supplier_id 
+            FROM suppliers s
+            JOIN users u ON s.userid = u.userid
+            WHERE u.email = %s
+        """
+        
+        cursor.execute(query, (email,))
+        result = cursor.fetchone()
+        
+        return result[0] if result else None
+    except Exception as e:
+        logger.error(f"Error getting supplier ID by email: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()

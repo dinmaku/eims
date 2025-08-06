@@ -11,7 +11,8 @@ from .models import (
     create_wishlist_package, initialize_test_suppliers, get_user_profile_by_id,
     change_password, get_db_connection, update_user_profile_picture, get_client_packages,
     get_supplier_booked_events, get_gown_package_outfits, add_event_feedback, get_event_feedback,
-    update_user_profile
+    update_user_profile, get_supplier_availability, set_supplier_availability, 
+    delete_supplier_availability, get_supplier_id_by_email
 )
 import logging
 import jwt
@@ -1374,6 +1375,112 @@ def init_routes(app):
                 'message': str(e)
             }), 500
     
+    # Supplier Availability Endpoints
+    @app.route('/api/supplier/availability', methods=['GET'])
+    @jwt_required()
+    def get_supplier_availability_route():
+        try:
+            email = get_jwt_identity()
+            print(f"DEBUG: JWT identity (email): {email}")
             
+            supplier_id = get_supplier_id_by_email(email)
+            print(f"DEBUG: Supplier ID: {supplier_id}")
             
-   
+            if not supplier_id:
+                print(f"DEBUG: User {email} is not a supplier")
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User is not a supplier'
+                }), 403
+            
+            # Get query parameters for date range
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            print(f"DEBUG: Date range - start: {start_date}, end: {end_date}")
+            
+            availability = get_supplier_availability(supplier_id, start_date, end_date)
+            print(f"DEBUG: Availability data: {availability}")
+            
+            return jsonify({
+                'status': 'success',
+                'data': availability
+            }), 200
+            
+        except Exception as e:
+            print(f"DEBUG: Error in availability route: {e}")
+            logging.error(f"Error fetching supplier availability: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/api/supplier/availability', methods=['POST'])
+    @jwt_required()
+    def set_supplier_availability_route():
+        try:
+            email = get_jwt_identity()
+            supplier_id = get_supplier_id_by_email(email)
+            
+            if not supplier_id:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User is not a supplier'
+                }), 403
+            
+            data = request.json
+            date = data.get('date')
+            is_available = data.get('is_available', True)
+            reason = data.get('reason')
+            
+            if not date:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Date is required'
+                }), 400
+            
+            set_supplier_availability(supplier_id, date, is_available, reason)
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Availability updated successfully'
+            }), 200
+            
+        except Exception as e:
+            logging.error(f"Error setting supplier availability: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
+
+    @app.route('/api/supplier/availability/<date>', methods=['DELETE'])
+    @jwt_required()
+    def delete_supplier_availability_route(date):
+        try:
+            email = get_jwt_identity()
+            supplier_id = get_supplier_id_by_email(email)
+            
+            if not supplier_id:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'User is not a supplier'
+                }), 403
+            
+            deleted = delete_supplier_availability(supplier_id, date)
+            
+            if deleted:
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Availability removed successfully'
+                }), 200
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'No availability record found for this date'
+                }), 404
+            
+        except Exception as e:
+            logging.error(f"Error deleting supplier availability: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500

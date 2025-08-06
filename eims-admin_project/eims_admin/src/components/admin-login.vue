@@ -68,12 +68,17 @@ export default {
             
             // Store the user profile in localStorage
             if (response.data.user_profile) {
-                localStorage.setItem('userProfile', JSON.stringify(response.data.user_profile));
-                console.log('Stored user profile:', response.data.user_profile); // Debug log
+                const userProfile = response.data.user_profile;
+                localStorage.setItem('userProfile', JSON.stringify(userProfile));
+                localStorage.setItem('firstName', userProfile.firstname || '');
+                localStorage.setItem('lastName', userProfile.lastname || '');
+                localStorage.setItem('username', userProfile.email || '');
+                console.log('Stored user profile:', userProfile); // Debug log
             }
 
             // Set the 'loggedIn' status to true
             localStorage.setItem('loggedIn', 'true');
+
 
             // Emit an event with login success
             this.$emit('loginSuccess');

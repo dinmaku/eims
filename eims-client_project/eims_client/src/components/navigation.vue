@@ -222,10 +222,10 @@ export default {
       return '/default-profile.jpg';
     },
     isSupplier() {
-      return this.userProfile && 
-             this.userProfile.user_type && 
-             this.userProfile.user_type.toLowerCase() === 'suppliers';
-    }
+    return Boolean(
+      this.userProfile?.user_type?.toLowerCase() === 'suppliers'
+    );
+   }
   },
   mounted() {
     window.addEventListener('scroll', this.handleScroll);
@@ -256,15 +256,19 @@ export default {
     hideModal() {
       this.loginModalForm = false; // Ensure this is reset as well
     },
-    handleLoginSuccess() {
-      this.loggedIn = true;  // Set logged in state to true
-      localStorage.setItem('loggedIn', 'true'); 
-      this.showDropDown = false;  // Ensure dropdown is hidden after login
-      this.loginModalForm = false;  // Close login modal
-      
-      // Fetch user profile after successful login
-      this.fetchUserProfile();
-    },
+     handleLoginSuccess() {
+        console.log('[Navigation] Login successful');
+        this.loggedIn = true;
+        localStorage.setItem('loggedIn', 'true');
+        this.showDropDown = false;
+        this.loginModalForm = false;
+        
+        // Add a slight delay before fetching profile to ensure token is saved
+        setTimeout(() => {
+          console.log('[Navigation] Fetching profile after login...');
+          this.fetchUserProfile();
+        }, 100);
+      },
     toggleDrop() {
       this.showDropDown = !this.showDropDown;
     },
@@ -279,29 +283,40 @@ export default {
     toggleServices() {
       this.isDropdownVisible = !this.isDropdownVisible;
     },
-    async fetchUserProfile() {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          console.error('No access token found');
-          return;
-        }
-        
-        const response = await axios.get(`${this.apiBaseUrl}/api/user/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
+     async fetchUserProfile() {
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            console.warn('[Navigation] No access token found');
+            return;
           }
-        });
-        
-        if (response.data.status === 'success') {
-          this.userProfile = response.data.data;
-        } else {
-          console.error('Failed to load profile:', response.data.message);
+          
+          console.log('[Navigation] Fetching user profile...');
+          const response = await axios.get(`${this.apiBaseUrl}/api/user/profile`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.data.status === 'success') {
+            this.userProfile = response.data.data;
+            // Add detailed logging
+            console.log('[Navigation] User Profile Data:', {
+              name: this.userFullName,
+              type: this.userProfile.user_type,
+              isSupplier: this.isSupplier
+            });
+          } else {
+            console.error('[Navigation] Failed to load profile:', response.data.message);
+          }
+        } catch (error) {
+          console.error('[Navigation] Error fetching profile:', error);
+          // Log the full error details
+          if (error.response) {
+            console.error('[Navigation] Error response:', error.response.data);
+          }
         }
-      } catch (error) {
-        console.error('Error fetching profile in navigation:', error);
-      }
-    },
+      },
     handleImageError(e) {
       console.error('Navigation: Image failed to load:', e.target.src);
       e.target.src = '/default-profile.jpg';

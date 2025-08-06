@@ -3,55 +3,86 @@
       <!-- Header with responsive layout -->
       <div class="flex justify-between items-center w-full h-20 bg-gray-100 shadow-lg antialiased mt-28 px-4 sm:px-6 lg:px-8">
         <h1 class="flex font-medium font-amaticBold text-2xl ml-5 sm:text-xl">My Booked Schedule</h1>
+        <button 
+          @click="openAvailabilitySidebar" 
+          class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center"
+        >
+         
+          Manage Availability
+        </button>
       </div>
   
       <!-- Sidebar (will slide in/out based on isSidebarOpen) -->
       <aside class="fixed top-0 right-0 w-full md:w-[450px] h-full bg-[#f8f9ef] shadow-lg transition-transform z-50 custom-shadow" :class="isSidebarOpen ? 'translate-x-0' : 'translate-x-full'">
         <div class="p-4">
-          <div class="flex items-center">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">{{ sidebarMode === 'event' ? 'Schedule Event' : 'Manage Availability' }}</h2>
             <button @click="toggleSidebar" class="px-3 h-8 text-md bg-gray-200 font-bold rounded-full transform-transition duration-300 transform hover:scale-110">X</button>
           </div>
-          <h2 class="text-xl font-semibold">Schedule Event</h2>
-          <p class="mb-10 text-base text-gray-500">Capture your upcoming events in one place.</p>
+          
   
-          <form @submit.prevent="addEvent">
-            <div class="mt-8 ml-2">
-              <div class="flex items-center">
-                <label for="event-title" class="block text-md font-semibold text-gray-700 mr-2 font-raleway">Event Name: </label>
-                <input type="text" class="h-8 w-full sm:w-56 rounded-lg shadow-md text-sm" id="eventTitle" v-model="eventTitle" required />
-              </div>
-            </div>
-            <div class="mt-8 ml-2">
-              <div class="flex items-center">
-                <label for="event-title" class="block text-md font-semibold text-gray-700 mr-2 font-raleway">Venue: </label>
-                <input type="text" class="h-8 w-full sm:w-56 rounded-lg shadow-md text-sm" id="eventVenue" v-model="eventVenue" required />
-              </div>
-            </div>
-            <div class="mt-8 ml-2">
-              <div class="flex items-center">
-                <label for="event-title" class="block text-md font-semibold text-gray-700 mr-3 font-raleway">Date: </label>
-                <input type="date" class="h-8 w-full sm:w-56 rounded-lg shadow-md text-sm" id="eventDate" v-model="eventDate" required />
-              </div>
-            </div>
-            <div class="mt-12 ml-2">
-              <div class="flex items-center">
-                <label for="event-title" class="block text-md font-semibold text-gray-700 mr-3 font-raleway">Start Time: </label>
-                <input type="time" class="h-8 w-full sm:w-56 rounded-lg shadow-md text-sm" id="startTime" v-model="eventStartTime" required />
-              </div>
-            </div>
-            <div class="mt-4 ml-2">
-              <div class="flex items-center">
-                <label for="event-title" class="block text-md font-semibold text-gray-700 mr-3 font-raleway">End Time: </label>
-                <input type="time" class="h-8 w-full sm:w-56 rounded-lg shadow-md text-sm" id="endTime" v-model="eventEndTime" required />
-              </div>
-            </div>
+
   
-            <div class="mt-10">
-              <button type="submit" class="h-10 bg-blue-400 text-md font-bold px-2 rounded-lg shadow-lg w-full sm:w-auto">
-                Set Schedule
-              </button>
+
+         <!-- Availability Form -->
+        <div v-if="sidebarMode === 'availability'">
+          <p class="mb-6 text-base text-gray-500">Mark dates as unavailable to prevent bookings.</p>
+          
+          <!-- Current Availability List -->
+          <div v-if="supplierAvailability.length > 0" class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Current Unavailable Dates</h3>
+            <div class="space-y-2 max-h-40 overflow-y-auto">
+              <div 
+                v-for="avail in supplierAvailability.filter(a => !a.is_available)" 
+                :key="avail.availability_id"
+                class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
+              >
+                <div class="flex-1">
+                  <div class="font-medium text-red-800">{{ avail.date }}</div>
+                  <div v-if="avail.reason" class="text-sm text-red-600">{{ avail.reason }}</div>
+                </div>
+                <button 
+                  @click="removeAvailability(avail.date)"
+                  class="ml-2 px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
-          </form>
+          </div>
+            
+            <form @submit.prevent="setAvailability">
+              <div class="mt-8 ml-2">
+                <div class="flex items-center">
+                  <label for="availability-date" class="block text-md font-semibold text-gray-700 mr-3 font-raleway">Date: </label>
+                  <input type="date" class="h-10 w-full sm:w-56 rounded-lg shadow-md text-sm" id="availabilityDate" v-model="availabilityDate" required />
+                </div>
+              </div>
+              
+              <div class="mt-8 ml-2">
+                <div class="flex items-center">
+                  <label for="availability-status" class="block text-md font-semibold text-gray-700 mr-3 font-raleway">Status: </label>
+                  <select class="h-10 w-full sm:w-56 rounded-lg shadow-md text-sm" id="availabilityStatus" v-model="availabilityStatus" required>
+                    <option value="false">Unavailable</option>
+                    <option value="true">Available</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="mt-8 ml-2">
+                <div class="flex items-center">
+                  <label for="availability-reason" class="block text-md font-semibold text-gray-700 mr-3 font-raleway">Reason: </label>
+                  <textarea class="h-16 w-full sm:w-56 rounded-lg shadow-md text-sm p-2" id="availabilityReason" v-model="availabilityReason" placeholder="Optional reason for unavailability"></textarea>
+                </div>
+              </div>
+
+              <div class="mt-10">
+                <button type="submit" class="h-10 bg-red-500 text-md font-bold px-2 rounded-lg shadow-lg w-full sm:w-auto text-white">
+                  {{ availabilityStatus === 'true' ? 'Mark as Available' : 'Mark as Unavailable' }}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </aside>
   
@@ -205,6 +236,35 @@
         </div>
       </div>
 
+      <!-- Snackbar for notifications -->
+      <div v-if="snackbar.show" 
+           class="fixed top-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden"
+           :class="snackbar.type === 'success' ? 'border-l-4 border-green-400' : 'border-l-4 border-red-400'">
+        <div class="p-4">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg v-if="snackbar.type === 'success'" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <svg v-else class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div class="ml-3 w-0 flex-1 pt-0.5">
+              <p class="text-sm font-medium text-gray-900">{{ snackbar.message }}</p>
+            </div>
+            <div class="ml-4 flex-shrink-0 flex">
+              <button @click="hideSnackbar" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <span class="sr-only">Close</span>
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4 mx-8">
         <span class="block sm:inline">{{ error }}</span>
       </div>
@@ -249,7 +309,19 @@
         bookedEvents: [],
         error: null,
         isLoading: false,
-        initialDateSet: false
+        initialDateSet: false,
+        // Availability management
+        sidebarMode: 'event',
+        availabilityDate: '',
+        availabilityStatus: 'false',
+        availabilityReason: '',
+        supplierAvailability: [],
+        // Snackbar for notifications
+        snackbar: {
+          show: false,
+          message: '',
+          type: 'success' // 'success' or 'error'
+        }
       };
     },
     mounted() {
@@ -257,12 +329,12 @@
       this.$nextTick(() => {
         if (this.$refs.fullCalendar) {
           this.calendarApi = this.$refs.fullCalendar.getApi();
-          console.log('Calendar API reference obtained');
         }
       });
     },
     async created() {
       await this.fetchSupplierBookings();
+      await this.fetchSupplierAvailability();
   },
   methods: {
       async fetchSupplierBookings() {
@@ -275,56 +347,35 @@
             return;
           }
 
-          // Directly fetch the supplier's events with better error logging
-          console.log('Fetching supplier events...');
-          
           const response = await fetch(`${this.apiBaseUrl}/api/supplier/events`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
-
-          // Log the response status
-          console.log('Response status:', response.status);
           
           if (response.status === 403) {
-            console.error('403 Forbidden response received');
             this.error = 'Unable to access supplier schedule data';
             return;
           }
 
           if (!response.ok) {
-            console.error('Error response', response.status, response.statusText);
             throw new Error(`Failed to fetch schedules: ${response.status} ${response.statusText}`);
           }
 
           // Parse response
           const responseText = await response.text();
-          console.log('Raw response:', responseText);
           
           let result;
           try {
             result = JSON.parse(responseText);
           } catch (e) {
-            console.error('Failed to parse JSON response:', e);
             throw new Error('Invalid response format from server');
           }
-
-          console.log('Supplier Events:', result);
 
           if (result.status === 'success' && Array.isArray(result.data)) {
             this.bookedEvents = result.data;
             
-            if (result.data.length === 0) {
-              console.log('No booked events found for this supplier');
-            } else {
-              console.log(`Found ${result.data.length} supplier events`);
-              
-              // Log the first event date to debug
-              if (result.data[0] && result.data[0].schedule) {
-                console.log('First event date:', result.data[0].schedule);
-              }
-            }
+
             
             // Transform the data into FullCalendar event format
             const events = result.data.map(booking => ({
@@ -370,18 +421,17 @@
 
             // Update the calendar events
             this.calendarOptions.events = events;
-            console.log('Calendar events updated:', events.length);
             
             // Set calendar to earliest event month
             this.$nextTick(() => {
               this.setInitialCalendarDate(events);
+              // Update with availability data after calendar is ready
+              this.updateCalendarWithAvailability();
             });
           } else {
-            console.error('Invalid response format:', result);
             throw new Error(result.message || 'Failed to fetch events');
           }
         } catch (error) {
-          console.error('Error fetching booked schedules:', error);
           this.error = 'Failed to load your schedule. Please try again later.';
         } finally {
           this.isLoading = false;
@@ -389,14 +439,13 @@
       },
       
       handleDatesSet(dateInfo) {
-        console.log('Calendar dates set:', dateInfo);
+        // Calendar dates set callback
       },
 
       // New method to set the initial calendar date
       setInitialCalendarDate(events) {
         if (!events || events.length === 0) {
           // If no events, use current month
-          console.log('No events found, using current month');
           return;
         }
         
@@ -410,18 +459,15 @@
           const earliestEvent = sortedEvents[0];
           const earliestDate = new Date(earliestEvent.start);
           
-          console.log('Earliest event date:', earliestDate.toISOString().slice(0, 10));
-          
           // Try different approaches to set the calendar date
           // 1. Direct API access if available
           if (this.$refs.fullCalendar) {
             try {
               const calendarApi = this.$refs.fullCalendar.getApi();
               calendarApi.gotoDate(earliestDate);
-              console.log('Calendar date set via ref API');
               return;
             } catch (e) {
-              console.error('Error using ref API:', e);
+              // Error using ref API
             }
           }
           
@@ -429,10 +475,9 @@
           if (this.calendarApi) {
             try {
               this.calendarApi.gotoDate(earliestDate);
-              console.log('Calendar date set via stored API');
               return;
             } catch (e) {
-              console.error('Error using stored API:', e);
+              // Error using stored API
             }
           }
           
@@ -449,17 +494,16 @@
                   
                   const api = calendarEl.__vueParentComponent.component.proxy.getApi();
                   api.gotoDate(earliestDate);
-                  console.log('Calendar date set via DOM lookup');
                 } else {
-                  console.warn('Could not find calendar API in DOM');
+                  // Could not find calendar API in DOM
                 }
               }
             } catch (e) {
-              console.error('Error in setTimeout approach:', e);
+              // Error in setTimeout approach
             }
           }, 500);
         } catch (error) {
-          console.error('Error setting initial calendar date:', error);
+          // Error setting initial calendar date
         }
       },
 
@@ -472,7 +516,6 @@
           try {
             const token = localStorage.getItem('access_token');
             if (!token) {
-              console.error('No access token found');
               return;
             }
 
@@ -510,7 +553,7 @@
         
         this.toggleSidebar(); // Close the sidebar after adding
           } catch (error) {
-            console.error('Error adding event:', error);
+            // Error adding event
           }
       }
     },
@@ -544,7 +587,29 @@
 
     handleEventClick(info) {
         this.selectedEvent = info.event;
-        this.isModalOpen = true;
+        
+        // Check if it's an availability event
+        if (info.event.extendedProps.type === 'availability') {
+          this.handleAvailabilityEventClick(info.event);
+        } else {
+          this.isModalOpen = true;
+        }
+    },
+
+    handleAvailabilityEventClick(event) {
+      // Show confirmation dialog for removing availability
+      if (confirm(`Remove unavailability for ${event.extendedProps.date}?${event.extendedProps.reason ? `\nReason: ${event.extendedProps.reason}` : ''}`)) {
+        this.removeAvailability(event.extendedProps.date);
+      }
+    },
+
+    editAvailabilityEvent(event) {
+      // Pre-fill the form with existing availability data
+      this.availabilityDate = event.extendedProps.date;
+      this.availabilityStatus = 'true'; // Mark as available to remove
+      this.availabilityReason = event.extendedProps.reason || '';
+      this.sidebarMode = 'availability';
+      this.isSidebarOpen = true;
     },
 
     closeModal() {
@@ -568,6 +633,229 @@
           // Add delete functionality here when backend endpoint is ready
           this.isModalOpen = false;
       }
+    },
+
+    // Availability management methods
+    setSidebarMode(mode) {
+      this.sidebarMode = mode;
+      // Clear form when switching modes
+      if (mode === 'availability') {
+        this.availabilityDate = '';
+        this.availabilityStatus = 'false';
+        this.availabilityReason = '';
+      }
+    },
+
+    async fetchSupplierAvailability() {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          return;
+        }
+
+        const response = await fetch(`${this.apiBaseUrl}/api/supplier/availability`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          this.supplierAvailability = result.data;
+          
+          // Wait for next tick to ensure calendar is mounted
+          this.$nextTick(() => {
+            this.updateCalendarWithAvailability();
+          });
+        }
+              } catch (error) {
+          // Error fetching supplier availability
+        }
+    },
+
+    async setAvailability() {
+      if (!this.availabilityDate) {
+        this.showSnackbar('Please select a date', 'error');
+        return;
+      }
+
+      // Check if date is already marked as unavailable
+      const existingAvailability = this.supplierAvailability.find(
+        avail => avail.date === this.availabilityDate && !avail.is_available
+      );
+      
+      if (existingAvailability && this.availabilityStatus === 'false') {
+        this.showSnackbar('This date is already marked as unavailable', 'error');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          this.error = 'Please log in to manage availability';
+          return;
+        }
+
+        const availabilityData = {
+          date: this.availabilityDate,
+          is_available: this.availabilityStatus === 'true',
+          reason: this.availabilityReason || null
+        };
+
+        const response = await fetch(`${this.apiBaseUrl}/api/supplier/availability`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(availabilityData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update availability');
+        }
+
+        // Refresh availability data
+        await this.fetchSupplierAvailability();
+        
+        // Reset form
+        this.availabilityDate = '';
+        this.availabilityStatus = 'false';
+        this.availabilityReason = '';
+        
+        // Show success message
+        this.error = null;
+        this.showSnackbar('Availability updated successfully', 'success');
+      } catch (error) {
+        this.showSnackbar('Failed to update availability. Please try again.', 'error');
+      }
+    },
+
+    updateCalendarWithAvailability() {
+      // Get the calendar API
+      const calendarApi = this.$refs.fullCalendar?.getApi();
+      if (!calendarApi) {
+        return;
+      }
+
+      // Remove existing availability events first
+      const existingEvents = calendarApi.getEvents();
+      existingEvents.forEach(event => {
+        if (event.extendedProps?.type === 'availability') {
+          event.remove();
+        }
+      });
+
+      // Add availability events to calendar
+      const availabilityEvents = this.supplierAvailability
+        .filter(avail => !avail.is_available)
+        .map(avail => {
+          // Convert date format from "Fri, 11 Jul 2025 00:00:00 GMT" to "2025-07-11"
+          let formattedDate = avail.date;
+          if (avail.date && typeof avail.date === 'string') {
+            try {
+              const dateObj = new Date(avail.date);
+              formattedDate = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD format
+            } catch (error) {
+              formattedDate = avail.date;
+            }
+          }
+          
+          return {
+            id: `availability-${avail.availability_id}`,
+            title: avail.reason ? `Unavailable - ${avail.reason}` : 'Unavailable',
+            start: formattedDate,
+            end: formattedDate,
+            allDay: true,
+            backgroundColor: '#dc2626', // Red color for unavailable
+            borderColor: '#b91c1c',
+            extendedProps: {
+              type: 'availability',
+              availabilityId: avail.availability_id,
+              reason: avail.reason,
+              isAvailable: false,
+              date: formattedDate
+            }
+          };
+        });
+
+      // Add events to calendar using API
+      availabilityEvents.forEach(eventData => {
+        calendarApi.addEvent(eventData);
+      });
+    },
+
+    handleDateClick(info) {
+      // Set the clicked date in the availability form
+      this.availabilityDate = info.dateStr;
+      this.sidebarMode = 'availability';
+      this.isSidebarOpen = true;
+    },
+
+    openAvailabilitySidebar() {
+      this.sidebarMode = 'availability';
+      this.isSidebarOpen = true;
+    },
+
+    async removeAvailability(date) {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          this.error = 'Please log in to manage availability';
+          return;
+        }
+
+        const response = await fetch(`${this.apiBaseUrl}/api/supplier/availability/${date}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to remove availability');
+        }
+
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          // Refresh availability data
+          await this.fetchSupplierAvailability();
+          
+          // Show success message
+          this.error = null;
+          this.showSnackbar('Availability removed successfully', 'success');
+        } else {
+          throw new Error(result.message || 'Failed to remove availability');
+        }
+      } catch (error) {
+        this.showSnackbar('Failed to remove availability. Please try again.', 'error');
+      }
+    },
+
+
+
+    // Snackbar methods
+    showSnackbar(message, type = 'success') {
+      this.snackbar = {
+        show: true,
+        message,
+        type
+      };
+      
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        this.hideSnackbar();
+      }, 3000);
+    },
+
+    hideSnackbar() {
+      this.snackbar.show = false;
     },
   },
   }

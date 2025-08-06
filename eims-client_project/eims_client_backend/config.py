@@ -1,7 +1,7 @@
 #config.py
 DATABASE_CONFIG = {
     'host': 'localhost',
-    'database': 'eims_db',
+    'database': 'eims_db1',
     'user': 'postgres',
     'password': 'meadmin0921'
 }

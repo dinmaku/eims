@@ -52,6 +52,8 @@ from .models import (
 from werkzeug.utils import secure_filename
 import json
 import uuid
+import psycopg2
+from . import db  # Add this import
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -71,18 +73,25 @@ def get_saved_dir(subdir):
     return saved_dir
 
 def init_routes(app):
-    # Initialize CORS with proper configuration - single source of CORS headers
+    # Single source of CORS configuration
     CORS(app, 
-        origins=["http://localhost:5173"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
-        supports_credentials=True
+        resources={
+            r"/*": {  # Match all routes
+                "origins": ["http://localhost:5173"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+                "supports_credentials": True,
+                "expose_headers": ["Content-Type", "Authorization"]
+            }
+        }
     )
-    
+
     # Initialize tables
     initialize_event_types()
     initialize_supplier_social_media()
-    
+
+
+
     @app.route('/login', methods=['POST'])
     def login():
         try:
@@ -1258,47 +1267,48 @@ def init_routes(app):
     @jwt_required()
     def get_event_route(event_id):
         try:
-            # Get detailed event information with all inclusions
-            event_details = get_event_details(event_id)
-            
-            if not event_details:
-                return jsonify({'message': 'Event not found'}), 404
-            
-            # Get any wishlist package for this event
-            if 'wishlist_id' in event_details:
-                wishlist_details = get_wishlist_package(event_details['wishlist_id'])
-                if wishlist_details:
-                    event_details['wishlist_package'] = wishlist_details
-            
-            # Format time and decimal values for JSON serialization
-            if 'start_time' in event_details and event_details['start_time'] is not None:
-                event_details['start_time'] = event_details['start_time'].strftime('%H:%M:%S')
+            conn = None
+            cursor = None
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
                 
-            if 'end_time' in event_details and event_details['end_time'] is not None:
-                event_details['end_time'] = event_details['end_time'].strftime('%H:%M:%S')
+                # Mark the event as viewed if it's a wishlist
+                cursor.execute("""
+                    UPDATE events 
+                    SET viewed = TRUE 
+                    WHERE events_id = %s AND status = 'Wishlist'
+                """, (event_id,))
+                conn.commit()
                 
-            if 'total_price' in event_details and event_details['total_price'] is not None:
-                event_details['total_price'] = float(event_details['total_price'])
-            
-            # Make sure all pricing data is properly formatted for the frontend
-            if 'suppliers' in event_details and event_details['suppliers']:
-                for supplier in event_details['suppliers']:
-                    if 'price' in supplier and supplier['price'] is not None:
-                        supplier['price'] = float(supplier['price'])
-                        
-            if 'outfits' in event_details and event_details['outfits']:
-                for outfit in event_details['outfits']:
-                    if 'price' in outfit and outfit['price'] is not None:
-                        outfit['price'] = float(outfit['price'])
-                        
-            if 'venue' in event_details and event_details['venue']:
-                if 'venue_price' in event_details['venue'] and event_details['venue']['venue_price'] is not None:
-                    event_details['venue']['venue_price'] = float(event_details['venue']['venue_price'])
-            
-            return jsonify(event_details), 200
+                # Get detailed event information with all inclusions
+                event_details = get_event_details(event_id)
+                
+                if not event_details:
+                    return jsonify({'message': 'Event not found'}), 404
+                
+                # Get any wishlist package for this event
+                if 'wishlist_id' in event_details:
+                    wishlist_details = get_wishlist_package(event_details['wishlist_id'])
+                    if wishlist_details:
+                        event_details['wishlist_package'] = wishlist_details
+                
+                return jsonify(event_details), 200
+                
+            except Exception as e:
+                if conn:
+                    conn.rollback()
+                logger.error(f"Database error in get_event_route: {str(e)}")
+                return jsonify({'error': 'Database error occurred'}), 500
+            finally:
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
+                    
         except Exception as e:
             logger.error(f"Error in get_event_route: {str(e)}")
-            return jsonify({'message': f'An error occurred while fetching event details: {str(e)}'}), 500
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/events-by-month', methods=['GET'])
     def get_events_by_month_route():
@@ -3669,6 +3679,142 @@ def init_routes(app):
         except Exception as e:
             print(f"Error in get_feedback_statistics_route: {e}")
             return jsonify({'message': 'Error fetching feedback statistics'}), 500
+
+    @app.route('/api/events/wishlist/count', methods=['GET', 'OPTIONS'])
+    @jwt_required(optional=True)  # Make JWT optional to handle OPTIONS requests
+    def get_new_wishlist_count():
+        if request.method == 'OPTIONS':
+            response = jsonify({'message': 'OK'})
+            return response, 200
+
+        try:
+            # Require JWT for actual GET request
+            verify_jwt_in_request()
+            logger.info("JWT verified successfully")
+            
+            # Get current user from JWT
+            current_user = get_jwt_identity()
+            logger.info(f"Current user: {current_user}")
+            
+            conn = None
+            cursor = None
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                
+                # Get count of events with status 'Wishlist' that haven't been viewed
+                # and were created in the last 30 days
+                query = """
+                    SELECT COUNT(*) 
+                    FROM events 
+                    WHERE status = 'Wishlist' 
+                    AND (viewed IS NULL OR viewed = FALSE)
+                    AND schedule >= CURRENT_DATE - INTERVAL '30 days'
+                """
+                cursor.execute(query)
+                count = cursor.fetchone()[0]
+                
+                return jsonify({'count': count}), 200
+                
+            except psycopg2.Error as e:
+                logger.error(f"Database error in get_new_wishlist_count: {str(e)}")
+                return jsonify({'error': 'Database error occurred'}), 500
+            finally:
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
+                    
+        except Exception as e:
+            logger.error(f"Error getting wishlist count: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/events/<int:event_id>', methods=['GET'])
+    @jwt_required()
+    def get_event_by_id(event_id):
+        try:
+            conn = db.get_db_connection()
+            cursor = conn.cursor()
+            
+            # Get the event details
+            query = """
+                SELECT * FROM events WHERE events_id = %s
+            """
+            cursor.execute(query, (event_id,))
+            event = cursor.fetchone()
+            
+            if not event:
+                return jsonify({'message': 'Event not found'}), 404
+                
+            # Mark the event as viewed if it's a wishlist
+            if event[3] == 'Wishlist':  # Assuming status is the 4th column
+                update_query = """
+                    UPDATE events SET viewed = TRUE 
+                    WHERE events_id = %s AND viewed = FALSE
+                """
+                cursor.execute(update_query, (event_id,))
+                conn.commit()
+            
+            # Convert event to dictionary
+            event_dict = {
+                'events_id': event[0],
+                'userid': event[1],
+                'event_name': event[2],
+                'status': event[3],
+                # ... rest of the event fields ...
+            }
+            
+            return jsonify(event_dict), 200
+            
+        except Exception as e:
+            logger.error(f"Error getting event: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    @app.route('/api/events/wishlist/mark-all-viewed', methods=['POST'])
+    @jwt_required()
+    def mark_all_wishlists_viewed():
+        try:
+            conn = None
+            cursor = None
+            try:
+                conn = db.get_db_connection()
+                cursor = conn.cursor()
+                
+                # Mark all recent unviewed wishlists as viewed
+                query = """
+                    UPDATE events 
+                    SET viewed = TRUE 
+                    WHERE status = 'Wishlist' 
+                    AND (viewed IS NULL OR viewed = FALSE)
+                    AND schedule >= CURRENT_DATE - INTERVAL '30 days'
+                    RETURNING events_id
+                """
+                cursor.execute(query)
+                updated_ids = cursor.fetchall()
+                conn.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Marked {len(updated_ids)} wishlists as viewed'
+                }), 200
+                
+            except psycopg2.Error as e:
+                if conn:
+                    conn.rollback()
+                logger.error(f"Database error in mark_all_wishlists_viewed: {str(e)}")
+                return jsonify({'error': 'Database error occurred'}), 500
+            finally:
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
+                    
+        except Exception as e:
+            logger.error(f"Error marking wishlists as viewed: {str(e)}")
+            return jsonify({'error': str(e)}), 500
 
     return app
 

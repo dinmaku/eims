@@ -50,9 +50,15 @@
 
             <p @click="toggleSection('management')" class="ml-2 text-left text-lg font-bold text-[#FFE4C4] cursor-pointer">Management</p>
             <div v-if="visibleSections.management" class="ml-4 border-l-2 border-gray-50">
-              <router-link to="/manage-events" class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap">
+              <router-link to="/manage-events" 
+                @click="markAllWishlistsViewed"
+                class="inline-flex items-center py-[15px] px-[10px] w-full text-sm font-interBold font-semibold hover:bg-white hover:text-gray-900 transition duration-400 ease-in-out group whitespace-nowrap relative">
                 <img aria-hidden="true" class="mr-2 w-[20px] h-[20px] text-white transition duration-300 ease-in-out group-hover:brightness-0" src="/img/events-booked.png">
                 Events
+                <span v-if="newWishlistCount > 0" 
+                      class="absolute right-2 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {{ newWishlistCount }}
+                </span>
               </router-link>
             </div>
           </div>
@@ -117,6 +123,8 @@
         management: true,
         reports: false
       },
+      newWishlistCount: 0,
+      wishlistCheckInterval: null,
     }
   },
   async created() {
@@ -128,6 +136,12 @@
         this.userType = userProfile.user_type.toLowerCase().trim();
         console.log('User type:', this.userType); // Add this for debugging
       }
+      
+      // Initial fetch of wishlist count
+      await this.fetchNewWishlistCount();
+      
+      // Set up interval to check for new wishlists every minute
+      this.wishlistCheckInterval = setInterval(this.fetchNewWishlistCount, 60000);
     } catch (error) {
       console.error('Error loading user profile:', error);
     }
@@ -136,6 +150,10 @@
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
+    // Clear the interval when component is destroyed
+    if (this.wishlistCheckInterval) {
+      clearInterval(this.wishlistCheckInterval);
+    }
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
@@ -179,6 +197,59 @@
         if (!this.$refs.settingsButton.contains(event.target) && !this.$refs.dropdownMenu.contains(event.target)) {
           this.showDropDown = false
         }
+      }
+    },
+
+    async fetchNewWishlistCount() {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          console.log('No access token found');
+          return;
+        }
+
+        const response = await axios.get('http://127.0.0.1:5000/api/events/wishlist/count', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
+        });
+
+        if (response.data && typeof response.data.count === 'number') {
+          this.newWishlistCount = response.data.count;
+        } else {
+          console.warn('Invalid response format:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching wishlist count:', error);
+        if (error.response) {
+          console.error('Error response:', error.response.data);
+        }
+      }
+    },
+
+    async markAllWishlistsViewed() {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          console.log('No access token found');
+          return;
+        }
+
+        const response = await axios.post('http://127.0.0.1:5000/api/events/wishlist/mark-all-viewed', {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
+        });
+
+        if (response.data.success) {
+          this.newWishlistCount = 0;  // Reset the count immediately
+        }
+      } catch (error) {
+        console.error('Error marking wishlists as viewed:', error);
       }
     },
   }

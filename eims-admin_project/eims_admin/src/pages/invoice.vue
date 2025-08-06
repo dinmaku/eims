@@ -538,7 +538,10 @@
           <tr v-if="payments.length === 0">
             <td colspan="5" class="px-6 py-4 text-center text-xs text-gray-500">No payment records found</td>
           </tr>
-          <tr v-for="(payment, index) in payments" :key="payment.payment_id">
+          <tr v-for="(payment, index) in payments" 
+              :key="payment.payment_id" 
+              @click="showPaymentReceipt(payment)"
+              class="hover:bg-gray-200 cursor-pointer transition-colors">
             <td class="px-6 py-4 text-left text-xs text-gray-800">{{ index + 1 }}</td>
             <td class="px-6 py-4 text-left text-xs text-gray-800">{{ formatAmount(payment.amount) }}</td>
             <td class="px-6 py-4 text-left text-xs text-gray-800">{{ payment.payment_method || 'N/A' }}</td>
@@ -553,6 +556,71 @@
 
     <div class="flex justify-end mt-4">
       <button @click="showPaymentHistoryModal = false" 
+              class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Receipt Modal -->
+<div v-if="showReceiptModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto flex justify-center items-center z-[9999]">
+  <div class="bg-white p-8 rounded-lg shadow-lg w-[600px]" ref="receiptModal">
+    <!-- Receipt Header -->
+    <div class="text-center mb-6">
+      <img src="/img/logo.png" alt="Red Carpet Logo" class="w-32 mx-auto mb-2">
+      <h2 class="text-2xl font-bold">Red Carpet</h2>
+      <p class="text-gray-600">Events and Wedding Services</p>
+      <p class="text-sm text-gray-500 mt-1">23B San Miguel Street, Iligan City</p>
+      <div class="border-b-2 border-gray-300 my-4"></div>
+    </div>
+
+    <!-- Receipt Content -->
+    <div class="space-y-4" v-if="selectedPayment">
+      <div class="text-center mb-4">
+        <h3 class="text-xl font-bold">Payment Receipt</h3>
+        <p class="text-sm text-gray-500">{{ formatPaymentDate(selectedPayment.payment_date) }}</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <p class="text-gray-600">Receipt No:</p>
+          <p class="font-semibold">{{ selectedPayment.payment_id }}</p>
+        </div>
+        <div>
+          <p class="text-gray-600">Invoice No:</p>
+          <p class="font-semibold">{{ invoice.invoice_number }}</p>
+        </div>
+        <div>
+          <p class="text-gray-600">Payment Method:</p>
+          <p class="font-semibold">{{ selectedPayment.payment_method }}</p>
+        </div>
+        <div>
+          <p class="text-gray-600">Reference Number:</p>
+          <p class="font-semibold">{{ selectedPayment.reference_number || 'N/A' }}</p>
+        </div>
+        <div>
+          <p class="text-gray-600">Amount Paid:</p>
+          <p class="font-semibold text-green-600">{{ formatAmount(selectedPayment.amount) }}</p>
+        </div>
+        <div>
+          <p class="text-gray-600">Recorded By:</p>
+          <p class="font-semibold">{{ selectedPayment.recorded_by }}</p>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-300 mt-6 pt-4">
+        <p class="text-center text-sm text-gray-500">Thank you for your payment!</p>
+      </div>
+    </div>
+
+    <!-- Receipt Footer Buttons -->
+    <div class="flex justify-end mt-6 space-x-3">
+      <button @click="printReceipt" 
+              class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Print Receipt
+      </button>
+      <button @click="closeReceiptModal" 
               class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
         Close
       </button>
@@ -657,6 +725,8 @@ export default {
         selectedDiscountTemp: '',
         selectedDiscountObj: null,
         showPaymentHistoryModal: false,
+        showReceiptModal: false,
+        selectedPayment: null,
         }
     },
 
@@ -978,6 +1048,13 @@ export default {
       try {
         console.log('Processing payment of:', this.paymentAmount);
         
+        // Get user's full name from localStorage
+        const firstName = localStorage.getItem('firstName') || '';
+        const lastName = localStorage.getItem('lastName') || '';
+        const fullName = firstName && lastName 
+          ? `${firstName} ${lastName}` 
+          : (localStorage.getItem('username') || 'Admin');
+        
         // Create payment data object
         const paymentData = {
           invoice_id: typeof this.invoice.invoice_id === 'string' && this.invoice.invoice_id.startsWith('SIM-')
@@ -987,7 +1064,7 @@ export default {
           payment_method: this.paymentMethod,
           reference_number: this.paymentMethod === 'Cash' ? '' : (this.referenceNumber || 'REF' + Math.floor(Math.random() * 1000000)),
           payment_date: new Date().toISOString().split('T')[0],
-          recorded_by: localStorage.getItem('username') || 'Admin',
+          recorded_by: fullName,
           notes: `Payment for invoice ${this.invoice.invoice_number || '#'}`
         };
         
@@ -2806,6 +2883,40 @@ export default {
       this.showAlert = false;
       this.alertMessage = '';
     },
+    showPaymentReceipt(payment) {
+      this.selectedPayment = payment;
+      this.showReceiptModal = true;
+    },
+    printReceipt() {
+      // Store the current body styles
+      const originalStyle = document.body.style.cssText;
+      
+      // Hide all other elements
+      document.body.style.visibility = 'hidden';
+      
+      // Make the receipt modal visible
+      const receiptModal = this.$refs.receiptModal;
+      if (receiptModal) {
+        receiptModal.style.visibility = 'visible';
+        receiptModal.style.position = 'absolute';
+        receiptModal.style.left = '0';
+        receiptModal.style.top = '0';
+        
+        // Print the receipt
+        window.print();
+        
+        // Restore original styles
+        document.body.style.cssText = originalStyle;
+        receiptModal.style.position = 'static';
+        
+        // Close the modal after printing
+        this.closeReceiptModal();
+      }
+    },
+    closeReceiptModal() {
+      this.showReceiptModal = false;
+      this.selectedPayment = null;
+    },
   },
   
   mounted() {
@@ -2865,5 +2976,30 @@ export default {
 </script>
 
 <style scoped>
-
+@media print {
+  /* Hide all other elements when printing */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the receipt modal and its contents */
+  #receiptModal, #receiptModal * {
+    visibility: visible;
+  }
+  
+  /* Remove background colors and shadows for better printing */
+  #receiptModal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+    background: white !important;
+  }
+  
+  /* Hide the print and close buttons when printing */
+  #receiptModal button {
+    display: none !important;
+  }
+}
 </style>

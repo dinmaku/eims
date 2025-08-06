@@ -192,7 +192,7 @@ export default {
                   contactNumber: this.contactNumber,
                   password: this.registerPassword,
                   address: this.address,
-                  user_type: 'Suppliers'  // Add this line to set user type as Suppliers
+                  user_type: 'Client'  // Add this line to set user type as Suppliers
               });
 
               // Reset form and navigate to login after successful registration
